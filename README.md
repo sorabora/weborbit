@@ -2,6 +2,8 @@
 
 ## The biggest project I've made yet...
 
+[Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
+
 Copyright (C) 2026 sorabora (@sorabora)
 
 - This program is free software: you can redistribute it and/or modify
