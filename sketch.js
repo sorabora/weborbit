@@ -3176,6 +3176,7 @@ function drawCreditsMenu() {
   GUIAPI.label("Credits", { size: 28, align: CENTER, height: 40 });
   GUIAPI.label("@sorabora - Developer", { size: 28, align: CENTER, height: 80 });
   GUIAPI.label("Planet textures are modified versions of graphics by Solar System Scope (solarsystemscope.com), used under CC BY 4.0.", { size: 15, align: CENTER, height: 20 });
+  GUIAPI.label("Open Sans font by Steve Matteson, used under the Apache License 2.0.", { size: 15, align: CENTER, height: 40 });
 
   GUIAPI.button(width/2 - 175, 350, 350, 85, {
     id: "credits-close",
@@ -3188,7 +3189,8 @@ function drawCreditsMenu() {
 function drawModLoaderMenu() {
   GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
   GUIAPI.label("Modloader", { size: 28, align: CENTER, height: 40 });
-  GUIAPI.label("Note: THe modloader is (currently) only for parts, and to install a mod you have to (for now) fork the repo and edit the 'loaded' variable and add a mod to the array.", { size: 18, align: CENTER, height: 60 });
+  GUIAPI.label("The modloader is only for parts, and to install a mod you have to fork the repo and edit the 'loaded' variable and add a mod to the array.", { size: 18, align: CENTER, height: 60 });
+  GUIAPI.label("This is all temporary and code mods and deticated modloading wil be added.", { size: 18, align: CENTER, height: 80 });
   
   for (let i = 0; i < loaded.length; i++) {
     const pack = loaded[i];
@@ -4054,7 +4056,7 @@ async function setup() {
   let bootDone = 0;
   let loaded = false;
 
-  gameFont = await loadFont('/assets/Font.ttf'); // open sans
+  gameFont = await loadFont('assets/Font.ttf'); // open sans
   textFont(gameFont);
 
   const loadAll = (async () => {
