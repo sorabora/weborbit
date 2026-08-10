@@ -2,6 +2,7 @@
 
 ## The biggest project I've made yet...
 
+[Discord](https://discord.gg/YDvpbVEC8W)
 [Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
 
 Copyright (C) 2026 sorabora (@sorabora)
