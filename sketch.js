@@ -2,7 +2,7 @@
 // i've made this creation...
 
 let scale = 5;
-let mapScale = 2e-9;
+let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
 let throttle = 0;
 let target = "untitled-1";
@@ -3285,6 +3285,10 @@ function drawMap() {
     }
   }
 
+  for (const rocket of rockets) {
+    drawRocketOrbit(rocket, mapX, mapY);
+  }
+
   textAlign(CENTER, TOP);
   textSize(12);
   for (const body of planets) {
@@ -3341,6 +3345,33 @@ function drawMap() {
     GUIAPI.drawTooltip();
   }
   cursor(mouseIsPressed ? "grabbing" : "grab");
+}
+
+function drawRocketOrbit(rocket, mapX, mapY) {
+  const body = getBody(rocket.parentBody);
+  const mu = gravParam(body);
+  const rx = rocket.pos.x - body.pos.x;
+  const ry = rocket.pos.y - body.pos.y;
+  const r = Math.hypot(rx, ry);
+  const vel = relativeVelocity(rocket, body);
+  const h = rx * vel.y - ry * vel.x;
+  const energy = (vel.x * vel.x + vel.y * vel.y) / 2 - mu / r;
+  const a = -mu / (2 * energy);
+  const ex = (vel.y * h) / mu - rx / r;
+  const ey = (-vel.x * h) / mu - ry / r;
+  const e = Math.hypot(ex, ey);
+  if (energy >= 0 || e >= 1 || a * mapScale > width * 20) {
+    return;
+  }
+  const b = a * Math.sqrt(1 - e * e);
+  push();
+  translate(mapX(body.pos), mapY(body.pos));
+  rotate(Math.atan2(ey, ex));
+  noFill();
+  stroke(rocket.id === target ? "#5ccfff88" : "#8888aa66");
+  strokeWeight(1);
+  ellipse(-a * e * mapScale, 0, a * 2 * mapScale, b * 2 * mapScale);
+  pop();
 }
 
 function drawVab() {
