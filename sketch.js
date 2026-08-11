@@ -3270,10 +3270,17 @@ function drawMap() {
     if (!body.parentBody) {
       continue;
     }
+    const e = body.orbitEccentricity || 0;
     const ring = body.orbitRadius * mapScale;
     const parent = getBody(body.parentBody);
     if (ring < width * 20) {
-      circle(mapX(parent.pos), mapY(parent.pos), ring * 2);
+      // the parent is a focus of the ellipse, not its centre
+      ellipse(
+        mapX(parent.pos) - ring * e,
+        mapY(parent.pos),
+        ring * 2,
+        ring * 2 * Math.sqrt(1 - e * e)
+      );
     }
   }
 
@@ -3797,6 +3804,7 @@ function launch() {
     stack
   };
   rockets.push(rocket);
+  splitRocket(rocket, () => false, 0);
   target = rocket.id;
   inVab = false;
 }
@@ -4105,18 +4113,39 @@ function gravParam(body) {
   return body.surfaceGravity * body.size * body.size;
 }
 
+// solves Kepler's equation E - e*sin(E) = M by Newton
+function eccentricAnomaly(mean, e) {
+  if (!e) {
+    return mean;
+  }
+  let E = mean;
+  for (let i = 0; i < 12; i++) {
+    const step = (E - e * Math.sin(E) - mean) / (1 - e * Math.cos(E));
+    E -= step;
+    if (Math.abs(step) < 1e-12) {
+      break;
+    }
+  }
+  return E;
+}
+
 function updateBodies() {
   for (const body of planets) {
     if (!body.parentBody) {
       continue;
     }
     const parent = getBody(body.parentBody);
-    const angle = (body.orbitPhase || 0) + TWO_PI * (t / body.orbitPeriod);
-    const speed = (TWO_PI * body.orbitRadius) / body.orbitPeriod;
-    body.pos.x = parent.pos.x + cos(angle) * body.orbitRadius;
-    body.pos.y = parent.pos.y + sin(angle) * body.orbitRadius;
-    body.vel.x = parent.vel.x - sin(angle) * speed;
-    body.vel.y = parent.vel.y + cos(angle) * speed;
+    // orbitRadius is the semi-major axis, periapsis sits along +x
+    const a = body.orbitRadius;
+    const e = body.orbitEccentricity || 0;
+    const b = a * Math.sqrt(1 - e * e);
+    const mean = (body.orbitPhase || 0) + TWO_PI * (t / body.orbitPeriod);
+    const E = eccentricAnomaly(mean, e);
+    body.pos.x = parent.pos.x + a * (Math.cos(E) - e);
+    body.pos.y = parent.pos.y + b * Math.sin(E);
+    const rate = (TWO_PI / body.orbitPeriod) / (1 - e * Math.cos(E));
+    body.vel.x = parent.vel.x - a * Math.sin(E) * rate;
+    body.vel.y = parent.vel.y + b * Math.cos(E) * rate;
   }
 }
 
@@ -4739,31 +4768,62 @@ function stackHalf(entries) {
   };
 }
 
-function decouple(rocket, entry) {
-  const upper = rocket.stack.parts.filter((e) => e.oy < entry.oy);
-  const lower = rocket.stack.parts.filter((e) => e.oy >= entry.oy);
-  if (!upper.length || !lower.length) {
+function partsTouch(a, b) {
+  const A = partBBox(a.part);
+  const B = partBBox(b.part);
+  const gap = 1;
+  return Math.abs(a.ox - b.ox) <= (A.w + B.w) / 2 + gap &&
+         Math.abs(a.oy - b.oy) <= (A.h + B.h) / 2 + gap;
+}
+
+function connectedGroups(entries, cut) {
+  const seen = new Set();
+  const groups = [];
+  for (const start of entries) {
+    if (seen.has(start)) {
+      continue;
+    }
+    seen.add(start);
+    const group = [start];
+    for (let i = 0; i < group.length; i++) {
+      for (const other of entries) {
+        if (seen.has(other) || cut(group[i], other) || !partsTouch(group[i], other)) {
+          continue;
+        }
+        seen.add(other);
+        group.push(other);
+      }
+    }
+    groups.push(group);
+  }
+  return groups;
+}
+
+function splitRocket(rocket, cut, impulse) {
+  const groups = connectedGroups(rocket.stack.parts, cut);
+  if (groups.length < 2) {
     return;
   }
-  const top = stackHalf(upper);
-  const bottom = stackHalf(lower);
-  const impulse = ((entry.part.modules["Decoupler Module"] || {})["Separation Force"] || 0) * c.newtonsPerThrust;
   const sin = Math.sin(rocket.angle);
   const cos = Math.cos(rocket.angle);
+  const halves = groups.map(stackHalf);
+  const main = halves.reduce((a, b) => (b.cy < a.cy ? b : a));
+  const ground = halves.reduce((a, b) => (b.cy > a.cy ? b : a));
 
-  const half = (side, other, sign) => {
+  const build = (side) => {
     const tanks = stackTanks(side.stack);
     const tanksMax = stackTanks(side.stack, "tanksMax");
     const fuel = totalFuel(tanks);
     const dryMass = Math.max(side.wet - totalFuel(tanksMax), 1);
     const mass = dryMass + fuel;
-    const dv = (impulse / mass) * sign;
+    const dv = (impulse / mass) * (side === main ? 1 : -1);
     return {
       pos: {
         x: rocket.pos.x + (side.cx * cos - side.cy * sin) / c.partUnits,
         y: rocket.pos.y + (side.cx * sin + side.cy * cos) / c.partUnits
       },
       vel: { x: rocket.vel.x + sin * dv, y: rocket.vel.y - cos * dv },
+      landed: side === ground ? rocket.landed : null,
       mass,
       dryMass,
       fuel,
@@ -4774,17 +4834,26 @@ function decouple(rocket, entry) {
     };
   };
 
-  const keep = half(top, bottom, 1);
-  const shed = half(bottom, top, -1);
-  rockets.push({
-    angle: rocket.angle,
-    dragArea: rocket.dragArea,
-    dragCoeff: rocket.dragCoeff,
-    id: `debris-${Math.random().toString(36).slice(2, 8)}`,   // random, so ids stay unique across removals and loads
-    parentBody: rocket.parentBody,
-    ...shed
-  });
-  Object.assign(rocket, keep);
+  for (const side of halves) {
+    if (side === main) {
+      continue;
+    }
+    rockets.push({
+      angle: rocket.angle,
+      dragArea: rocket.dragArea,
+      dragCoeff: rocket.dragCoeff,
+      id: `debris-${Math.random().toString(36).slice(2, 8)}`,   // random, so ids stay unique across removals and loads
+      parentBody: rocket.parentBody,
+      ...build(side)
+    });
+  }
+  Object.assign(rocket, build(main));
+}
+
+function decouple(rocket, entry) {
+  const impulse = ((entry.part.modules["Decoupler Module"] || {})["Separation Force"] || 0) * c.newtonsPerThrust;
+  const cut = (a, b) => (a === entry && b.oy < entry.oy) || (b === entry && a.oy < entry.oy);
+  splitRocket(rocket, cut, impulse);
 }
 
 function rocketRadius(rocket) {
@@ -5509,7 +5578,7 @@ function draw() {
     skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
     GUIAPI.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
     GUIAPI.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${c.crashSpeed} m/s the airframe takes`);
-    GUIAPI.label(`Time of loss: ${Mafth.round(cd.time * 100) / 100}s`);
+    GUIAPI.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
   } else {
     skillIssue = null;
   }
@@ -5544,19 +5613,19 @@ function draw() {
   if (developerMode) {
     fill("Red");
     circle(10, 10, 5);
-    const isLocalhost = Boolean(
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname === '[::1]'
-    );
-    // thanks google AI overview for the check T_T
-
-    if (isLocalhost) {
-      fill("Yellow");
-      circle(20, 10, 5);   
-    }
   }
 
+  const isLocalhost = Boolean(
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '[::1]'
+  );
+  // thanks google AI overview for the check T_T
+
+  if (isLocalhost) {
+    fill("Yellow");
+    circle(20, 10, 5);   
+  }
   tt++;
 }
 
@@ -5909,10 +5978,10 @@ function flightControls() {
     return;
   }
   const rate = (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
-  if (held.has("KeyA") || held.has("ArrowLeft")) {
+  if (held.has("KeyQ") || held.has("ArrowLeft")) {
     rocket.angle -= rate * step * c.timewarp;
   }
-  if (held.has("KeyD") || held.has("ArrowRight")) {
+  if (held.has("KeyE") || held.has("ArrowRight")) {
     rocket.angle += rate * step * c.timewarp;
   }
 }
