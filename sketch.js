@@ -5138,7 +5138,7 @@ function drawBody(body, rocket) {
     drawingContext.arc(screenX, screenY, surfaceRadius, 0, TWO_PI);
     drawingContext.clip();
     imageMode(CENTER);
-    drawTextureSlice(surfaceImg, screenX, screenY, surfaceRadius);
+    drawTextureSlice(surfaceImg, screenX, screenY, surfaceRadius * 1.002);
     const cloudImg = textures[body.cloudTexture];
     if (cloudImg) {
       const cloudRadius = surfaceRadius * c.cloudScale;
@@ -6211,5 +6211,11 @@ function mouseWheel(event) {
     scale *= 1 - c.zoomPower;
   }
 }
+
+window.addEventListener('wheel', function(e) {
+  if (e.ctrlKey) {
+    e.preventDefault();
+  }
+}, { passive: false });
 
 executeLowPriority();
