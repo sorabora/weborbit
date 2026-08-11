@@ -47,7 +47,7 @@ let c = {
   hazeMax: 0.7,
   hazeFarSize: 0.7,
   hazeNearSize: 20,
-  cloudScale: 1.005,
+  cloudScale: 0.995,
   cloudMax: 0.45,
   cloudPeriod: 86400,
   glowMax: 1,
@@ -74,7 +74,8 @@ let c = {
   mapZoomMax: 1e-3,
   chuteDrag: 2000,
   chuteWidthPower: 0.5,
-  chuteHeightPower: 0.1
+  chuteHeightPower: 0.1,
+  launchPadRotation: 300
 }
 
 const loaded = [
@@ -3786,8 +3787,13 @@ function launch() {
   fillTanks(stack, trim);
   const tanks = stackTanks(stack);
   const fuel = totalFuel(tanks);
+  const padAngle = radians(c.launchPadRotation);
+  const out = { x: Math.sin(padAngle), y: -Math.cos(padAngle) };
   const rocket = {
-    pos: { x: earth.pos.x, y: earth.pos.y - earth.size - halfHeight },
+    pos: {
+      x: earth.pos.x + out.x * (earth.size + halfHeight),
+      y: earth.pos.y + out.y * (earth.size + halfHeight)
+    },
     vel: { x: earth.vel.x, y: earth.vel.y },
     mass: wet,
     dryMass: Math.max(wet - fuel, 1),
@@ -3795,12 +3801,12 @@ function launch() {
     fuelMax: fuel,
     tanks,
     tanksMax: { ...tanks },
-    angle: 0,
+    angle: padAngle,
     dragArea: 10,
     dragCoeff: 0.5,
     id: `flight-${rockets.length + 1}`,
     parentBody: "Earth",
-    landed: { x: 0, y: -1 },
+    landed: { x: out.x, y: out.y },
     stack
   };
   rockets.push(rocket);
@@ -5134,16 +5140,16 @@ function drawBody(body, rocket) {
     imageMode(CENTER);
     drawTextureSlice(surfaceImg, screenX, screenY, surfaceRadius);
     const cloudImg = textures[body.cloudTexture];
-    if (cloudImg && surfaceRadius < viewReach() * 4) {
+    if (cloudImg) {
       const cloudRadius = surfaceRadius * c.cloudScale;
       blendMode(SCREEN);
-      tint(255, 255 * c.cloudMax);
+      drawingContext.globalAlpha = c.cloudMax;
       push();
       translate(screenX, screenY);
       rotate(TWO_PI * (t / c.cloudPeriod));
       image(cloudImg, 0, 0, cloudRadius * 2, cloudRadius * 2);
       pop();
-      noTint();
+      drawingContext.globalAlpha = 1;
       blendMode(BLEND);
     }
     drawingContext.restore();
@@ -5586,7 +5592,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.2.1 [Public Alpha]", width - 120, height - 40);
+  text("v1.2.2 [Public Alpha]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
