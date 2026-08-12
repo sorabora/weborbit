@@ -3820,6 +3820,8 @@ function launch() {
   const fuel = totalFuel(tanks);
   const padAngle = radians(c.launchPadRotation);
   const out = { x: Math.sin(padAngle), y: -Math.cos(padAngle) };
+  const pad = { x: earth.pos.x + out.x * earth.size, y: earth.pos.y + out.y * earth.size };
+  rockets = rockets.filter(rocket => Math.hypot(rocket.pos.x - pad.x, rocket.pos.y - pad.y) > 150);
   const rocket = {
     pos: {
       x: earth.pos.x + out.x * (earth.size + halfHeight),
@@ -5623,7 +5625,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.2.3 [Public Alpha]", width - 120, height - 40);
+  text("v1.2.4 [Public Alpha]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
