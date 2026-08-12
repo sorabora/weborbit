@@ -3,7 +3,10 @@
 ## The biggest project I've made yet...
 
 [Discord](https://discord.gg/YDvpbVEC8W)
+
 [Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
+
+**[Bug Tracker](https://docs.google.com/spreadsheets/d/19nTjF6YmtObzQY5wZT1-g5W0uFzkRqWcJe90-qyIBZc/edit?usp=sharing)**
 
 Copyright (C) 2026 sorabora (@sorabora)
 
