@@ -10,10 +10,16 @@ let inVab = false;
 let inMap = false;
 let careerMode = false;
 let inMainMenu = true;
+let exampleRocketsOpen = false;
 let gameFont;
 let inCreditsMenu = false;
 let inModLoaderMenu = false;
 let inAnnouncementsMenu = false;
+let inKeyBindsMenu = false;
+const controls = { 
+  invertVabZoom: false, 
+  invertFlightZoom: false 
+};
 let toasts = [];
 let t = 0;
 let elapsed = 0;
@@ -73,6 +79,9 @@ let c = {
   mapZoomMin: 1e-12,
   mapZoomMax: 1e-3,
   chuteDrag: 2000,
+  reentryHeatFactor: 0.02,
+  reentryCoolRate: 0.2,
+  reentryMinSpeed: 500,
   chuteWidthPower: 0.5,
   chuteHeightPower: 0.1,
   launchPadRotation: 300
@@ -2622,7 +2631,7 @@ function craftButtons() {
   const size = vab.buttonSize;
   return [
     { id: "craft-save", x: 0, y: size, size, label: "S", action: craftSave },
-    { id: "craft-open", x: size, y: size, size, label: "O", action: craftPick }
+    { id: "craft-open", x: size, y: size, size, label: "O", action: craftPick },
   ];
 }
 
@@ -2826,7 +2835,7 @@ function paintGroup(ctx, spec) {
         ctx.globalCompositeOperation = "source-over";
       }
     } else {
-      ctx.fillStyle = groupFillOn(ctx, group, bb, sx, sy, sw, sh);
+      ctx.fillStyle = spec.recolor || groupFillOn(ctx, group, bb, sx, sy, sw, sh);
       ctx.fill(holed, "evenodd");
     }
     if (glow <= 0) {
@@ -2853,7 +2862,8 @@ function blurredTile(spec) {
   }
   const key = [
     part.name, spec.index, w, h,
-    Math.round(glow * 2), Math.round(box.minX), Math.round(box.minY)
+    Math.round(glow * 2), Math.round(box.minX), Math.round(box.minY),
+    spec.recolor || ""
   ].join("|");
   let tile = blurCache.get(key);
   if (!tile) {
@@ -2905,7 +2915,7 @@ function drawPart(part, sx, sy, s, opts = {}) {
     const drawn = Math.max(bb.w * sw, bb.h * sh);
     const glow = drawn < c.blurMinSize ? 0 : Math.min(asked, c.blurMax);
 
-    const spec = { group, part, bb, sx, sy, sw, sh, cutouts, stretch, glow, alpha, index: gi };
+    const spec = { group, part, bb, sx, sy, sw, sh, cutouts, stretch, glow, alpha, index: gi, recolor: opts.recolor };
     const tile = glow > 0 ? blurredTile(spec) : null;
     if (tile) {
       drawingContext.save();
@@ -3165,11 +3175,42 @@ function drawMainMenu() {
   GUIAPI.button(
     width / 2 - 250,
     575,
-    500,
+    250,
     125,
     { id: "menu-announcements", ...menuStyle },
     anRes ? `Announcements (${anRes.data.length})` : "Announcements"
   );
+  GUIAPI.button(
+    width / 2,
+    575,
+    250,
+    125,
+    { id: "menu-keybinds", ...menuStyle },
+    "Keybinds"
+  );
+}
+
+function drawKeyBindsMenu() {
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
+  GUIAPI.label("Keybinds", { size: 28, align: CENTER, height: 40 });
+
+  const vabRow = GUIAPI.row(85);
+  GUIAPI.button(width/2 - 175, vabRow.y, 350, 85, {
+    id: "keybind-invert-vab-zoom",
+    ...menuStyle
+  }, `Invert VAB Zoom: ${controls.invertVabZoom ? "On" : "Off"}`);
+
+  const flightRow = GUIAPI.row(85);
+  GUIAPI.button(width/2 - 175, flightRow.y, 350, 85, {
+    id: "keybind-invert-flight-zoom",
+    ...menuStyle
+  }, `Invert Flight Zoom: ${controls.invertFlightZoom ? "On" : "Off"}`);
+
+  const close = GUIAPI.row(85);
+  GUIAPI.button(width/2 - 175, close.y, 350, 85, {
+    id: "keybinds-close",
+    ...menuStyle
+  }, "Close");
 }
 
 function drawCreditsMenu() {
@@ -3453,6 +3494,12 @@ function drawVab() {
         : ["Open craft", "  replaces what's in the bay"]
     }, cb.label);
   }
+  textSize(14);
+  GUIAPI.button(vab.buttonSize * 2, vab.buttonSize, vab.buttonSize * 2, vab.buttonSize, {
+    id: "example-rockets",
+    baseColor: "#4a4a5a",
+    hoverColor: "#5b5b6e"
+  }, "Example Rockets");
   for (const b of paletteLayout()) {
     GUIAPI.button(b.x, b.y, b.size, b.size, { id: b.id, tooltip: partTooltip(b.part) });
     const bb = partBBox(b.part);
@@ -3692,6 +3739,33 @@ function craftLoad(craft) {
   vab.drag = null;
   vab.snap = null;
 }
+
+const exampleCrafts = {
+  "little-bob": {
+    format: "xopernicus-craft",
+    version: 1,
+    parts: [
+      { name: "Capsule", x: 0, y: -870.0000000000002, attachedTo: 1, parentNode: "bottom" },
+      { name: "Parachute", x: 0, y: -1240.0000000000002, attachedTo: null, parentNode: null },
+      { name: "Drogue Chute", x: -224.03852391233542, y: -899.0438855317732, attachedTo: null, parentNode: null },
+      { name: "MD Decoupler", x: 0, y: -390.0000000000007, attachedTo: 0, parentNode: "bottom" },
+      { name: "UR30 Booster", x: 0, y: 529.9999999999995, attachedTo: 3, parentNode: "bottom" }
+    ]
+  },
+  "big-bertha": {
+    format: "xopernicus-craft",
+    version: 1,
+    parts: [
+      { name: "Capsule", x: 0, y: -2950, attachedTo: 1, parentNode: "bottom" },
+      { name: "Parachute", x: 0, y: -3320.0000000000005, attachedTo: null, parentNode: null },
+      { name: "Drogue Chute", x: -224.0385239123357, y: -2979.0438855317734, attachedTo: null, parentNode: null },
+      { name: "MD Decoupler", x: 0, y: -2470.0000000000023, attachedTo: 0, parentNode: "bottom" },
+      { name: "LG Fuel Tank", x: 0, y: -1029.9999999999989, attachedTo: 3, parentNode: "bottom" },
+      { name: "LG Fuel Tank", x: 0, y: 1530.0000000000014, attachedTo: 4, parentNode: "bottom" },
+      { name: "Basic Engine", x: 0, y: 3090.0000000000014, attachedTo: 5, parentNode: "bottom" }
+    ]
+  }
+};
 
 let craftInput = null;
 
@@ -4267,6 +4341,10 @@ const STEFAN_BOLTZMANN = 5.670374e-8;
 
 function calculateTemperature() {
   const rocket = rockets.find(rocket => rocket.id === target);
+  return format("temperature", ambientTemperature(rocket));
+}
+
+function ambientTemperature(rocket) {
   const body = getBody(rocket.parentBody);
 
   let flux = 0;
@@ -4293,9 +4371,31 @@ function calculateTemperature() {
     ? 1 + 0.10 * Math.log10(ratio + 1) * Math.log10(ratio + 10)
     : 1;
 
-  const temp = equilibriumTemp * greenhouseFactor;
+  return equilibriumTemp * greenhouseFactor;
+}
 
-  return format("temperature", temp);
+function updateRocketTemp(rocket, dt) {
+  const body = getBody(rocket.parentBody);
+  const ambient = ambientTemperature(rocket);
+  if (rocket.temp === undefined) {
+    rocket.temp = ambient;
+  }
+
+  let flux = 0;
+  const alt = Math.max(distanceTo(rocket, body) - body.size - rocketRadius(rocket), 0);
+  if (body.atmosphereHeight && alt < body.atmosphereHeight) {
+    const vel = relativeVelocity(rocket, body);
+    const speed = Math.hypot(vel.x, vel.y);
+    const excess = Math.max(speed - c.reentryMinSpeed, 0);
+    flux = 0.5 * densityAt(body, alt) * excess * excess * excess;
+  }
+
+  const targetTemp = Math.pow(
+    Math.pow(ambient, 4) + (flux * c.reentryHeatFactor) / STEFAN_BOLTZMANN,
+    0.25
+  );
+  const blend = 1 - Math.exp(-c.reentryCoolRate * dt);
+  rocket.temp = Math.max(ambient, rocket.temp + (targetTemp - rocket.temp) * blend);
 }
 
 function scaleHeightAt(body, alt) {
@@ -5409,6 +5509,59 @@ function runAnimations(dt) {
   updateThreads(dt);
 }
 
+function reentryGlowColor(tempC) {
+  const stops = [
+    [800, [255, 40, 0]],
+    [1300, [255, 140, 0]],
+    [1600, [255, 220, 60]],
+    [1900, [255, 255, 255]]
+  ];
+  if (tempC <= stops[0][0]) {
+    return `rgb(${stops[0][1].join(",")})`;
+  }
+  for (let i = 1; i < stops.length; i++) {
+    if (tempC <= stops[i][0]) {
+      const f = (tempC - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]);
+      const mix = stops[i - 1][1].map((v, ch) => Math.round(v + (stops[i][1][ch] - v) * f));
+      return `rgb(${mix.join(",")})`;
+    }
+  }
+  return `rgb(${stops[stops.length - 1][1].join(",")})`;
+}
+
+function drawReentryGlow(rocket, s) {
+  if (rocket.temp === undefined) {
+    return;
+  }
+  const tempC = rocket.temp - 273.15;
+  const alpha = constrain((tempC - 800) / 700, 0, 1);
+  if (alpha <= 0) {
+    return;
+  }
+  const flamePart = hiddenPart("_flame");
+  if (!flamePart) {
+    return;
+  }
+  let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const entry of rocket.stack.parts) {
+    const bb = partBBox(entry.part);
+    minX = Math.min(minX, entry.ox - bb.w / 2);
+    maxX = Math.max(maxX, entry.ox + bb.w / 2);
+    maxY = Math.max(maxY, entry.oy + (bb.maxY - bb.cy));
+  }
+  const flameBB = partBBox(flamePart);
+  const wide = ((maxX - minX) / flameBB.w) * 1.3;
+  const tall = wide * 0.8;
+  const cx = (minX + maxX) / 2;
+  const flameY = maxY + (flameBB.maxY - flameBB.cy) * tall * 0.6;
+  drawPart(flamePart, cx * s, flameY * s, s, {
+    wide,
+    tall: -tall,
+    alpha,
+    recolor: reentryGlowColor(Math.round(tempC / 25) * 25)
+  });
+}
+
 function drawRocket(rocket, cur) {
   if (!rocket.stack) {
     return;
@@ -5433,6 +5586,7 @@ function drawRocket(rocket, cur) {
   push();
   translate(screenX, screenY);
   rotate(rocket.angle);
+  drawReentryGlow(rocket, s);
   for (let i = 0; i < rocket.stack.parts.length; i++) {
     const entry = rocket.stack.parts[i];
     drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx });
@@ -5497,6 +5651,11 @@ function formatTime(t) {
   return `${mil}myr ${y}y ${d}d ${h}h ${m}m ${s}s`;
 }
 
+function calculateRocketTemp() {
+  const rocket = rockets.find(rocket => rocket.id === target);
+  return format("temperature", rocket.temp ?? ambientTemperature(rocket));
+}
+
 function draw() {
   background("#000000");
 
@@ -5532,6 +5691,10 @@ function draw() {
     }
   }
   rockets = rockets.filter(rocket => !rocket.destroyed);
+
+  for (const rocket of rockets) {
+    updateRocketTemp(rocket, dt);
+  }
 
   const curRocket = rockets.find(rocket => rocket.id === target);
   updateCamera(curRocket);
@@ -5579,6 +5742,7 @@ function draw() {
     text(`TWR: ${calculateTWR()}`, 25, 50 + lineHeight * 11)
     text(`Pitch: ${calculatePitch()}`, 25, 50 + lineHeight * 12)
     text(`G force: ${calculateG()}`, 25, 50 + lineHeight * 13)
+    text(`Rocket Temp: ${calculateRocketTemp()}`, 25, 50 + lineHeight * 14)
   } else {
     text("Vessel destroyed", 25, 50)
     text(`Time: ${formatTime(t)}`, 25, 50 + lineHeight)
@@ -5598,6 +5762,9 @@ function draw() {
     }
     if (inAnnouncementsMenu) {
       drawAnnouncementsMenu();
+    }
+    if (inKeyBindsMenu) {
+      drawKeyBindsMenu();
     }
   } else {
     cursor("default");
@@ -5625,7 +5792,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.2.4 [Public Alpha]", width - 120, height - 40);
+  text("v1.3.0 [Public Alpha]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -5645,6 +5812,30 @@ function draw() {
     rect(width/2 - 125, height/2 - 37.5, 250, 75);
     fill("Black");
     text(toast.message, width/2 - 120, height/2 + 5)
+  }
+
+  if (exampleRocketsOpen) {
+    GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
+    GUIAPI.label("Example Rockets", { size: 28, align: CENTER, height: 40 });
+
+    textSize(25);
+    const bob = GUIAPI.row(85);
+    GUIAPI.button(width/2 - 175, bob.y, 350, 85, {
+      id: "example-little-bob",
+      ...menuStyle
+    }, "Little Bob - Atmospheric");
+
+    const bertha = GUIAPI.row(85);
+    GUIAPI.button(width/2 - 175, bertha.y, 350, 85, {
+      id: "example-big-bertha",
+      ...menuStyle
+    }, "Big Bertha - Suborbital");
+
+    const close = GUIAPI.row(85);
+    GUIAPI.button(width/2 - 175, close.y, 350, 85, {
+      id: "example-close",
+      ...menuStyle
+    }, "Close");
   }
 
   runHook("draw:absolute", { rocket: curRocket, camera });
@@ -5771,7 +5962,21 @@ function runCommand(raw) {
     devConsole.history.pop();
   }
 
-  const param = cmd.split(" ").filter(part => part.length);
+  const param = [];
+  let buf = "";
+  let depth = 0;
+  for (const ch of cmd) {
+    if (ch === "[" && depth++ === 0) continue;
+    if (ch === "]" && --depth === 0) continue;
+    if (ch === " " && depth === 0) {
+      if (buf.length) param.push(buf);
+      buf = "";
+      continue;
+    }
+    buf += ch;
+  }
+  if (buf.length) param.push(buf);
+
   switch (param[0]) {
     case "tp":
       commandTp(param.slice(1));
@@ -5779,8 +5984,19 @@ function runCommand(raw) {
     case "togglehidden":
       commandToggleHidden();
       break;
+    case "js":
+      commandJs(param.slice(1).join(" "));
+      break;
     default:
       devLog(`Unknown command ${cmd}`)
+  }
+}
+
+function commandJs(code) {
+  try {
+    devLog(String(eval(code)));
+  } catch (err) {
+    devLog(String(err));
   }
 }
 
@@ -5870,6 +6086,17 @@ function consoleKeyPressed(event) {
   if (code === "ArrowDown") {
     devConsole.historyIndex = Math.max(devConsole.historyIndex - 1, -1);
     devConsole.input = devConsole.historyIndex === -1 ? "" : devConsole.history[devConsole.historyIndex];
+    return;
+  }
+
+  if (code === "KeyV" && (event.ctrlKey || event.metaKey)) {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(pasted => {
+        devConsole.input += pasted.replace(/[\r\n]+/g, " ").trim();
+      }).catch(() => {
+        devLog("clipboard blocked by the browser");
+      });
+    }
     return;
   }
 
@@ -6054,6 +6281,19 @@ async function mousePressed() {
 
   GUIAPI.dispatch();
 
+  if (inVab) {
+    if (GUIAPI.clicked("example-rockets")) {
+      exampleRocketsOpen = !exampleRocketsOpen;
+    }
+    if (GUIAPI.clicked("example-little-bob")) {
+      craftLoad(exampleCrafts["little-bob"]);
+      exampleRocketsOpen = false;
+    }
+    if (GUIAPI.clicked("example-big-bertha")) {
+      craftLoad(exampleCrafts["big-bertha"]);
+      exampleRocketsOpen = false;
+    }
+  }
   if (inMap && !inVab) {
     if (GUIAPI.clicked("map-fly")) {
       inMap = false;
@@ -6062,6 +6302,11 @@ async function mousePressed() {
       mapPan.y = 0;
     }
     return;
+  }
+  if (exampleRocketsOpen) {
+    if (GUIAPI.clicked("example-close")) {
+      exampleRocketsOpen = false;
+    }
   }
   if (inMainMenu) {
     if (GUIAPI.clicked("credits-close")) {
@@ -6074,6 +6319,18 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("announcements-close")) {
       inAnnouncementsMenu = false;
+      return;
+    }
+    if (GUIAPI.clicked("keybinds-close")) {
+      inKeyBindsMenu = false;
+      return;
+    }
+    if (GUIAPI.clicked("keybind-invert-vab-zoom")) {
+      controls.invertVabZoom = !controls.invertVabZoom;
+      return;
+    }
+    if (GUIAPI.clicked("keybind-invert-flight-zoom")) {
+      controls.invertFlightZoom = !controls.invertFlightZoom;
       return;
     }
     if (GUIAPI.clicked("menu-build")) {
@@ -6102,6 +6359,10 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("menu-announcements")) {
       inAnnouncementsMenu = true;
+      return;
+    }
+    if (GUIAPI.clicked("menu-keybinds")) {
+      inKeyBindsMenu = true;
       return;
     }
     return;
@@ -6230,15 +6491,17 @@ function mouseWheel(event) {
     }
   }
   if (inVab) {
-    zoomVab(event.delta > 0 ? 1 + c.zoomPower : 1 - c.zoomPower, mouseX, mouseY);
+    const up = controls.invertVabZoom ? event.delta <= 0 : event.delta > 0;
+    zoomVab(up ? 1 + c.zoomPower : 1 - c.zoomPower, mouseX, mouseY);
     return;
   }
+  const up = controls.invertFlightZoom ? event.delta <= 0 : event.delta > 0;
   if (inMap) {
-    const factor = event.delta > 0 ? 1 + c.zoomPower : 1 - c.zoomPower;
+    const factor = up ? 1 + c.zoomPower : 1 - c.zoomPower;
     mapScale = constrain(mapScale * factor, c.mapZoomMin, c.mapZoomMax);
     return;
   }
-  if (event.delta > 0) {
+  if (up) {
     scale *= 1 + c.zoomPower;
   } else {
     scale *= 1 - c.zoomPower;
