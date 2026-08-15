@@ -7,7 +7,7 @@ let mapPan = { x: 0, y: 0 };
 let throttle = 0;
 let target = "untitled-1";
 let inVab = false;
-let inMap = false;
+let inMap = false; 
 let careerMode = false;
 let inMainMenu = true;
 let exampleRocketsOpen = false;
@@ -20,6 +20,8 @@ const controls = {
   invertVabZoom: false, 
   invertFlightZoom: false 
 };
+let timeWarpSteps = [1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000]
+let timeWarpCounter = 0;
 let toasts = [];
 let t = 0;
 let elapsed = 0;
@@ -4493,6 +4495,12 @@ function calculateAltitude() {
   return format("distance", distanceTo(rocket, body) - body.size);
 }
 
+function calculateAltitudeRaw() {
+  const rocket = rockets.find(rocket => rocket.id === target);
+  const body = getBody(rocket.parentBody);
+  return ("distance", distanceTo(rocket, body) - body.size);
+}
+
 function getOrbit() {
   const rocket = rockets.find(rocket => rocket.id === target);
   const body = getBody(rocket.parentBody);
@@ -4540,6 +4548,28 @@ function calculatePressure() {
   }
   const rawAlt = distanceTo(rocket, body) - body.size;
   const alt = hasSurface(body) ? Math.max(rawAlt, 0) : rawAlt;
+  if (pressureAt(body, alt) <= 0.07 && !inMainMenu && !inVab) {
+    rocket.escapedAtmosphere = true;
+    rocket.enteredAtmosphere = false;
+  }
+  if (pressureAt(body, alt) >= 0.085 && !inMainMenu && !inVab && rocket.escapedAtmosphere) {
+    rocket.enteredAtmosphere = true;
+    rocket.escapedAtmosphere = false;
+  }
+  if (rocket.enteredAtmosphere) {
+    const rawAltNow = calculateAltitudeRaw();
+    let maxIdx = 5;
+    if (rawAltNow <= 10000) {
+      maxIdx = 3;
+    }
+    if (rawAltNow <= 2500) {
+      maxIdx = 2;
+    }
+    if (c.timewarp > timeWarpSteps[maxIdx]) {
+      c.timewarp = timeWarpSteps[maxIdx];
+    }
+    timeWarpCounter = Math.min(timeWarpCounter, maxIdx);
+  }
   return format("pressure", pressureAt(body, alt));
 }
 
@@ -5792,7 +5822,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.0 [Public Beta]", width - 120, height - 40);
+  text("v1.4.1 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -6200,10 +6230,16 @@ function keyPressed(event) {
   held.add(event.code);
 
   if (event.code === "Comma") {
-    c.timewarp *= 0.2;
+    if (timeWarpCounter > 0) {
+      timeWarpCounter--;
+    }
+    c.timewarp = timeWarpSteps[timeWarpCounter]
   }
   if (event.code === "Period") {
-    c.timewarp *= 5;
+    if (timeWarpCounter < timeWarpSteps.length - 1) {
+      timeWarpCounter++;
+    }
+    c.timewarp = timeWarpSteps[timeWarpCounter]
   }
 }
 
