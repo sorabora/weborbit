@@ -2897,6 +2897,12 @@ function drawPart(part, sx, sy, s, opts = {}) {
   const sh = s * (opts.tall === undefined ? 1 : opts.tall) * (partFx.Height === undefined ? 1 : partFx.Height);
   const baseAlpha = opts.alpha == null ? 1 : opts.alpha;
   push();
+  if (opts.rot) {
+    translate(sx, sy);
+    rotate(opts.rot * HALF_PI);
+    sx = 0;
+    sy = 0;
+  }
   for (let gi = 0; gi < part.groups.length; gi++) {
     const group = part.groups[gi];
     if (group.cutout) {
@@ -2941,13 +2947,19 @@ function attachPoint(inst, side) {
   const bb = partBBox(inst.part);
   const halfW = (bb.w / 2) * vab.scale;
   const halfH = (bb.h / 2) * vab.scale;
-  if (side === "top") {
-    return { x: inst.x, y: inst.y - halfH };
-  }
-  if (side === "bottom") {
-    return { x: inst.x, y: inst.y + halfH };
-  }
-  return { x: inst.x + (side === "left" ? -halfW : halfW), y: inst.y };
+  const base = {
+    top: [0, -halfH],
+    bottom: [0, halfH],
+    left: [-halfW, 0],
+    right: [halfW, 0]
+  }[side];
+  const a = (inst.rot || 0) * HALF_PI;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  return {
+    x: inst.x + base[0] * cos - base[1] * sin,
+    y: inst.y + base[0] * sin + base[1] * cos
+  };
 }
 
 function attach(child, parent, side) {
@@ -2970,6 +2982,27 @@ function subtree(inst, acc = []) {
     }
   }
   return acc;
+}
+
+function cloneParts(list) {
+  const copies = list.map(p => ({
+    part: p.part,
+    x: p.x,
+    y: p.y,
+    rot: p.rot || 0,
+    attachedTo: null,
+    parentNode: null,
+    childNode: null
+  }));
+  list.forEach((p, i) => {
+    const pi = list.indexOf(p.attachedTo);
+    if (pi >= 0) {
+      copies[i].attachedTo = copies[pi];
+      copies[i].parentNode = p.parentNode;
+      copies[i].childNode = p.childNode;
+    }
+  });
+  return copies;
 }
 
 function moveSubtree(inst, dx, dy) {
@@ -3068,8 +3101,13 @@ function pointInPolygon(x, y, points) {
 
 function pointInPart(inst, mx, my) {
   const bb = partBBox(inst.part);
-  const lx = (mx - inst.x) / vab.scale + bb.cx;
-  const ly = (my - inst.y) / vab.scale + bb.cy;
+  const a = -(inst.rot || 0) * HALF_PI;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  const dx = (mx - inst.x) / vab.scale;
+  const dy = (my - inst.y) / vab.scale;
+  const lx = dx * cos - dy * sin + bb.cx;
+  const ly = dx * sin + dy * cos + bb.cy;
   for (const group of inst.part.groups) {
     if (pointInPolygon(lx, ly, group.points)) {
       return true;
@@ -3430,12 +3468,12 @@ function drawVab() {
   const dragSet = vab.drag ? new Set(subtree(vab.drag.inst)) : new Set();
   for (const inst of vab.parts) {
     if (!dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale);
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { rot: inst.rot });
     }
   }
   for (const inst of vab.parts) {
     if (dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha: 0.9 });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha: 0.9, rot: inst.rot });
     }
   }
 
@@ -3667,10 +3705,12 @@ function stackSnapshot() {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const inst of vab.parts) {
     const bb = partBBox(inst.part);
-    minX = Math.min(minX, inst.x - (bb.w / 2) * vab.scale);
-    maxX = Math.max(maxX, inst.x + (bb.w / 2) * vab.scale);
-    minY = Math.min(minY, inst.y - (bb.h / 2) * vab.scale);
-    maxY = Math.max(maxY, inst.y + (bb.h / 2) * vab.scale);
+    const w = (inst.rot || 0) % 2 ? bb.h : bb.w;
+    const h = (inst.rot || 0) % 2 ? bb.w : bb.h;
+    minX = Math.min(minX, inst.x - (w / 2) * vab.scale);
+    maxX = Math.max(maxX, inst.x + (w / 2) * vab.scale);
+    minY = Math.min(minY, inst.y - (h / 2) * vab.scale);
+    maxY = Math.max(maxY, inst.y + (h / 2) * vab.scale);
   }
   const midX = (minX + maxX) / 2;
   const midY = (minY + maxY) / 2;
@@ -3680,7 +3720,8 @@ function stackSnapshot() {
     parts: vab.parts.map((inst) => ({
       part: inst.part,
       ox: (inst.x - midX) / vab.scale,
-      oy: (inst.y - midY) / vab.scale
+      oy: (inst.y - midY) / vab.scale,
+      rot: inst.rot || 0
     }))
   };
 }
@@ -3697,6 +3738,7 @@ function craftSave() {
       name: inst.part.name,
       x: snap.parts[i].ox,
       y: snap.parts[i].oy,
+      rot: inst.rot || 0,
       attachedTo: inst.attachedTo ? vab.parts.indexOf(inst.attachedTo) : null,
       parentNode: inst.parentNode || null
     }))
@@ -3728,6 +3770,7 @@ function craftLoad(craft) {
       part,
       x: bayCentre() + entry.x * vab.scale,
       y: height / 2 + entry.y * vab.scale,
+      rot: entry.rot || 0,
       attachedTo: null
     });
   }
@@ -3765,6 +3808,117 @@ const exampleCrafts = {
       { name: "LG Fuel Tank", x: 0, y: -1029.9999999999989, attachedTo: 3, parentNode: "bottom" },
       { name: "LG Fuel Tank", x: 0, y: 1530.0000000000014, attachedTo: 4, parentNode: "bottom" },
       { name: "Basic Engine", x: 0, y: 3090.0000000000014, attachedTo: 5, parentNode: "bottom" }
+    ]
+  },
+  "Unknown_527's Rocket": {
+    format: "xopernicus-craft",
+    version: 1,
+    "parts": [
+      {
+        "name": "Upgraded Vacuum Engine",
+        "x": 4.074500373572281e-12,
+        "y": -5130.000000000005,
+        "attachedTo": 1,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "MD Hydrolox Tank",
+        "x": 4.074500373572281e-12,
+        "y": -6050.000000000002,
+        "attachedTo": 2,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "MD Decoupler",
+        "x": 4.074500373572281e-12,
+        "y": -6849.999999999999,
+        "attachedTo": 3,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "Capsule",
+        "x": 4.074500373572281e-12,
+        "y": -7330,
+        "attachedTo": 4,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "Parachute",
+        "x": 4.074500373572281e-12,
+        "y": -7700.000000000002,
+        "attachedTo": null,
+        "parentNode": null
+      },
+      {
+        "name": "Drogue Chute",
+        "x": -177.5153922820732,
+        "y": -7501.611199389292,
+        "attachedTo": null,
+        "parentNode": null
+      },
+      {
+        "name": "MD Decoupler",
+        "x": 4.074500373572281e-12,
+        "y": -4689.999999999997,
+        "attachedTo": 0,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "Basic Engine",
+        "x": 4.074500373572281e-12,
+        "y": 950.0000000000002,
+        "attachedTo": 9,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "LG Fuel Tank",
+        "x": 4.074500373572281e-12,
+        "y": -3169.999999999998,
+        "attachedTo": 14,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "LG Fuel Tank",
+        "x": 4.074500373572281e-12,
+        "y": -610.0000000000025,
+        "attachedTo": 8,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "MD Decoupler",
+        "x": 4.074500373572281e-12,
+        "y": 1390.0000000000005,
+        "attachedTo": 7,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "UR60 Booster",
+        "x": 4.074500373572281e-12,
+        "y": 4650.000000000001,
+        "attachedTo": 10,
+        "parentNode": "bottom"
+      },
+      {
+        "name": "UR60 Booster",
+        "x": 640.0000000000043,
+        "y": 4650.000000000001,
+        "attachedTo": 11,
+        "parentNode": "right"
+      },
+      {
+        "name": "UR60 Booster",
+        "x": -640.0000000000043,
+        "y": 4650.000000000001,
+        "attachedTo": 11,
+        "parentNode": "left"
+      },
+      {
+        "name": "Turbo Reactionwheel",
+        "x": 4.074500373572281e-12,
+        "y": -4489.999999999997,
+        "attachedTo": 6,
+        "parentNode": "bottom"
+      }
     ]
   }
 };
@@ -4694,7 +4848,7 @@ function feedHeld(feed, resource) {
 }
 
 function engineOutput(rocket) {
-  const out = { thrust: 0, draws: [] };
+  const out = { thrust: 0, vx: 0, vy: 0, torque: 0, draws: [] };
   if (!rocket.stack || rocket.id !== target) {
     return out;
   }
@@ -4716,6 +4870,12 @@ function engineOutput(rocket) {
     }
     const thrust = (engine.Thrust || 0) * c.newtonsPerThrust * level;
     out.thrust += thrust;
+    const ra = (entry.rot || 0) * HALF_PI;
+    const fx = thrust * Math.sin(ra);
+    const fy = -thrust * Math.cos(ra);
+    out.vx += fx;
+    out.vy += fy;
+    out.torque += (entry.ox / c.partUnits) * fy - (entry.oy / c.partUnits) * fx;
     const isp = engine.ISP || 0;
     if (isp > 0) {
       out.draws.push({ feed, resource, rate: (thrust / (isp * G0)) * direction });
@@ -4725,13 +4885,15 @@ function engineOutput(rocket) {
 }
 
 function thrustAccel(rocket) {
-  const thrust = engineOutput(rocket).thrust;
-  if (thrust === 0) {
+  const out = engineOutput(rocket);
+  if (out.thrust === 0) {
     return { x: 0, y: 0 };
   }
+  const cos = Math.cos(rocket.angle);
+  const sin = Math.sin(rocket.angle);
   return {
-    x: (Math.sin(rocket.angle) * thrust) / rocket.mass,
-    y: (-Math.cos(rocket.angle) * thrust) / rocket.mass
+    x: (out.vx * cos - out.vy * sin) / rocket.mass,
+    y: (out.vx * sin + out.vy * cos) / rocket.mass
   };
 }
 
@@ -4873,7 +5035,9 @@ function drawPartHover(rocket) {
   noFill();
   stroke(action ? "#5cf" : "#ffffff55");
   strokeWeight(2);
-  rect((entry.ox - bb.w / 2) * s, (entry.oy - bb.h / 2) * s, bb.w * s, bb.h * s);
+  translate(entry.ox * s, entry.oy * s);
+  rotate((entry.rot || 0) * HALF_PI);
+  rect((-bb.w / 2) * s, (-bb.h / 2) * s, bb.w * s, bb.h * s);
   pop();
 
   GUIAPI.pendingTooltip = {
@@ -4897,8 +5061,11 @@ function flightPartAt(rocket, mx, my) {
   for (let i = rocket.stack.parts.length - 1; i >= 0; i--) {
     const entry = rocket.stack.parts[i];
     const bb = partBBox(entry.part);
-    const px = lx - entry.ox + bb.cx;
-    const py = ly - entry.oy + bb.cy;
+    const ra = -(entry.rot || 0) * HALF_PI;
+    const rx = lx - entry.ox;
+    const ry = ly - entry.oy;
+    const px = rx * Math.cos(ra) - ry * Math.sin(ra) + bb.cx;
+    const py = rx * Math.sin(ra) + ry * Math.cos(ra) + bb.cy;
     for (const group of entry.part.groups) {
       if (pointInPolygon(px, py, group.points)) {
         return entry;
@@ -5070,6 +5237,7 @@ function restOnSurface(rocket, h) {
   rocket.pos.y = body.pos.y + rocket.landed.y * floor;
   rocket.vel.x = body.vel.x;
   rocket.vel.y = body.vel.y;
+  rocket.spin = 0;
   burnFuel(rocket, h);
   if (liftsOff(rocket)) {
     rocket.landed = null;
@@ -5084,6 +5252,18 @@ function liftsOff(rocket) {
   return (push.x + acc.x) * out.x + (push.y + acc.y) * out.y > 0;
 }
 
+function spinAccel(rocket) {
+  if (!rocket.stack) {
+    return 0;
+  }
+  const out = engineOutput(rocket);
+  if (!out.torque) {
+    return 0;
+  }
+  const len = Math.max(rocket.stack.h / c.partUnits, 1);
+  return out.torque / ((rocket.mass * len * len) / 12);
+}
+
 // leapfrog: the two half-kicks sample gravity at each end of the step
 function kickDrift(rocket, h) {
   updateSOI(rocket);
@@ -5093,6 +5273,8 @@ function kickDrift(rocket, h) {
   rocket.vel.y += ((acc.y + push.y) * h) / 2;
   rocket.pos.x += rocket.vel.x * h;
   rocket.pos.y += rocket.vel.y * h;
+  rocket.spin = (rocket.spin || 0) + (spinAccel(rocket) * h) / 2;
+  rocket.angle += rocket.spin * h;
 }
 
 // the ship plus whatever canopies are out. Drag is a CdA, straight out of
@@ -5138,6 +5320,7 @@ function kickFinish(rocket, h) {
   const push = thrustAccel(rocket);
   rocket.vel.x += ((acc.x + push.x) * h) / 2;
   rocket.vel.y += ((acc.y + push.y) * h) / 2;
+  rocket.spin = (rocket.spin || 0) + (spinAccel(rocket) * h) / 2;
 
   const alt = Math.max(distanceTo(rocket, body) - body.size, 0);
   if (body.atmosphereHeight && alt < body.atmosphereHeight) {
@@ -5619,7 +5802,7 @@ function drawRocket(rocket, cur) {
   drawReentryGlow(rocket, s);
   for (let i = 0; i < rocket.stack.parts.length; i++) {
     const entry = rocket.stack.parts[i];
-    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx });
+    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot });
     const engine = entry.part.modules["Engine Module"];
     let hasFuel = false;
     if (engine) {
@@ -5639,9 +5822,15 @@ function drawRocket(rocket, cur) {
 
         const fx = entry.flame && entry.flame.fx;
         const squish = ((fx && fx.part && fx.part.Height) === undefined) ? 1 : fx.part.Height;
-        const flameY =
-          entry.oy + (bb.maxY - bb.cy) + (flameBB.maxY - flameBB.cy) * flameScale * squish;
-        drawPart(flamePart, entry.ox * s, flameY * s, s * flameScale, { fx });
+        const off = (bb.maxY - bb.cy) + (flameBB.maxY - flameBB.cy) * flameScale * squish;
+        const ra = (entry.rot || 0) * HALF_PI;
+        drawPart(
+          flamePart,
+          (entry.ox - off * Math.sin(ra)) * s,
+          (entry.oy + off * Math.cos(ra)) * s,
+          s * flameScale,
+          { fx, rot: entry.rot }
+        );
       }
     }
     const chute = entry.part.modules["Parachute Module"];
@@ -5653,11 +5842,13 @@ function drawRocket(rocket, cur) {
         const ratio = Math.max((chute.Drag || 0) / c.chuteDrag, 1e-4);
         const wide = Math.pow(ratio, c.chuteWidthPower);
         const tall = Math.pow(ratio, c.chuteHeightPower);
-        const chuteY = entry.oy + (bb.minY - bb.cy) - (chuteBB.maxY - chuteBB.cy) * tall;
-        drawPart(chutePart, entry.ox * s, chuteY * s, s, {
+        const off = (bb.minY - bb.cy) - (chuteBB.maxY - chuteBB.cy) * tall;
+        const ra = (entry.rot || 0) * HALF_PI;
+        drawPart(chutePart, (entry.ox - off * Math.sin(ra)) * s, (entry.oy + off * Math.cos(ra)) * s, s, {
           wide,
           tall,
-          alpha: entry.torn ? 0.35 : undefined
+          alpha: entry.torn ? 0.35 : undefined,
+          rot: entry.rot
         });
       }
     }
@@ -5822,7 +6013,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.1 [Public Beta]", width - 120, height - 40);
+  text("v1.4.2 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -5860,6 +6051,12 @@ function draw() {
       id: "example-big-bertha",
       ...menuStyle
     }, "Big Bertha - Suborbital");
+
+    const unknown = GUIAPI.row(85);
+    GUIAPI.button(width/2 - 175, unknown.y, 350, 85, {
+      id: "example-unknown-527",
+      ...menuStyle
+    }, "Unknown_527's Rocket - Orbital");
 
     const close = GUIAPI.row(85);
     GUIAPI.button(width/2 - 175, close.y, 350, 85, {
@@ -6227,6 +6424,38 @@ function keyPressed(event) {
     return false;
   }
 
+  if (inVab) {
+    if (event.code === "KeyR" && vab.drag) {
+      vab.drag.inst.rot = ((vab.drag.inst.rot || 0) + 1) % 4;
+      return false;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.code === "KeyC" && vab.drag) {
+      vab.clipboard = cloneParts(subtree(vab.drag.inst));
+      return false;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.code === "KeyV" && vab.clipboard) {
+      const copies = cloneParts(vab.clipboard);
+      const root = copies[0];
+      const dx = mouseX - root.x;
+      const dy = mouseY - root.y;
+      for (const p of copies) {
+        p.x += dx;
+        p.y += dy;
+      }
+      vab.parts.push(...copies);
+      vab.drag = { inst: root, dx: 0, dy: 0, fromPalette: true };
+      vab.snap = null;
+      return false;
+    }
+    if ((event.code === "Delete" || event.code === "Backspace") && vab.drag) {
+      const drop = new Set(subtree(vab.drag.inst));
+      vab.parts = vab.parts.filter(p => !drop.has(p));
+      vab.drag = null;
+      vab.snap = null;
+      return false;
+    }
+  }
+
   held.add(event.code);
 
   if (event.code === "Comma") {
@@ -6280,6 +6509,7 @@ function flightControls() {
     return;
   }
   const rate = (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
+  rocket.spin = (rocket.spin || 0) - constrain(rocket.spin || 0, -rate * step, rate * step);
   if (held.has("KeyQ") || held.has("ArrowLeft")) {
     rocket.angle -= rate * step * c.timewarp;
   }
@@ -6327,6 +6557,10 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("example-big-bertha")) {
       craftLoad(exampleCrafts["big-bertha"]);
+      exampleRocketsOpen = false;
+    }
+    if (GUIAPI.clicked("example-unknown-527")) {
+      craftLoad(exampleCrafts["Unknown_527's Rocket"]);
       exampleRocketsOpen = false;
     }
   }
