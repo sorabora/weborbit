@@ -145,6 +145,10 @@ function escapeHtml(str) {
 if (page == "post-thread") {
   let selectedCategory = null;
   for (const item of document.querySelectorAll("#category-menu .dropdown-item")) {
+    if (item.textContent.trim() == "Announcements" && !isAdmin) {
+      item.closest("li").remove();
+      continue;
+    }
     item.addEventListener("click", () => {
       selectedCategory = item.textContent.trim();
       document.getElementById("category-btn").textContent = selectedCategory;
@@ -158,6 +162,10 @@ if (page == "post-thread") {
 
     if (!tags) {
       alert("Pick a category first!");
+      return;
+    }
+    if (tags == "Announcements" && !isAdmin) {
+      alert("Only admins can post announcements.");
       return;
     }
 
