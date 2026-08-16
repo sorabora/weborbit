@@ -1,6 +1,6 @@
 // Forums for the Weborbit Game
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://sahuwtqsqbtplyhueokv.supabase.co'
 const supabaseKey = 'sb_publishable_6dhE2eLPTmmR2K4TJIf7Pg_vxjN6eg7'
@@ -275,7 +275,7 @@ if (page == "thread") {
       .from('replies')
       .select('*, users(username)')
       .eq('post_id', urlParams.get("id"))
-      .order('created_at')
+      .order('created_at', { ascending: false })
 
     $("comments").append(`
       <textarea id="comments-textarea" class="form-control" placeholder="I agree!!!!!!"></textarea>
