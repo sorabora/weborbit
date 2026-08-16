@@ -1,6 +1,6 @@
 // Forums for the Weborbit Game
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const supabaseUrl = 'https://sahuwtqsqbtplyhueokv.supabase.co'
 const supabaseKey = 'sb_publishable_6dhE2eLPTmmR2K4TJIf7Pg_vxjN6eg7'
