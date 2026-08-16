@@ -279,7 +279,7 @@ if (page == "thread") {
 
     $("comments").append(`
       <textarea id="comments-textarea" class="form-control" placeholder="I agree!!!!!!"></textarea>
-      <p>Must be at least 10 characters long</p>
+      <p>Max 800 characters</p>
       <button id="comments-post" class="btn btn-primary btn-lg">Post</button>
     `);
     for (let post of data ?? []) {
@@ -295,7 +295,15 @@ if (page == "thread") {
 }
 
 $("comments-post").onClick(async () => {
-  const content = $("comments-textarea").value;
+  const content = $("comments-textarea").value.trim();
+  if (content.length === 0) {
+    alert("Comment can't be empty.");
+    return;
+  }
+  if (content.length > 800) {
+    alert("Comment must be 800 characters or fewer.");
+    return;
+  }
   const { error } = await supabase
     .from('replies')
     .insert({ content, post_id: urlParams.get("id") });
