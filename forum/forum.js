@@ -203,6 +203,7 @@ if (page == "forum") {
               // sorry if this line is shitty but I love trinaries
               isVeryRecent(post) ? `<span class="badge rounded-pill bg-primary">New</span>` : isRecent(post) ? `<span class="badge rounded-pill bg-primary bg-opacity-75">New</span>` : ""
             }
+            ${post.tags ? `<span class="badge rounded-pill bg-secondary">${escapeHtml(post.tags)}</span>` : ""}
             <span class="fs-4">${escapeHtml(post.title)}</span>
             <span class="fs-5 text-secondary">by</span>
             <a class="fs-5" href="u.html?id=${encodeURIComponent(post.author)}">${escapeHtml(post.username)}</a>
