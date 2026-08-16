@@ -20,7 +20,7 @@ const controls = {
   invertVabZoom: false, 
   invertFlightZoom: false 
 };
-let timeWarpSteps = [1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000]
+let timeWarpSteps = [0.25, 0.5, 1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000]
 let timeWarpCounter = 0;
 let toasts = [];
 let t = 0;
@@ -4712,12 +4712,12 @@ function calculatePressure() {
   }
   if (rocket.enteredAtmosphere) {
     const rawAltNow = calculateAltitudeRaw();
-    let maxIdx = 5;
+    let maxIdx = 7;
     if (rawAltNow <= 10000) {
-      maxIdx = 3;
+      maxIdx = 5;
     }
     if (rawAltNow <= 2500) {
-      maxIdx = 2;
+      maxIdx = 4;
     }
     if (c.timewarp > timeWarpSteps[maxIdx]) {
       c.timewarp = timeWarpSteps[maxIdx];
@@ -5939,7 +5939,9 @@ function draw() {
     if (showPitchGuide) {
       drawPitchGuide(curRocket);
     }
-    drawPartHover(curRocket);
+    if (!inMap) {
+      drawPartHover(curRocket);
+    }
   }
   pop();
 
@@ -6013,7 +6015,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.2 [Public Beta]", width - 120, height - 40);
+  text("v1.4.3 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
