@@ -3,19 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forums - Weborbit</title>
+    <title>Weborbit</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
+    <link rel="icon" type="image/x-icon" href="Favicon.ico">
     <script src="commons.js"></script>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg bg-body-secondary py-3">
       <div class="container">
-        <a class="navbar-brand fw-semibold" href="index.html">Web<span class="text-primary">orbit</span></a>
+        <a class="navbar-brand fw-semibold" href="index.html">Web<span id="role-text" class="text-primary">orbit</span></a>
         <button
           class="navbar-toggler"
           type="button"
@@ -28,15 +29,12 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNavbar">
-          <ul id="navbar-items" class="navbar-nav ms-auto">
-            <li class="nav-item d-flex align-items-center">
-              <span id="role-text" class="badge bg-danger me-2"></span>
-            </li>
+          <ul class="navbar-nav ms-auto">
             <li class="nav-item">
               <a class="nav-link" href="game.html">Game</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link active" href="forum.html">Forums</a>
+              <a class="nav-link" href="forum.html">Forums</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="https://discord.gg/YDvpbVEC8W">Discord</a>
@@ -46,37 +44,26 @@
       </div>
     </nav>
 
-    <div class="container pt-5">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <h1 class="mb-0">Forums</h1>
+    <div class="container py-5">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6 text-center text-lg-start">
+          <h1 class="display-4 fw-bold">Simple rockets.<br />Built in your browser.</h1>
+          <p class="lead">Weborbit is a small open source web game about launching rockets.</p>
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-center justify-content-lg-start">
+            <a href="game.html" class="btn btn-primary btn-lg px-4">Play The Game</a>
+            <a href="forum.html" class="btn btn-dark btn-lg px-4">Join The Community</a>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <img src="Hero.png" class="img-fluid rounded-4 d-block mx-auto" alt="Rocket launching in the Weborbit game">
+        </div>
       </div>
-
-      <a href="login.html" class="btn btn-lg btn-success px-4">Login</a>
-      <a href="signup.html" class="btn btn-lg btn-primary px-4">Signup</a>
-      <hr>
-
-      <button id="post-btn" class="d-none btn btn-lg btn-outline-primary mb-3">Post a Thread</button>
-      <br>
-      <div id="filter-buttons">
-        <button class="btn btn-sm btn-outline-secondary mb-3" data-filter="all">All</button>
-        <button class="btn btn-sm btn-dark mb-3" data-filter="new">New Posts</button>
-        <button class="btn btn-sm btn-primary mb-3" data-filter="Announcements">Announcements</button>
-        <button class="btn btn-sm btn-warning mb-3" disabled>Modding <span class="badge text-bg-primary">Soon</span></button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Questions">Questions</button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Suggestions">Suggestions</button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Bug Reports">Bug Reports</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Weborbit Rockets">Weborbit Rockets</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Fanart">Fanart</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Tutorials &amp; Guides">Tutorials &amp; Guides</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Challenges">Challenges</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Mission Reports">Mission Reports</button>
-        <button class="btn btn-sm btn-secondary mb-3" data-filter="Off-Topic">Off-Topic</button>
-        <button class="btn btn-sm btn-secondary mb-3" data-filter="Real-life Rockets">Real-life Rockets</button>
-      </div>
-
-      <div class="container d-grid" id="threads-list"></div>
     </div>
-    <script type="module" src="forum/forum.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
   </body>
 </html>
