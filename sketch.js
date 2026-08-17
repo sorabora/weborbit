@@ -3440,29 +3440,52 @@ function drawMap() {
 }
 
 function transferPlan(ship, dest) {
-  if (!ship || !dest || dest.parentBody !== ship.parentBody) {
+  if (!ship || !dest) {
     return null;
   }
-  const body = getBody(ship.parentBody);
+  const parent = getBody(ship.parentBody);
+  const escaping = dest.parentBody !== ship.parentBody;
+  if (escaping && dest.parentBody !== parent.parentBody) {
+    return null;
+  }
+  const body = escaping ? getBody(parent.parentBody) : parent;
   const mu = gravParam(body);
-  const r1 = Math.hypot(ship.pos.x - body.pos.x, ship.pos.y - body.pos.y);
+  const origin = escaping ? parent.pos : ship.pos;
+  const r1 = escaping ? parent.orbitRadius : Math.hypot(ship.pos.x - body.pos.x, ship.pos.y - body.pos.y);
   const r2 = dest.orbitRadius;
   const at = (r1 + r2) / 2;
-  const vel = relativeVelocity(ship, body);
-  const dv1 = Math.sqrt(mu * r2 / (r1 * at)) - Math.hypot(vel.x, vel.y);
+  const vel = relativeVelocity(ship, parent);
+  const speed = Math.hypot(vel.x, vel.y);
+  const helio = Math.sqrt(mu * r2 / (r1 * at)) - Math.sqrt(mu / r1);
+  let dv1 = Math.sqrt(mu * r2 / (r1 * at)) - speed;
+  if (escaping) {
+    const rp = Math.hypot(ship.pos.x - parent.pos.x, ship.pos.y - parent.pos.y);
+    dv1 = Math.sqrt(helio * helio + 2 * gravParam(parent) / rp) - speed;
+  }
   const dv2 = Math.sqrt(mu / r2) * (1 - Math.sqrt(r1 / at));
   const flight = Math.PI * Math.sqrt(at ** 3 / mu);
-  const w1 = Math.sqrt(mu / r1 ** 3);
+  const w1 = escaping ? TWO_PI / parent.orbitPeriod : Math.sqrt(mu / r1 ** 3);
   const w2 = TWO_PI / dest.orbitPeriod;
   const lead = Math.PI - w2 * flight;
-  const shipAng = Math.atan2(ship.pos.y - body.pos.y, ship.pos.x - body.pos.x);
+  const originAng = Math.atan2(origin.y - body.pos.y, origin.x - body.pos.x);
   const destAng = Math.atan2(dest.pos.y - body.pos.y, dest.pos.x - body.pos.x);
   const synodic = TWO_PI / Math.abs(w1 - w2);
-  let wait = ((destAng - shipAng - lead) / (w1 - w2)) % synodic;
+  let wait = ((destAng - originAng - lead) / (w1 - w2)) % synodic;
   if (wait < 0) {
     wait += synodic;
   }
-  return { body, r1, r2, at, dv1, dv2, flight, wait, burnAng: shipAng + w1 * wait };
+  const burnAng = originAng + w1 * wait;
+  let burn = { x: body.pos.x + Math.cos(burnAng) * r1, y: body.pos.y + Math.sin(burnAng) * r1 };
+  if (escaping) {
+    const rp = Math.hypot(ship.pos.x - parent.pos.x, ship.pos.y - parent.pos.y);
+    const rx = ship.pos.x - parent.pos.x;
+    const ry = ship.pos.y - parent.pos.y;
+    const spin = Math.sign(rx * vel.y - ry * vel.x) || 1;
+    const pv = relativeVelocity(parent, body);
+    const eject = Math.atan2(pv.y, pv.x) + (helio < 0 ? Math.PI : 0) - spin * HALF_PI;
+    burn = { x: parent.pos.x + Math.cos(eject) * rp, y: parent.pos.y + Math.sin(eject) * rp };
+  }
+  return { body, r1, r2, at, dv1, dv2, flight, wait, burnAng, burn };
 }
 
 function drawTransfer(ship, mapX, mapY) {
@@ -3470,9 +3493,9 @@ function drawTransfer(ship, mapX, mapY) {
   if (!plan) {
     return;
   }
-  const { body, r1, r2, at, burnAng } = plan;
-  const bx = body.pos.x + Math.cos(burnAng) * r1;
-  const by = body.pos.y + Math.sin(burnAng) * r1;
+  const { body, r1, r2, at, burnAng, burn } = plan;
+  const bx = burn.x;
+  const by = burn.y;
   const ax = body.pos.x - Math.cos(burnAng) * r2;
   const ay = body.pos.y - Math.sin(burnAng) * r2;
   const e = Math.abs(r2 - r1) / (r1 + r2);
@@ -3493,7 +3516,7 @@ function drawTransfer(ship, mapX, mapY) {
   textAlign(LEFT, BOTTOM);
   textSize(12);
   text(
-    `${transferTarget}  Δv ${format("speed", Math.abs(plan.dv1))}  in ${formatTime(plan.wait)}`,
+    `→ ${transferTarget}  Δv ${format("speed", Math.abs(plan.dv1))}  in ${formatTime(plan.wait)}`,
     mapX({ x: bx, y: by }) + 8,
     mapY({ x: bx, y: by }) - 6
   );
@@ -3506,7 +3529,7 @@ function drawTransfer(ship, mapX, mapY) {
 
 function bodyStateAt(body, time) {
   if (!body.parentBody) {
-    return { x: body.pos.x, y: body.pos.y, vx: body.vel.x, vy: body.vel.y };
+    return { pos: { x: body.pos.x, y: body.pos.y }, vel: { x: body.vel.x, y: body.vel.y } };
   }
   const parent = bodyStateAt(getBody(body.parentBody), time);
   const a = body.orbitRadius;
@@ -3516,179 +3539,120 @@ function bodyStateAt(body, time) {
   const E = eccentricAnomaly(mean, e);
   const rate = (TWO_PI / body.orbitPeriod) / (1 - e * Math.cos(E));
   return {
-    x: parent.x + a * (Math.cos(E) - e),
-    y: parent.y + b * Math.sin(E),
-    vx: parent.vx - a * Math.sin(E) * rate,
-    vy: parent.vy + b * Math.cos(E) * rate
+    pos: { x: parent.pos.x + a * (Math.cos(E) - e), y: parent.pos.y + b * Math.sin(E) },
+    vel: { x: parent.vel.x - a * Math.sin(E) * rate, y: parent.vel.y + b * Math.cos(E) * rate }
   };
 }
 
-function hyperbolicAnomaly(mean, e) {
-  let H = Math.abs(mean) > 5 ? Math.sign(mean) * Math.log(2 * Math.abs(mean) / e + 1.8) : mean;
-  for (let i = 0; i < 40; i++) {
-    const step = (e * Math.sinh(H) - H - mean) / (e * Math.cosh(H) - 1);
-    H -= step;
-    if (Math.abs(step) < 1e-12) {
-      break;
-    }
-  }
-  return H;
-}
-
-// two-body state some dt ahead, using Lagrange f and g coefficients
-function propagateKepler(s, mu, dt) {
-  const r0 = Math.hypot(s.x, s.y);
-  const rv = s.x * s.vx + s.y * s.vy;
-  const alpha = 2 / r0 - (s.vx * s.vx + s.vy * s.vy) / mu;
-  if (!isFinite(alpha) || Math.abs(alpha) < 1e-30) {
-    return null;
-  }
-  let f, g, fdot, gdot;
-  if (alpha > 0) {
-    const a = 1 / alpha;
-    const n = Math.sqrt(mu / (a * a * a));
-    const sE0 = rv / Math.sqrt(mu * a);
-    const cE0 = 1 - r0 / a;
-    const e = Math.hypot(sE0, cE0);
-    const E0 = Math.atan2(sE0, cE0);
-    const dE = eccentricAnomaly(E0 - sE0 + n * dt, e) - E0;
-    f = 1 - (a / r0) * (1 - Math.cos(dE));
-    g = dt - (dE - Math.sin(dE)) / n;
-    const r = Math.hypot(f * s.x + g * s.vx, f * s.y + g * s.vy);
-    fdot = -Math.sqrt(mu * a) * Math.sin(dE) / (r * r0);
-    gdot = 1 - (a / r) * (1 - Math.cos(dE));
-  } else {
-    const A = -1 / alpha;
-    const n = Math.sqrt(mu / (A * A * A));
-    const shH0 = rv / Math.sqrt(mu * A);
-    const chH0 = 1 + r0 / A;
-    const e = Math.sqrt(chH0 * chH0 - shH0 * shH0);
-    const H0 = Math.asinh(shH0 / e);
-    const dH = hyperbolicAnomaly(e * Math.sinh(H0) - H0 + n * dt, e) - H0;
-    f = 1 - (A / r0) * (Math.cosh(dH) - 1);
-    g = dt - (Math.sinh(dH) - dH) / n;
-    const r = Math.hypot(f * s.x + g * s.vx, f * s.y + g * s.vy);
-    fdot = -Math.sqrt(mu * A) * Math.sinh(dH) / (r * r0);
-    gdot = 1 - (A / r) * (Math.cosh(dH) - 1);
-  }
-  const out = {
-    x: f * s.x + g * s.vx,
-    y: f * s.y + g * s.vy,
-    vx: fdot * s.x + gdot * s.vx,
-    vy: fdot * s.y + gdot * s.vy
+function twoBodyStep(p, v, mu, dt) {
+  const acc = (q) => {
+    const r2 = q.x * q.x + q.y * q.y;
+    const f = -mu / (r2 * Math.sqrt(r2));
+    return { x: q.x * f, y: q.y * f };
   };
-  return isFinite(out.x) && isFinite(out.y) ? out : null;
-}
-
-// follows one conic around body until it leaves the SOI, meets a child SOI, or loops
-function predictSegment(body, start, t0) {
-  const mu = gravParam(body);
-  const soi = soiRadius(body);
-  const children = planets.filter(p => p.parentBody === body.id);
-  const r0 = Math.hypot(start.x, start.y);
-  const speed0 = Math.hypot(start.vx, start.vy);
-  const alpha = 2 / r0 - speed0 * speed0 / mu;
-  const bound = alpha > 0;
-  const period = bound ? TWO_PI * Math.sqrt(1 / (alpha * alpha * alpha * mu)) : Infinity;
-  const base = bound
-    ? period / 400
-    : (isFinite(soi) ? soi : r0 * 40) / speed0 / 200;
-  const points = [{ x: start.x, y: start.y }];
-  let elapsed = 0;
-  let prev = start;
-  let event = null;
-
-  const stateAt = (dt) => propagateKepler(start, mu, dt);
-  const check = (s, dt) => {
-    if (isFinite(soi) && Math.hypot(s.x, s.y) > soi) {
-      return { type: "exit" };
+  const a1 = acc(p);
+  const p2 = { x: p.x + v.x * dt / 2, y: p.y + v.y * dt / 2 };
+  const v2 = { x: v.x + a1.x * dt / 2, y: v.y + a1.y * dt / 2 };
+  const a2 = acc(p2);
+  const p3 = { x: p.x + v2.x * dt / 2, y: p.y + v2.y * dt / 2 };
+  const v3 = { x: v.x + a2.x * dt / 2, y: v.y + a2.y * dt / 2 };
+  const a3 = acc(p3);
+  const p4 = { x: p.x + v3.x * dt, y: p.y + v3.y * dt };
+  const v4 = { x: v.x + a3.x * dt, y: v.y + a3.y * dt };
+  const a4 = acc(p4);
+  return {
+    p: {
+      x: p.x + (dt / 6) * (v.x + 2 * v2.x + 2 * v3.x + v4.x),
+      y: p.y + (dt / 6) * (v.y + 2 * v2.y + 2 * v3.y + v4.y)
+    },
+    v: {
+      x: v.x + (dt / 6) * (a1.x + 2 * a2.x + 2 * a3.x + a4.x),
+      y: v.y + (dt / 6) * (a1.y + 2 * a2.y + 2 * a3.y + a4.y)
     }
-    const here = bodyStateAt(body, t0 + dt);
-    for (const child of children) {
-      const c = bodyStateAt(child, t0 + dt);
-      const d = Math.hypot(here.x + s.x - c.x, here.y + s.y - c.y);
-      if (d < soiRadius(child)) {
-        return { type: "enter", child };
-      }
-    }
-    return null;
   };
-
-  for (let i = 0; i < 4000 && elapsed < period; i++) {
-    let dt = base;
-    const here = bodyStateAt(body, t0 + elapsed);
-    for (const child of children) {
-      const c = bodyStateAt(child, t0 + elapsed);
-      const d = Math.hypot(here.x + prev.x - c.x, here.y + prev.y - c.y) - soiRadius(child);
-      const rel = Math.hypot(here.vx + prev.vx - c.vx, here.vy + prev.vy - c.vy);
-      dt = Math.min(dt, Math.max(0.5 * d / rel, base / 32));
-    }
-    if (isFinite(soi)) {
-      const gap = soi - Math.hypot(prev.x, prev.y);
-      dt = Math.min(dt, Math.max(0.5 * gap / speed0, base / 32));
-    }
-    if (bound) {
-      dt = Math.min(dt, period - elapsed);
-    }
-    const next = elapsed + dt;
-    const s = stateAt(next);
-    if (!s) {
-      break;
-    }
-    const hit = check(s, next);
-    if (hit) {
-      let lo = elapsed;
-      let hi = next;
-      for (let k = 0; k < 24; k++) {
-        const mid = (lo + hi) / 2;
-        const sm = stateAt(mid);
-        if (sm && check(sm, mid)) {
-          hi = mid;
-        } else {
-          lo = mid;
-        }
-      }
-      const es = stateAt(hi) || s;
-      points.push({ x: es.x, y: es.y });
-      event = { ...hit, time: t0 + hi, state: es };
-      break;
-    }
-    points.push({ x: s.x, y: s.y });
-    prev = s;
-    elapsed = next;
-    if (!bound && !isFinite(soi) && Math.hypot(s.x, s.y) > r0 * 40) {
-      break;
-    }
-  }
-  return { body, origin: bodyStateAt(body, t0), points, event, closed: bound && !event };
 }
 
-function predictTrajectory(rocket, patches) {
+function predictTrajectory(rocket, maxSegments) {
+  if (!rocket || rocket.destroyed || rocket.landed) {
+    return [];
+  }
+  const segments = [];
   let body = getBody(rocket.parentBody);
   let time = t;
-  const vel = relativeVelocity(rocket, body);
-  let rel = { x: rocket.pos.x - body.pos.x, y: rocket.pos.y - body.pos.y, vx: vel.x, vy: vel.y };
-  const segments = [];
-  for (let p = 0; p < patches; p++) {
-    const seg = predictSegment(body, rel, time);
+  let p = { x: rocket.pos.x - body.pos.x, y: rocket.pos.y - body.pos.y };
+  let v = relativeVelocity(rocket, body);
+  const maxSteps = maxSegments > 1 ? 1500 : 500;
+
+  for (let s = 0; s < maxSegments; s++) {
+    const mu = gravParam(body);
+    const soi = soiRadius(body);
+    const children = planets.filter(child => child.parentBody === body.id);
+    const r0 = Math.hypot(p.x, p.y);
+    const speed0 = Math.hypot(v.x, v.y);
+    const energy = (speed0 * speed0) / 2 - mu / r0;
+    const a = -mu / (2 * energy);
+    const bound = energy < 0;
+    const period = bound ? TWO_PI * Math.sqrt(a ** 3 / mu) : Infinity;
+    const seg = { origin: body.pos, points: [{ x: p.x, y: p.y }], closed: false, body, event: null };
     segments.push(seg);
-    if (!seg.event) {
+    let elapsed = 0;
+    let next = null;
+
+    for (let i = 0; i < maxSteps; i++) {
+      const r = Math.hypot(p.x, p.y);
+      const dt = 0.02 * Math.sqrt(r ** 3 / mu);
+      const out = twoBodyStep(p, v, mu, dt);
+      p = out.p;
+      v = out.v;
+      elapsed += dt;
+      time += dt;
+      seg.points.push({ x: p.x, y: p.y });
+      const rNow = Math.hypot(p.x, p.y);
+      if (rNow < body.size) {
+        break;
+      }
+      const here = bodyStateAt(body, time);
+      if (rNow > soi) {
+        const parent = getBody(body.parentBody);
+        const up = bodyStateAt(parent, time);
+        seg.event = { type: "exit", time };
+        next = {
+          body: parent,
+          p: { x: p.x + here.pos.x - up.pos.x, y: p.y + here.pos.y - up.pos.y },
+          v: { x: v.x + here.vel.x - up.vel.x, y: v.y + here.vel.y - up.vel.y }
+        };
+        break;
+      }
+      let hit = null;
+      for (const child of children) {
+        const cs = bodyStateAt(child, time);
+        const dx = p.x - (cs.pos.x - here.pos.x);
+        const dy = p.y - (cs.pos.y - here.pos.y);
+        if (Math.hypot(dx, dy) < soiRadius(child)) {
+          hit = { child, cs };
+          break;
+        }
+      }
+      if (hit) {
+        seg.event = { type: "enter", time, child: hit.child };
+        next = {
+          body: hit.child,
+          p: { x: p.x - (hit.cs.pos.x - here.pos.x), y: p.y - (hit.cs.pos.y - here.pos.y) },
+          v: { x: v.x - (hit.cs.vel.x - here.vel.x), y: v.y - (hit.cs.vel.y - here.vel.y) }
+        };
+        break;
+      }
+      if (bound && elapsed >= period) {
+        seg.closed = true;
+        break;
+      }
+    }
+    if (!next) {
       break;
     }
-    const { state } = seg.event;
-    const here = bodyStateAt(body, seg.event.time);
-    if (seg.event.type === "enter") {
-      const child = seg.event.child;
-      const c = bodyStateAt(child, seg.event.time);
-      rel = { x: here.x + state.x - c.x, y: here.y + state.y - c.y, vx: here.vx + state.vx - c.vx, vy: here.vy + state.vy - c.vy };
-      body = child;
-    } else {
-      const parent = getBody(body.parentBody);
-      const pv = bodyStateAt(parent, seg.event.time);
-      rel = { x: here.x + state.x - pv.x, y: here.y + state.y - pv.y, vx: here.vx + state.vx - pv.vx, vy: here.vy + state.vy - pv.vy };
-      body = parent;
-    }
-    time = seg.event.time;
+    body = next.body;
+    p = next.p;
+    v = next.v;
   }
   return segments;
 }
@@ -4612,7 +4576,7 @@ function drawBootScreen(progress) {
 
 async function setup() {
   frameRate(60);
-  createCanvas(window.screen.width, window.screen.height);
+  createCanvas(windowWidth, windowHeight);
   GUIAPI.onButton = buttonOnClick;
   skyTip = color("#000000");
   skySurface = color("#3a7bd5");
@@ -6305,7 +6269,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.4 [Public Beta]", width - 120, height - 40);
+  text("v1.4.3 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -6704,6 +6668,10 @@ function debug() {
 
 const held = new Set();
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
 function keyPressed(event) {
   if ((keyCode === 52 && (keyIsDown(CONTROL) || keyIsDown(17))) && developerMode) {
     consoleOpen = !consoleOpen;
@@ -7034,7 +7002,7 @@ function mouseReleased() {
         const y = height / 2 + (body.pos.y - cy) * mapScale;
         return Math.hypot(mouseX - x, mouseY - y) <= Math.max(body.size * mapScale, 4) + 6;
       });
-      transferTarget = hit && ship && hit.parentBody === ship.parentBody ? hit.id : null;
+      transferTarget = hit && transferPlan(ship, hit) ? hit.id : null;
     }
     mapClick = null;
     return;
