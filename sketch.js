@@ -6305,7 +6305,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.3 [Public Beta]", width - 120, height - 40);
+  text("v1.4.4 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
