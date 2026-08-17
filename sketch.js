@@ -4,6 +4,8 @@
 let scale = 5;
 let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
+let transferTarget = null;
+let mapClick = null;
 let throttle = 0;
 let target = "untitled-1";
 let inVab = false;
@@ -3369,6 +3371,7 @@ function drawMap() {
   for (const rocket of rockets) {
     drawRocketOrbit(rocket, mapX, mapY);
   }
+  drawTransfer(ship, mapX, mapY);
 
   textAlign(CENTER, TOP);
   textSize(12);
@@ -3403,9 +3406,17 @@ function drawMap() {
     const y = mapY(rocket.pos);
     noStroke();
     fill(rocket.id === target ? "#5ccfff" : "#8888aa");
-    circle(x, y, 7);
+    if (rocket.id === target) {
+      push();
+      translate(x, y);
+      rotate(rocket.angle - HALF_PI);
+      triangle(9, 0, -6, -6, -6, 6);
+      pop();
+    } else {
+      circle(x, y, 7);
+    }
     fill("#ccc");
-    text(rocket.id, x, y + 8);
+    text(rocket.id, x, y + 10);
   }
   textAlign(LEFT, BASELINE);
 
@@ -3428,31 +3439,310 @@ function drawMap() {
   cursor(mouseIsPressed ? "grabbing" : "grab");
 }
 
-function drawRocketOrbit(rocket, mapX, mapY) {
-  const body = getBody(rocket.parentBody);
+function transferPlan(ship, dest) {
+  if (!ship || !dest || dest.parentBody !== ship.parentBody) {
+    return null;
+  }
+  const body = getBody(ship.parentBody);
   const mu = gravParam(body);
-  const rx = rocket.pos.x - body.pos.x;
-  const ry = rocket.pos.y - body.pos.y;
-  const r = Math.hypot(rx, ry);
-  const vel = relativeVelocity(rocket, body);
-  const h = rx * vel.y - ry * vel.x;
-  const energy = (vel.x * vel.x + vel.y * vel.y) / 2 - mu / r;
-  const a = -mu / (2 * energy);
-  const ex = (vel.y * h) / mu - rx / r;
-  const ey = (-vel.x * h) / mu - ry / r;
-  const e = Math.hypot(ex, ey);
-  if (energy >= 0 || e >= 1 || a * mapScale > width * 20) {
+  const r1 = Math.hypot(ship.pos.x - body.pos.x, ship.pos.y - body.pos.y);
+  const r2 = dest.orbitRadius;
+  const at = (r1 + r2) / 2;
+  const vel = relativeVelocity(ship, body);
+  const dv1 = Math.sqrt(mu * r2 / (r1 * at)) - Math.hypot(vel.x, vel.y);
+  const dv2 = Math.sqrt(mu / r2) * (1 - Math.sqrt(r1 / at));
+  const flight = Math.PI * Math.sqrt(at ** 3 / mu);
+  const w1 = Math.sqrt(mu / r1 ** 3);
+  const w2 = TWO_PI / dest.orbitPeriod;
+  const lead = Math.PI - w2 * flight;
+  const shipAng = Math.atan2(ship.pos.y - body.pos.y, ship.pos.x - body.pos.x);
+  const destAng = Math.atan2(dest.pos.y - body.pos.y, dest.pos.x - body.pos.x);
+  const synodic = TWO_PI / Math.abs(w1 - w2);
+  let wait = ((destAng - shipAng - lead) / (w1 - w2)) % synodic;
+  if (wait < 0) {
+    wait += synodic;
+  }
+  return { body, r1, r2, at, dv1, dv2, flight, wait, burnAng: shipAng + w1 * wait };
+}
+
+function drawTransfer(ship, mapX, mapY) {
+  const plan = transferPlan(ship, transferTarget && getBody(transferTarget));
+  if (!plan) {
     return;
   }
-  const b = a * Math.sqrt(1 - e * e);
+  const { body, r1, r2, at, burnAng } = plan;
+  const bx = body.pos.x + Math.cos(burnAng) * r1;
+  const by = body.pos.y + Math.sin(burnAng) * r1;
+  const ax = body.pos.x - Math.cos(burnAng) * r2;
+  const ay = body.pos.y - Math.sin(burnAng) * r2;
+  const e = Math.abs(r2 - r1) / (r1 + r2);
   push();
   translate(mapX(body.pos), mapY(body.pos));
-  rotate(Math.atan2(ey, ex));
+  rotate(burnAng + (r2 < r1 ? Math.PI : 0));
   noFill();
-  stroke(rocket.id === target ? "#5ccfff88" : "#8888aa66");
+  stroke("#ffb347aa");
   strokeWeight(1);
-  ellipse(-a * e * mapScale, 0, a * 2 * mapScale, b * 2 * mapScale);
+  ellipse(-at * e * mapScale, 0, at * 2 * mapScale, at * 2 * Math.sqrt(1 - e * e) * mapScale);
   pop();
+  noStroke();
+  fill("#ffb347");
+  circle(mapX({ x: bx, y: by }), mapY({ x: bx, y: by }), 8);
+  fill("#ffb34788");
+  circle(mapX({ x: ax, y: ay }), mapY({ x: ax, y: ay }), 6);
+  fill("#ffb347");
+  textAlign(LEFT, BOTTOM);
+  textSize(12);
+  text(
+    `${transferTarget}  Δv ${format("speed", Math.abs(plan.dv1))}  in ${formatTime(plan.wait)}`,
+    mapX({ x: bx, y: by }) + 8,
+    mapY({ x: bx, y: by }) - 6
+  );
+  text(
+    `capture Δv ${format("speed", Math.abs(plan.dv2))}  after ${formatTime(plan.flight)}`,
+    mapX({ x: ax, y: ay }) + 8,
+    mapY({ x: ax, y: ay }) - 6
+  );
+}
+
+function bodyStateAt(body, time) {
+  if (!body.parentBody) {
+    return { x: body.pos.x, y: body.pos.y, vx: body.vel.x, vy: body.vel.y };
+  }
+  const parent = bodyStateAt(getBody(body.parentBody), time);
+  const a = body.orbitRadius;
+  const e = body.orbitEccentricity || 0;
+  const b = a * Math.sqrt(1 - e * e);
+  const mean = (body.orbitPhase || 0) + TWO_PI * (time / body.orbitPeriod);
+  const E = eccentricAnomaly(mean, e);
+  const rate = (TWO_PI / body.orbitPeriod) / (1 - e * Math.cos(E));
+  return {
+    x: parent.x + a * (Math.cos(E) - e),
+    y: parent.y + b * Math.sin(E),
+    vx: parent.vx - a * Math.sin(E) * rate,
+    vy: parent.vy + b * Math.cos(E) * rate
+  };
+}
+
+function hyperbolicAnomaly(mean, e) {
+  let H = Math.abs(mean) > 5 ? Math.sign(mean) * Math.log(2 * Math.abs(mean) / e + 1.8) : mean;
+  for (let i = 0; i < 40; i++) {
+    const step = (e * Math.sinh(H) - H - mean) / (e * Math.cosh(H) - 1);
+    H -= step;
+    if (Math.abs(step) < 1e-12) {
+      break;
+    }
+  }
+  return H;
+}
+
+// two-body state some dt ahead, using Lagrange f and g coefficients
+function propagateKepler(s, mu, dt) {
+  const r0 = Math.hypot(s.x, s.y);
+  const rv = s.x * s.vx + s.y * s.vy;
+  const alpha = 2 / r0 - (s.vx * s.vx + s.vy * s.vy) / mu;
+  if (!isFinite(alpha) || Math.abs(alpha) < 1e-30) {
+    return null;
+  }
+  let f, g, fdot, gdot;
+  if (alpha > 0) {
+    const a = 1 / alpha;
+    const n = Math.sqrt(mu / (a * a * a));
+    const sE0 = rv / Math.sqrt(mu * a);
+    const cE0 = 1 - r0 / a;
+    const e = Math.hypot(sE0, cE0);
+    const E0 = Math.atan2(sE0, cE0);
+    const dE = eccentricAnomaly(E0 - sE0 + n * dt, e) - E0;
+    f = 1 - (a / r0) * (1 - Math.cos(dE));
+    g = dt - (dE - Math.sin(dE)) / n;
+    const r = Math.hypot(f * s.x + g * s.vx, f * s.y + g * s.vy);
+    fdot = -Math.sqrt(mu * a) * Math.sin(dE) / (r * r0);
+    gdot = 1 - (a / r) * (1 - Math.cos(dE));
+  } else {
+    const A = -1 / alpha;
+    const n = Math.sqrt(mu / (A * A * A));
+    const shH0 = rv / Math.sqrt(mu * A);
+    const chH0 = 1 + r0 / A;
+    const e = Math.sqrt(chH0 * chH0 - shH0 * shH0);
+    const H0 = Math.asinh(shH0 / e);
+    const dH = hyperbolicAnomaly(e * Math.sinh(H0) - H0 + n * dt, e) - H0;
+    f = 1 - (A / r0) * (Math.cosh(dH) - 1);
+    g = dt - (Math.sinh(dH) - dH) / n;
+    const r = Math.hypot(f * s.x + g * s.vx, f * s.y + g * s.vy);
+    fdot = -Math.sqrt(mu * A) * Math.sinh(dH) / (r * r0);
+    gdot = 1 - (A / r) * (Math.cosh(dH) - 1);
+  }
+  const out = {
+    x: f * s.x + g * s.vx,
+    y: f * s.y + g * s.vy,
+    vx: fdot * s.x + gdot * s.vx,
+    vy: fdot * s.y + gdot * s.vy
+  };
+  return isFinite(out.x) && isFinite(out.y) ? out : null;
+}
+
+// follows one conic around body until it leaves the SOI, meets a child SOI, or loops
+function predictSegment(body, start, t0) {
+  const mu = gravParam(body);
+  const soi = soiRadius(body);
+  const children = planets.filter(p => p.parentBody === body.id);
+  const r0 = Math.hypot(start.x, start.y);
+  const speed0 = Math.hypot(start.vx, start.vy);
+  const alpha = 2 / r0 - speed0 * speed0 / mu;
+  const bound = alpha > 0;
+  const period = bound ? TWO_PI * Math.sqrt(1 / (alpha * alpha * alpha * mu)) : Infinity;
+  const base = bound
+    ? period / 400
+    : (isFinite(soi) ? soi : r0 * 40) / speed0 / 200;
+  const points = [{ x: start.x, y: start.y }];
+  let elapsed = 0;
+  let prev = start;
+  let event = null;
+
+  const stateAt = (dt) => propagateKepler(start, mu, dt);
+  const check = (s, dt) => {
+    if (isFinite(soi) && Math.hypot(s.x, s.y) > soi) {
+      return { type: "exit" };
+    }
+    const here = bodyStateAt(body, t0 + dt);
+    for (const child of children) {
+      const c = bodyStateAt(child, t0 + dt);
+      const d = Math.hypot(here.x + s.x - c.x, here.y + s.y - c.y);
+      if (d < soiRadius(child)) {
+        return { type: "enter", child };
+      }
+    }
+    return null;
+  };
+
+  for (let i = 0; i < 4000 && elapsed < period; i++) {
+    let dt = base;
+    const here = bodyStateAt(body, t0 + elapsed);
+    for (const child of children) {
+      const c = bodyStateAt(child, t0 + elapsed);
+      const d = Math.hypot(here.x + prev.x - c.x, here.y + prev.y - c.y) - soiRadius(child);
+      const rel = Math.hypot(here.vx + prev.vx - c.vx, here.vy + prev.vy - c.vy);
+      dt = Math.min(dt, Math.max(0.5 * d / rel, base / 32));
+    }
+    if (isFinite(soi)) {
+      const gap = soi - Math.hypot(prev.x, prev.y);
+      dt = Math.min(dt, Math.max(0.5 * gap / speed0, base / 32));
+    }
+    if (bound) {
+      dt = Math.min(dt, period - elapsed);
+    }
+    const next = elapsed + dt;
+    const s = stateAt(next);
+    if (!s) {
+      break;
+    }
+    const hit = check(s, next);
+    if (hit) {
+      let lo = elapsed;
+      let hi = next;
+      for (let k = 0; k < 24; k++) {
+        const mid = (lo + hi) / 2;
+        const sm = stateAt(mid);
+        if (sm && check(sm, mid)) {
+          hi = mid;
+        } else {
+          lo = mid;
+        }
+      }
+      const es = stateAt(hi) || s;
+      points.push({ x: es.x, y: es.y });
+      event = { ...hit, time: t0 + hi, state: es };
+      break;
+    }
+    points.push({ x: s.x, y: s.y });
+    prev = s;
+    elapsed = next;
+    if (!bound && !isFinite(soi) && Math.hypot(s.x, s.y) > r0 * 40) {
+      break;
+    }
+  }
+  return { body, origin: bodyStateAt(body, t0), points, event, closed: bound && !event };
+}
+
+function predictTrajectory(rocket, patches) {
+  let body = getBody(rocket.parentBody);
+  let time = t;
+  const vel = relativeVelocity(rocket, body);
+  let rel = { x: rocket.pos.x - body.pos.x, y: rocket.pos.y - body.pos.y, vx: vel.x, vy: vel.y };
+  const segments = [];
+  for (let p = 0; p < patches; p++) {
+    const seg = predictSegment(body, rel, time);
+    segments.push(seg);
+    if (!seg.event) {
+      break;
+    }
+    const { state } = seg.event;
+    const here = bodyStateAt(body, seg.event.time);
+    if (seg.event.type === "enter") {
+      const child = seg.event.child;
+      const c = bodyStateAt(child, seg.event.time);
+      rel = { x: here.x + state.x - c.x, y: here.y + state.y - c.y, vx: here.vx + state.vx - c.vx, vy: here.vy + state.vy - c.vy };
+      body = child;
+    } else {
+      const parent = getBody(body.parentBody);
+      const pv = bodyStateAt(parent, seg.event.time);
+      rel = { x: here.x + state.x - pv.x, y: here.y + state.y - pv.y, vx: here.vx + state.vx - pv.vx, vy: here.vy + state.vy - pv.vy };
+      body = parent;
+    }
+    time = seg.event.time;
+  }
+  return segments;
+}
+
+function drawRocketOrbit(rocket, mapX, mapY) {
+  const mine = rocket.id === target;
+  const segments = predictTrajectory(rocket, mine ? 4 : 1);
+  const colours = mine
+    ? ["#5ccfff88", "#ffb347aa", "#c58cffaa", "#7dff9faa"]
+    : ["#8888aa66"];
+  const labels = [];
+  segments.forEach((seg, i) => {
+    const ox = seg.origin.x;
+    const oy = seg.origin.y;
+    if (seg.points.length < 2) {
+      return;
+    }
+    noFill();
+    stroke(colours[i % colours.length]);
+    strokeWeight(1);
+    beginShape();
+    for (const p of seg.points) {
+      vertex(mapX({ x: ox + p.x, y: oy + p.y }), mapY({ x: ox + p.x, y: oy + p.y }));
+    }
+    endShape(seg.closed ? CLOSE : undefined);
+    if (i > 0 && mine) {
+      const r = Math.max(seg.body.size * mapScale, 4);
+      stroke(colours[i % colours.length]);
+      noFill();
+      circle(mapX({ x: ox, y: oy }), mapY({ x: ox, y: oy }), r * 2);
+    }
+    if (seg.event && mine) {
+      const last = seg.points[seg.points.length - 1];
+      const px = mapX({ x: ox + last.x, y: oy + last.y });
+      const py = mapY({ x: ox + last.x, y: oy + last.y });
+      const when = formatTime(seg.event.time - t);
+      const text_ = seg.event.type === "enter"
+        ? `${seg.event.child.id} encounter  in ${when}`
+        : `leaves ${seg.body.id} SOI  in ${when}`;
+      labels.push({ px, py, text: text_, colour: colours[(i + 1) % colours.length] });
+    }
+  });
+  if (!labels.length) {
+    return;
+  }
+  textAlign(LEFT, BOTTOM);
+  textSize(12);
+  for (const l of labels) {
+    noStroke();
+    fill(l.colour);
+    circle(l.px, l.py, 6);
+    text(l.text, l.px + 8, l.py - 6);
+  }
+  textAlign(LEFT, BASELINE);
 }
 
 function drawVab() {
@@ -3977,7 +4267,7 @@ function gameLoad(text) {
       if (key !== "part") {
         return value;
       }
-      const part = parts.find(p => p.name === value);
+      const part = parts.find(p => p.name === value) || hiddenPart(value);
       if (!part) {
         throw new Error(`save wants a part that isn't loaded: ${value}`);
       }
@@ -6572,6 +6862,8 @@ async function mousePressed() {
     } else if (GUIAPI.clicked("map-recenter")) {
       mapPan.x = 0;
       mapPan.y = 0;
+    } else {
+      mapClick = { x: mouseX, y: mouseY };
     }
     return;
   }
@@ -6731,6 +7023,22 @@ function mouseDragged() {
 }
 
 function mouseReleased() {
+  if (inMap && !inVab && mapClick) {
+    if (Math.hypot(mouseX - mapClick.x, mouseY - mapClick.y) < 4) {
+      const ship = flyingRocket();
+      const anchor = ship ? ship.pos : camera.pos;
+      const cx = anchor.x + mapPan.x;
+      const cy = anchor.y + mapPan.y;
+      const hit = planets.find(body => {
+        const x = width / 2 + (body.pos.x - cx) * mapScale;
+        const y = height / 2 + (body.pos.y - cy) * mapScale;
+        return Math.hypot(mouseX - x, mouseY - y) <= Math.max(body.size * mapScale, 4) + 6;
+      });
+      transferTarget = hit && ship && hit.parentBody === ship.parentBody ? hit.id : null;
+    }
+    mapClick = null;
+    return;
+  }
   if (!inVab || !vab.drag) {
     return;
   }
