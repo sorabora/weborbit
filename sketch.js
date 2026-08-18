@@ -2328,6 +2328,43 @@ const loaded = [
       }
     },
     {
+      "name": "XL Decoupler",
+      "size": [
+        2560,
+        1280
+      ],
+      "mass": 0.4,
+      "groups": [
+        {
+          "fill": "#949494",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -640
+            ],
+            [
+              -1280,
+              640
+            ],
+            [
+              1280,
+              640
+            ],
+            [
+              1280,
+              -640
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Decoupler Module": {
+          "Separation Force": 120
+        }
+      }
+    },
+    {
       "name": "LG Decoupler",
       "size": [
         1280,
