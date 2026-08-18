@@ -809,6 +809,120 @@ const loaded = [
       }
     },
     {
+      "name": "Falcon-1 Engine",
+      "size": [
+        1280,
+        960
+      ],
+      "mass": 4,
+      "groups": [
+        {
+          "fill": "#949494",
+          "texture": "DarkPlate.avif",
+          "points": [
+            [
+              -640,
+              -480
+            ],
+            [
+              -640,
+              -320
+            ],
+            [
+              640,
+              -320
+            ],
+            [
+              640,
+              -480
+            ]
+          ]
+        },
+        {
+          "fill": "#c7c7c7",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -240,
+              -320
+            ],
+            [
+              240,
+              -320
+            ],
+            [
+              640,
+              480
+            ],
+            [
+              -640,
+              480
+            ]
+          ]
+        },
+        {
+          "fill": "#525252",
+          "points": [
+            [
+              -540,
+              -320
+            ],
+            [
+              -480,
+              -320
+            ],
+            [
+              -480,
+              -160
+            ],
+            [
+              -400,
+              100
+            ],
+            [
+              -440,
+              140
+            ],
+            [
+              -540,
+              -160
+            ]
+          ]
+        },
+        {
+          "fill": "#858585",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -400,
+              100
+            ],
+            [
+              -440,
+              140
+            ],
+            [
+              471.14,
+              141.16
+            ],
+            [
+              451.63,
+              99.67
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Engine Module": {
+          "Thrust": 6770,
+          "ISP": 264,
+          "Fuel Flow": "Positive",
+          "Resource": "Kerolox",
+          "Flame Scale": 2
+        }
+      }
+    },
+    {
       "name": "Vacuum Engine",
       "size": [
         480,
@@ -1276,44 +1390,6 @@ const loaded = [
       }
     },
     {
-      "name": "Tiny XS Fuel Tank",
-      "size": [
-        320,
-        160
-      ],
-      "mass": 1.1875,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -80
-            ],
-            [
-              -160,
-              80
-            ],
-            [
-              160,
-              80
-            ],
-            [
-              160,
-              -80
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 1,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
       "name": "Xenon Tank",
       "size": [
         320,
@@ -1348,6 +1424,44 @@ const loaded = [
         "Resource Module": {
           "Amount": 2.2,
           "Resource": "Xenon"
+        }
+      }
+    },
+    {
+      "name": "Tiny XS Fuel Tank",
+      "size": [
+        320,
+        160
+      ],
+      "mass": 1.1875,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -160,
+              -80
+            ],
+            [
+              -160,
+              80
+            ],
+            [
+              160,
+              80
+            ],
+            [
+              160,
+              -80
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 1,
+          "Resource": "Kerolox"
         }
       }
     },
@@ -1423,6 +1537,44 @@ const loaded = [
       "modules": {
         "Resource Module": {
           "Amount": 4,
+          "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "Tiny LG Fuel Tank",
+      "size": [
+        320,
+        1280
+      ],
+      "mass": 9.5,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -160,
+              -640
+            ],
+            [
+              -160,
+              640
+            ],
+            [
+              160,
+              640
+            ],
+            [
+              160,
+              -640
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 8,
           "Resource": "Kerolox"
         }
       }
@@ -1728,6 +1880,202 @@ const loaded = [
         "Resource Module": {
           "Amount": 144,
           "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "XS Massive Fuel Tank",
+      "size": [
+        2560,
+        1280
+      ],
+      "mass": 76,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -640
+            ],
+            [
+              -1280,
+              640
+            ],
+            [
+              1280,
+              640
+            ],
+            [
+              1280,
+              -640
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 72,
+          "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "SM Massive Fuel Tank",
+      "size": [
+        2560,
+        2560
+      ],
+      "mass": 152,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -1280
+            ],
+            [
+              -1280,
+              1280
+            ],
+            [
+              1280,
+              1280
+            ],
+            [
+              1280,
+              -1280
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 144,
+          "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "MD Massive Fuel Tank",
+      "size": [
+        2560,
+        5120
+      ],
+      "mass": 304,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -2560
+            ],
+            [
+              -1280,
+              2560
+            ],
+            [
+              1280,
+              2560
+            ],
+            [
+              1280,
+              -2560
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 288,
+          "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "LG Massive Fuel Tank",
+      "size": [
+        2560,
+        10240
+      ],
+      "mass": 608,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -5120
+            ],
+            [
+              -1280,
+              5120
+            ],
+            [
+              1280,
+              5120
+            ],
+            [
+              1280,
+              -5120
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 576,
+          "Resource": "Kerolox"
+        }
+      }
+    },
+    {
+      "name": "Massive Base",
+      "size": [
+        4160,
+        1281
+      ],
+      "mass": 40,
+      "groups": [
+        {
+          "fill": "#d6d6d6",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -1280,
+              -640.5
+            ],
+            [
+              -2080,
+              640.5
+            ],
+            [
+              2080,
+              640.5
+            ],
+            [
+              1280,
+              -640.5
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Resource Module": {
+          "Amount": 30,
+          "Resource": "Kerolox"
+        },
+        "Connection Disabler Module": {
+          "Connections to Disable": [
+            "Left",
+            "Right"
+          ]
         }
       }
     },
@@ -3039,6 +3387,103 @@ function heldNodeTaken(inst, side) {
   return vab.parts.some((p) => p.attachedTo === inst && p.parentNode === side);
 }
 
+// a side is an edge rather than a point: a part can sit anywhere along it,
+// and several can share it so long as they don't overlap. these work in the
+// parent's own frame, where "along" runs the length of the edge and "out"
+// points away from it
+function toLocal(inst, x, y) {
+  const a = (inst.rot || 0) * HALF_PI;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  const dx = x - inst.x;
+  const dy = y - inst.y;
+  return { x: dx * cos + dy * sin, y: -dx * sin + dy * cos };
+}
+
+function toWorld(inst, lx, ly) {
+  const a = (inst.rot || 0) * HALF_PI;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  return { x: inst.x + lx * cos - ly * sin, y: inst.y + lx * sin + ly * cos };
+}
+
+function alongAxis(side) {
+  return side === "top" || side === "bottom" ? "x" : "y";
+}
+
+// how far a part reaches either way along an edge of another, given the two
+// may be turned differently
+function halfExtentAlong(child, parent, side) {
+  const bb = partBBox(child.part);
+  const halfW = (bb.w / 2) * vab.scale;
+  const halfH = (bb.h / 2) * vab.scale;
+  const rel = ((child.rot || 0) - (parent.rot || 0)) * HALF_PI;
+  const c = Math.abs(Math.cos(rel));
+  const s = Math.abs(Math.sin(rel));
+  const alongX = alongAxis(side) === "x";
+  return alongX ? halfW * c + halfH * s : halfW * s + halfH * c;
+}
+
+function halfEdge(parent, side) {
+  const bb = partBBox(parent.part);
+  return (alongAxis(side) === "x" ? bb.w / 2 : bb.h / 2) * vab.scale;
+}
+
+// where along the edge a part already attached to it sits
+function positionAlong(child, parent, side) {
+  const p = attachPoint(child, child.childNode);
+  const local = toLocal(parent, p.x, p.y);
+  return alongAxis(side) === "x" ? local.x : local.y;
+}
+
+function edgeFree(parent, side, child, at) {
+  const reach = halfExtentAlong(child, parent, side);
+  return !vab.parts.some((p) => {
+    if (p === child || p.attachedTo !== parent || p.parentNode !== side) {
+      return false;
+    }
+    const other = positionAlong(p, parent, side);
+    const otherReach = halfExtentAlong(p, parent, side);
+    return Math.abs(other - at) < reach + otherReach - 0.5;
+  });
+}
+
+// the point on parent's edge that child would meet it at, if child were left
+// where it is: its own point slid along the edge, kept within the ends of it,
+// and pulled to the middle when it's near enough that the middle is what was
+// meant
+function edgePoint(parent, side, child) {
+  const mine = attachPoint(child, opposite(side));
+  const local = toLocal(parent, mine.x, mine.y);
+  const centre = attachPoint(parent, side);
+  const centreLocal = toLocal(parent, centre.x, centre.y);
+  const axis = alongAxis(side);
+  const room = halfEdge(parent, side) - halfExtentAlong(child, parent, side);
+  let at = axis === "x" ? local.x : local.y;
+  if (room <= 0 || Math.abs(at) < 12) {
+    at = 0;
+  } else {
+    at = Math.max(-room, Math.min(room, at));
+  }
+  const world = axis === "x"
+    ? toWorld(parent, at, centreLocal.y)
+    : toWorld(parent, centreLocal.x, at);
+  return { point: world, at };
+}
+
+// a side an edge, so it counts as taken only when disabled or already used to
+// hang from something above; the children on it are handled by edgeFree
+function edgeTaken(inst, side) {
+  if (nodeDisabled(inst, side)) {
+    return true;
+  }
+  return !!(inst.attachedTo && inst.childNode === side);
+}
+
+// every place inst could join something else: for each other part and each
+// of its sides, the spot on that edge inst would land, if there's room there.
+// meeting another part's top with inst's bottom puts that part under inst
+// instead, so inst has to have room along its bottom for it
 function jointOptions(inst) {
   const blocked = new Set(subtree(inst));
   const out = [];
@@ -3047,10 +3492,31 @@ function jointOptions(inst) {
       continue;
     }
     for (const side of attachSides) {
-      if (nodeTaken(other, side) || heldNodeTaken(inst, opposite(side))) {
+      if (side === "top") {
+        if (edgeTaken(other, "top") || edgeTaken(inst, "bottom")) {
+          continue;
+        }
+        if (vab.parts.some((p) => p.attachedTo === other && p.parentNode === "top")) {
+          continue;
+        }
+        const { at } = edgePoint(inst, "bottom", other);
+        if (!edgeFree(inst, "bottom", other, at)) {
+          continue;
+        }
+        out.push({ target: other, side, point: attachPoint(other, "top") });
         continue;
       }
-      out.push({ target: other, side, point: attachPoint(other, side) });
+      if (edgeTaken(other, side) || edgeTaken(inst, opposite(side))) {
+        continue;
+      }
+      if (vab.parts.some((p) => p.attachedTo === inst && p.parentNode === opposite(side))) {
+        continue;
+      }
+      const { point, at } = edgePoint(other, side, inst);
+      if (!edgeFree(other, side, inst, at)) {
+        continue;
+      }
+      out.push({ target: other, side, point });
     }
   }
   return out;
@@ -3062,7 +3528,11 @@ function findSnap(inst) {
   let best = null;
   let bestDist = reach;
   for (const option of jointOptions(inst)) {
-    const mine = attachPoint(inst, opposite(option.side));
+    // for a top the meeting spot is on inst's own bottom edge, slid to where
+    // the other part is; for anything else it's inst's opposite point
+    const mine = option.side === "top"
+      ? edgePoint(inst, "bottom", option.target).point
+      : attachPoint(inst, opposite(option.side));
     const d = Math.hypot(option.point.x - mine.x, option.point.y - mine.y);
     if (d < bestDist) {
       bestDist = d;
@@ -4474,6 +4944,79 @@ let planets = [
     hazeMax: 0.2,
     pos: { x: 0, y: 0 },
     vel: { x: 0, y: 0 }
+  },
+  {
+    id: "Ceres",
+    parentBody: "Sun",
+    orbitRadius: 413690250000,
+    orbitPeriod: 145164960,
+    orbitPhase: 3.3,
+    size: 469700,
+    surfaceGravity: 0.28,
+    texture: "Ceres",
+    fallbackColor: "#8f8b85",
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 }
+  },
+  {
+    id: "Saturn",
+    parentBody: "Sun",
+    gasGiant: true,
+    orbitRadius: 1433530000000,
+    orbitPeriod: 929596608,
+    orbitPhase: 1.7,
+    size: 58232000,
+    surfaceGravity: 10.44,
+    atmosphereHeight: 6000000,
+    density: 0.19,
+    scaleHeight: 260000,
+    texture: "Saturn",
+    fallbackColor: "#d9c08a",
+    skyColor: "#e0c58f",
+    hazeColor: "#ecd6a6",
+    hazeMax: 0.2,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 }
+  },
+  {
+    id: "Uranus",
+    parentBody: "Sun",
+    gasGiant: true,
+    orbitRadius: 2870972000000,
+    orbitPeriod: 2651370019,
+    orbitPhase: 4.9,
+    size: 25362000,
+    surfaceGravity: 8.69,
+    atmosphereHeight: 3000000,
+    density: 0.42,
+    scaleHeight: 270000,
+    texture: "Uranus",
+    fallbackColor: "#a9d6e0",
+    skyColor: "#9fd0dc",
+    hazeColor: "#bfe4ec",
+    hazeMax: 0.2,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 }
+  },
+  {
+    id: "Neptune",
+    parentBody: "Sun",
+    gasGiant: true,
+    orbitRadius: 4498396000000,
+    orbitPeriod: 5199724800,
+    orbitPhase: 0.3,
+    size: 24622000,
+    surfaceGravity: 11.15,
+    atmosphereHeight: 3000000,
+    density: 0.45,
+    scaleHeight: 200000,
+    texture: "Neptune",
+    fallbackColor: "#3f5fd0",
+    skyColor: "#4a6ad8",
+    hazeColor: "#6f8ce4",
+    hazeMax: 0.2,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 }
   }
 ]
 
@@ -4493,6 +5036,10 @@ const bootTextures = {
   Mars: "assets/Mars.avif",
   Moon: "assets/Moon.avif",
   Jupiter: "assets/Jupiter.avif",
+  Ceres: "assets/Ceres.avif",
+  Saturn: "assets/Saturn.avif",
+  Uranus: "assets/Uranus.avif",
+  Neptune: "assets/Neptune.avif",
   CoolScreen: "assets/CoolScreen.avif"
 };
 
@@ -6269,7 +6816,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.3 [Public Beta]", width - 120, height - 40);
+  text("v1.4.5 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
