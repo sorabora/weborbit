@@ -22,8 +22,8 @@ const controls = {
   invertVabZoom: false, 
   invertFlightZoom: false 
 };
-let timeWarpSteps = [0.25, 0.5, 1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000]
-let timeWarpCounter = 0;
+let timeWarpSteps = [0.25, 0.5, 1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000, 100000000, 500000000]
+let timeWarpCounter = 2;
 let toasts = [];
 let t = 0;
 let elapsed = 0;
@@ -81,7 +81,7 @@ let c = {
   vabZoomMin: 0.03,
   vabZoomMax: 0.6,
   mapZoomMin: 1e-12,
-  mapZoomMax: 1e-3,
+  mapZoomMax: 0.1,
   chuteDrag: 2000,
   reentryHeatFactor: 0.02,
   reentryCoolRate: 0.2,
@@ -2965,30 +2965,85 @@ const vab = {
   snap: null,
   scale: 0.14,
   buttonSize: 60,
-  cols: 4
+  scroll: 0,
+  category: "All"
 };
 
 function panelWidth() {
   return width / 6;
 }
 
+function paletteCols() {
+  return Math.max(1, Math.floor(panelWidth() / vab.buttonSize));
+}
+
 function bayCentre() {
   return (panelWidth() + width) / 2;
 }
 
+function paletteTop() {
+  return vab.buttonSize * 2 + tabHeight() * 2;
+}
+
+function tabHeight() {
+  return 30;
+}
+
+const partCategories = ["All", "Pods", "Tanks", "Engines", "Decouplers", "Utility"];
+
+function partCategory(part) {
+  const m = part.modules || {};
+  if (m["Engine Module"]) return "Engines";
+  if (m["Controller Module"]) return "Pods";
+  if (m["Decoupler Module"]) return "Decouplers";
+  if (m["Resource Module"]) return "Tanks";
+  return "Utility";
+}
+
+function categoryTabs() {
+  const w = (paletteCols() * vab.buttonSize) / 3;
+  return partCategories.map((cat, i) => ({
+    id: "category-" + cat,
+    cat,
+    x: (i % 3) * w,
+    y: vab.buttonSize * 2 + Math.floor(i / 3) * tabHeight(),
+    w,
+    h: tabHeight()
+  }));
+}
+
+function paletteParts() {
+  const parts = partAPI.list();
+  if (vab.category === "All") {
+    return parts;
+  }
+  return parts.filter(part => partCategory(part) === vab.category);
+}
+
+function paletteMaxScroll() {
+  const parts = paletteParts();
+  const rows = Math.ceil(parts.length / paletteCols());
+  const contentH = rows * vab.buttonSize;
+  return Math.max(0, contentH - (height - paletteTop()));
+}
+
 function paletteLayout() {
   const out = [];
-  const parts = partAPI.list();
+  const parts = paletteParts();
   for (let i = 0; i < parts.length; i++) {
     out.push({
       id: "part-" + i,
-      x: (i % vab.cols) * vab.buttonSize,
-      y: Math.floor(i / vab.cols) * vab.buttonSize + vab.buttonSize * 2,
+      x: (i % paletteCols()) * vab.buttonSize,
+      y: Math.floor(i / paletteCols()) * vab.buttonSize + paletteTop() - vab.scroll,
       size: vab.buttonSize,
       part: parts[i]
     });
   }
   return out;
+}
+
+function visiblePaletteLayout() {
+  return paletteLayout().filter(b => b.y + b.size > paletteTop() && b.y < height);
 }
 
 function launchButton() {
@@ -4301,13 +4356,26 @@ function drawVab() {
     baseColor: "#4a4a5a",
     hoverColor: "#5b5b6e"
   }, "Example Rockets");
-  for (const b of paletteLayout()) {
+  textSize(12);
+  for (const tab of categoryTabs()) {
+    GUIAPI.button(tab.x, tab.y, tab.w, tab.h, {
+      id: tab.id,
+      baseColor: vab.category === tab.cat ? "#5b5b6e" : "#2e2e2e",
+      hoverColor: "#4a4a5a"
+    }, tab.cat);
+  }
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(0, paletteTop(), panelW, height - paletteTop());
+  drawingContext.clip();
+  for (const b of visiblePaletteLayout()) {
     GUIAPI.button(b.x, b.y, b.size, b.size, { id: b.id, tooltip: partTooltip(b.part) });
     const bb = partBBox(b.part);
     const pad = 14;
     const iconScale = Math.min((b.size - pad) / bb.w, (b.size - pad) / bb.h);
     drawPart(b.part, b.x + b.size / 2, b.y + b.size / 2, iconScale);
   }
+  drawingContext.restore();
   drawStageReadout(panelW);
   GUIAPI.drawTooltip();
 
@@ -6464,6 +6532,26 @@ function applyFrame(entry, rows) {
   }
 }
 
+function formatTimeWarpCounter() {
+  fill("#ff4646");
+  if (timeWarpCounter < 16) {
+    fill("#ff9d00");
+  }
+  if (timeWarpCounter < 13) {
+    fill("#fdff83");
+  }
+  if (timeWarpCounter < 7) {
+    fill("#89ff83");
+  }
+  if (timeWarpCounter < 2) {
+    fill("#83c9ff");
+  }
+  if (timeWarpCounter == 2) {
+    fill("White");
+  }
+  return timeWarpCounter;
+}
+
 function playRows(entry, rows, tag) {
   const chains = new Map();
   for (const row of rows || []) {
@@ -6797,7 +6885,8 @@ function draw() {
     text(`Periapsis: ${calculatePeriapsis()}`, 25, 50 + lineHeight * 5)
     text(`Temperature: ${calculateTemperature()}`, 25, 50 + lineHeight * 6)
     text(`Time: ${formatTime(t)}`, 25, 50 + lineHeight * 7)
-    text(`Timewarp: ${formatTime(c.timewarp)}/s`, 25, 50 + lineHeight * 8)
+    text(`Timewarp: ${formatTime(c.timewarp)}/s [${formatTimeWarpCounter()}▶]`, 25, 50 + lineHeight * 8);
+    fill("White");
     text(`Throttle: ${throttle}%`, 25, 50 + lineHeight * 9)
     text(`Fuel: ${calculateFuel()}`, 25, 50 + lineHeight * 10)
     text(`TWR: ${calculateTWR()}`, 25, 50 + lineHeight * 11)
@@ -6853,7 +6942,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.5 [Public Beta]", width - 120, height - 40);
+  text("v1.4.6 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -7538,7 +7627,14 @@ async function mousePressed() {
         return;
       }
     }
-    for (const b of paletteLayout()) {
+    for (const tab of categoryTabs()) {
+      if (GUIAPI.clicked(tab.id)) {
+        vab.category = tab.cat;
+        vab.scroll = 0;
+        return;
+      }
+    }
+    for (const b of visiblePaletteLayout()) {
       if (GUIAPI.clicked(b.id)) {
         const inst = { part: b.part, x: mouseX, y: mouseY, attachedTo: null };
         vab.parts.push(inst);
@@ -7552,6 +7648,8 @@ async function mousePressed() {
   if (hit) {
     detach(hit);
     vab.drag = { inst: hit, dx: mouseX - hit.x, dy: mouseY - hit.y, fromPalette: false };
+  } else {
+    vab.panning = true;
   }
 }
 
@@ -7559,6 +7657,13 @@ function mouseDragged() {
   if (inMap && !inVab) {
     mapPan.x -= (mouseX - pmouseX) / mapScale;
     mapPan.y -= (mouseY - pmouseY) / mapScale;
+    return;
+  }
+  if (inVab && vab.panning) {
+    for (const inst of vab.parts) {
+      inst.x += mouseX - pmouseX;
+      inst.y += mouseY - pmouseY;
+    }
     return;
   }
   if (!inVab || !vab.drag) {
@@ -7591,6 +7696,7 @@ function mouseReleased() {
     mapClick = null;
     return;
   }
+  vab.panning = false;
   if (!inVab || !vab.drag) {
     return;
   }
@@ -7623,6 +7729,10 @@ function mouseWheel(event) {
     }
   }
   if (inVab) {
+    if (mouseX < panelWidth() && mouseY >= paletteTop()) {
+      vab.scroll = constrain(vab.scroll + event.delta, 0, paletteMaxScroll());
+      return false;
+    }
     const up = controls.invertVabZoom ? event.delta <= 0 : event.delta > 0;
     zoomVab(up ? 1 + c.zoomPower : 1 - c.zoomPower, mouseX, mouseY);
     return;
