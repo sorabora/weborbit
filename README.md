@@ -2,7 +2,7 @@
 
 ## The biggest project I've made yet...
 
-[Discord]([https://discord.gg/YDvpbVEC8W](https://discord.gg/umYECmUqVV))
+[Discord](https://discord.gg/umYECmUqVV)
 
 [Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
 
