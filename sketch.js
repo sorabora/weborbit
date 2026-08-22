@@ -14,10 +14,13 @@ let careerMode = false;
 let inMainMenu = true;
 let exampleRocketsOpen = false;
 let gameFont;
+let eProgress = 0;
 let inCreditsMenu = false;
 let inModLoaderMenu = false;
 let inAnnouncementsMenu = false;
 let inKeyBindsMenu = false;
+let careerMissionsOpen = false;
+let techTreeOpen = true;
 const controls = { 
   invertVabZoom: false, 
   invertFlightZoom: false 
@@ -83,6 +86,7 @@ let c = {
   mapZoomMin: 1e-12,
   mapZoomMax: 0.1,
   chuteDrag: 2000,
+  waterDensity: 1000,
   reentryHeatFactor: 0.02,
   reentryCoolRate: 0.2,
   reentryMinSpeed: 500,
@@ -96,6 +100,409 @@ const loaded = [
   "format": "xopernicus-partpack",
   "version": 1,
   "parts": [
+    {
+      "name": "_launchpad",
+      "size": [
+        26400,
+        14400
+      ],
+      "mass": 0,
+      "groups": [
+        {
+          "fill": "#858585",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -13200,
+              7200
+            ],
+            [
+              -12000,
+              7200
+            ],
+            [
+              -12000,
+              -7200
+            ],
+            [
+              -13200,
+              -7200
+            ]
+          ]
+        },
+        {
+          "fill": "#ffffff",
+          "texture": "DarkPlate.avif",
+          "points": [
+            [
+              -9600,
+              -7200
+            ],
+            [
+              -8285.34,
+              -7174.17
+            ],
+            [
+              -8400,
+              7200
+            ],
+            [
+              -9600,
+              7200
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -7200
+            ],
+            [
+              -9600,
+              -4800
+            ],
+            [
+              -9600,
+              -4200
+            ],
+            [
+              -12000,
+              -6600
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -7200
+            ],
+            [
+              -9600,
+              -4800
+            ],
+            [
+              -9600,
+              -4200
+            ],
+            [
+              -12000,
+              -6600
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -6000
+            ],
+            [
+              -9600,
+              -3600
+            ],
+            [
+              -9600,
+              -3000
+            ],
+            [
+              -12000,
+              -5400
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -4800
+            ],
+            [
+              -9600,
+              -2400
+            ],
+            [
+              -9600,
+              -1800
+            ],
+            [
+              -12000,
+              -4200
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -3600
+            ],
+            [
+              -9600,
+              -1200
+            ],
+            [
+              -9600,
+              -600
+            ],
+            [
+              -12000,
+              -3000
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -2400
+            ],
+            [
+              -9600,
+              0
+            ],
+            [
+              -9600,
+              600
+            ],
+            [
+              -12000,
+              -1800
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              -1200
+            ],
+            [
+              -9600,
+              1200
+            ],
+            [
+              -9600,
+              1800
+            ],
+            [
+              -12000,
+              -600
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              0
+            ],
+            [
+              -9600,
+              2400
+            ],
+            [
+              -9600,
+              3000
+            ],
+            [
+              -12000,
+              600
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              1200
+            ],
+            [
+              -9600,
+              3600
+            ],
+            [
+              -9600,
+              4200
+            ],
+            [
+              -12000,
+              1800
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              2400
+            ],
+            [
+              -9600,
+              4800
+            ],
+            [
+              -9600,
+              5400
+            ],
+            [
+              -12000,
+              3000
+            ]
+          ]
+        },
+        {
+          "fill": "#6b6b6b",
+          "points": [
+            [
+              -12000,
+              3600
+            ],
+            [
+              -9600,
+              6000
+            ],
+            [
+              -9600,
+              6600
+            ],
+            [
+              -12000,
+              4200
+            ]
+          ]
+        },
+        {
+          "fill": "#595959",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -6000,
+              7200
+            ],
+            [
+              -2400,
+              6000
+            ],
+            [
+              9600,
+              6000
+            ],
+            [
+              13200,
+              7200
+            ]
+          ]
+        }
+      ],
+      "modules": {}
+    },
+    {
+      "name": "_vab",
+      "size": [
+        36690.18,
+        36288.2
+      ],
+      "mass": 1,
+      "groups": [
+        {
+          "fill": "#949494",
+          "points": [
+            [
+              -18345.09,
+              -17509.62
+            ],
+            [
+              -17654.91,
+              18144.1
+            ],
+            [
+              18345.09,
+              18144.1
+            ],
+            [
+              17359.85,
+              -18144.1
+            ]
+          ]
+        },
+        {
+          "fill": "#737373",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -9654.91,
+              -17855.9
+            ],
+            [
+              10345.09,
+              -17855.9
+            ],
+            [
+              10345.09,
+              2144.1
+            ],
+            [
+              -9654.91,
+              2144.1
+            ]
+          ]
+        }
+      ],
+      "modules": {}
+    },
+    {
+      "name": "_monolith",
+      "size": [
+        84000,
+        144000
+      ],
+      "mass": 1,
+      "groups": [
+        {
+          "fill": "#787878",
+          "texture": "LightPlate.avif",
+          "points": [
+            [
+              -42000,
+              72000
+            ],
+            [
+              42000,
+              72000
+            ],
+            [
+              42000,
+              -36000
+            ],
+            [
+              18000,
+              -72000
+            ],
+            [
+              -18000,
+              -72000
+            ],
+            [
+              -42000,
+              -36000
+            ]
+          ]
+        }
+      ],
+      "modules": {}
+    },
     {
       "name": "_flame",
       "size": [
@@ -481,6 +888,126 @@ const loaded = [
       "modules": {
         "Controller Module": {
           "Torque": 15
+        }
+      }
+    },
+    {
+      "name": "Large Turbo Reactionwheel",
+      "size": [
+        1280,
+        80
+      ],
+      "mass": 0.02,
+      "groups": [
+        {
+          "fill": "#666666",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -640,
+              -40
+            ],
+            [
+              -640,
+              40
+            ],
+            [
+              640,
+              40
+            ],
+            [
+              640,
+              -40
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Controller Module": {
+          "Torque": 30
+        }
+      }
+    },
+    {
+      "name": "Extra Large Turbo Reactionwheel",
+      "size": [
+        2560,
+        80
+      ],
+      "mass": 0.04,
+      "groups": [
+        {
+          "fill": "#666666",
+          "texture": "MetalPlate.avif",
+          "points": [
+            [
+              -1280,
+              -40
+            ],
+            [
+              -1280,
+              40
+            ],
+            [
+              1280,
+              40
+            ],
+            [
+              1280,
+              -40
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Controller Module": {
+          "Torque": 60
+        }
+      }
+    },
+    {
+      "name": "Mars Chute",
+      "size": [
+        89.18,
+        193.12
+      ],
+      "mass": 0.3,
+      "groups": [
+        {
+          "fill": "#51b2db",
+          "points": [
+            [
+              -12.17,
+              96.56
+            ],
+            [
+              44.59,
+              -96.56
+            ],
+            [
+              -15.34,
+              -71.4
+            ],
+            [
+              -44.59,
+              17.99
+            ]
+          ]
+        }
+      ],
+      "modules": {
+        "Parachute Module": {
+          "Minimum Deploy Pressure": 0.25,
+          "Drag": 50,
+          "Max Deploy Speed": 2500
+        },
+        "Connection Disabler Module": {
+          "Connections to Disable": [
+            "Left",
+            "Right",
+            "Top",
+            "Bottom"
+          ]
         }
       }
     },
@@ -2700,6 +3227,37 @@ const u = {
 
 const hooks = {};
 
+function fatalError(message) {
+  document.getElementById("defaultCanvas1").remove();
+  document.getElementById("fatalError").removeAttribute("hidden");
+  document.getElementById("errorDetails").textContent = `${message}`;
+  if (eProgress == 1) {
+    document.getElementById("errorPhase").textContent = `Boot Phase: assetsFinished`;    
+  } else if (eProgress > 0) {
+    document.getElementById("errorPhase").textContent = `Boot Phase: loadingAssets`;
+  } else if (eProgress == 0) {
+    document.getElementById("errorPhase").textContent = `Boot Phase: init`;
+  }
+}
+
+window.onerror = function(message, source, lineno, colno, error) {
+/*  if (booting) {
+    showFatalErrorScreen(message);
+}*/
+  return true;
+};
+
+window.addEventListener("unhandledrejection", function(event) {
+  fatalError(event.reason.message || event.reason);
+  //showFatalErrorScreen(event.reason.message || event.reason);
+  event.preventDefault();
+});
+
+/*function showFatalErrorScreen(errorMessage) {
+// thanks google ai overview again
+  alert("FATAL ERROR: " + errorMessage);
+}*/
+
 function addHook(name, fn, priority = 0) {
   (hooks[name] ??= []).push({ fn, priority });
   hooks[name].sort((a, b) => a.priority - b.priority);
@@ -2979,6 +3537,21 @@ function paletteCols() {
 
 function bayCentre() {
   return (panelWidth() + width) / 2;
+}
+
+function craftCentre(exclude) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (const inst of vab.parts) {
+    if (exclude && exclude.has(inst)) {
+      continue;
+    }
+    const bb = partBBox(inst.part);
+    const w = (inst.rot || 0) % 2 ? bb.h : bb.w;
+    minX = Math.min(minX, inst.x - (w / 2) * vab.scale);
+    maxX = Math.max(maxX, inst.x + (w / 2) * vab.scale);
+  }
+  return minX === Infinity ? bayCentre() : (minX + maxX) / 2;
 }
 
 function paletteTop() {
@@ -3639,7 +4212,7 @@ function findSnap(inst) {
     }
   }
   if (!best) {
-    const mid = bayCentre();
+    const mid = craftCentre(new Set(subtree(inst)));
     if (Math.abs(inst.x - mid) < reach) {
       best = { target: null, point: null, dx: mid - inst.x, dy: 0, mode: "centre" };
     }
@@ -3898,6 +4471,19 @@ function drawAnnouncementsMenu() {
     hoverColor: "#2a32c0",
     activeColor: "#1a1770"
   }, "Close");
+}
+
+function drawMissions() {
+  background("#111111")
+  fill("#205fff");
+  textSize(80);
+  text("Missions", width / 2, 80);
+  
+  const mission1 = GUIAPI.row(50);
+  GUIAPI.button(width/2 - 175, mission1.y, 350, 85, {
+    id: "mission-1",
+    ...menuStyle
+  }, "Little Bob - Atmospheric");
 }
 
 function drawMap() {
@@ -4276,12 +4862,11 @@ function drawVab() {
   cursor(vab.drag ? "grabbing" : "default");
 
   const panelW = panelWidth();
-  const midX = bayCentre();
+  const dragSet = vab.drag ? new Set(subtree(vab.drag.inst)) : new Set();
+  const midX = craftCentre(dragSet);
   stroke(vab.snap && vab.snap.mode === "centre" ? "#55ccff66" : "#ffffff12");
   strokeWeight(2);
   line(midX, 0, midX, height);
-
-  const dragSet = vab.drag ? new Set(subtree(vab.drag.inst)) : new Set();
   for (const inst of vab.parts) {
     if (!dragSet.has(inst)) {
       drawPart(inst.part, inst.x, inst.y, vab.scale, { rot: inst.rot });
@@ -4990,6 +5575,7 @@ let planets = [
     orbitRadius: 149598023000,
     orbitPeriod: 31558150,
     size: 6371000,
+    waterColor: "#213c6e",
     surfaceGravity: 9.80665,
     atmosphereHeight: 140000,
     density: 1.225,
@@ -5221,6 +5807,7 @@ function drawBootScreen(progress) {
   rect(x, y, barW, barH, barH / 2);
   fill("#3a7bd5");
   rect(x, y, barW * constrain(progress, 0, 1), barH, barH / 2);
+  eProgress = progress;
   fill(85);
   textSize(13);
   text(credits, width / 2, height - 44);
@@ -6109,15 +6696,73 @@ function hasSurface(body) {
   return !body.noSurface && !body.gasGiant;
 }
 
+function isWater(body, dx, dy) {
+  if (!body.waterColor) {
+    return false;
+  }
+  const img = textures[body.texture];
+  if (!img) {
+    return false;
+  }
+  if (!img._px) {
+    img.loadPixels();
+    img._px = img.pixels;
+    img._water = [
+      unhex(body.waterColor.slice(1, 3)),
+      unhex(body.waterColor.slice(3, 5)),
+      unhex(body.waterColor.slice(5, 7))
+    ];
+  }
+  const r = Math.hypot(dx, dy) || 1;
+  const u = Math.floor((((dx / r) * 0.99 + 1) / 2) * img.width);
+  const v = Math.floor((((dy / r) * 0.99 + 1) / 2) * img.height);
+  const i = (v * img.width + u) * 4;
+  const px = img._px;
+  if (i < 0 || i + 2 >= px.length) {
+    return false;
+  }
+  const want = img._water;
+  return (
+    Math.hypot(px[i] - want[0], px[i + 1] - want[1], px[i + 2] - want[2]) <
+    (body.waterTolerance === undefined ? 60 : body.waterTolerance)
+  );
+}
+
 function surfaceCollide(rocket, body) {
   if (!hasSurface(body)) {
     return;
   }
-  const floor = body.size + rocketRadius(rocket);
   const dx = rocket.pos.x - body.pos.x;
   const dy = rocket.pos.y - body.pos.y;
   const r = Math.hypot(dx, dy);
-  if (r === 0 || r >= floor) {
+  if (r === 0) {
+    return;
+  }
+
+  const contact = propContact(body, rocket, dx, dy, r);
+  if (!contact && isWater(body, dx, dy)) {
+    return;
+  }
+  const floor = (contact ? contact.top : body.size) + rocketRadius(rocket);
+  if (contact && contact.mode === "side") {
+    const hit = relativeVelocity(rocket, body);
+    if (Math.hypot(hit.x, hit.y) >= c.crashSpeed) {
+      cd.speed = Math.hypot(hit.x, hit.y);
+      cd.body = body.id;
+      cd.time = t;
+      rocket.destroyed = true;
+      return;
+    }
+    const tan = { x: -dy / r, y: dx / r };
+    rocket.pos.x += tan.x * contact.dist * contact.dir;
+    rocket.pos.y += tan.y * contact.dist * contact.dir;
+    const slide =
+      (rocket.vel.x - body.vel.x) * tan.x + (rocket.vel.y - body.vel.y) * tan.y;
+    rocket.vel.x -= tan.x * slide;
+    rocket.vel.y -= tan.y * slide;
+    return;
+  }
+  if (r >= floor) {
     return;
   }
 
@@ -6138,7 +6783,7 @@ function surfaceCollide(rocket, body) {
 
 function restOnSurface(rocket, h) {
   const body = getBody(rocket.parentBody);
-  const floor = body.size + rocketRadius(rocket);
+  const floor = surfaceRadiusAt(body, rocket.landed.x, rocket.landed.y) + rocketRadius(rocket);
   rocket.pos.x = body.pos.x + rocket.landed.x * floor;
   rocket.pos.y = body.pos.y + rocket.landed.y * floor;
   rocket.vel.x = body.vel.x;
@@ -6237,6 +6882,17 @@ function kickFinish(rocket, h) {
     tearChutes(rocket, speed);   // before the drag, so a shredded one stops pulling
     if (speed > 0) {
       const k = (0.5 * density * dragArea(rocket)) / rocket.mass;
+      const decay = 1 / (1 + k * speed * h);
+      rocket.vel.x = body.vel.x + vel.x * decay;
+      rocket.vel.y = body.vel.y + vel.y * decay;
+    }
+  }
+
+  if (distanceTo(rocket, body) < body.size) {
+    const vel = relativeVelocity(rocket, body);
+    const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+    if (speed > 0 && isWater(body, rocket.pos.x - body.pos.x, rocket.pos.y - body.pos.y)) {
+      const k = (0.5 * c.waterDensity * dragArea(rocket)) / rocket.mass;
       const decay = 1 / (1 + k * speed * h);
       rocket.vel.x = body.vel.x + vel.x * decay;
       rocket.vel.y = body.vel.y + vel.y * decay;
@@ -6701,6 +7357,162 @@ function drawReentryGlow(rocket, s) {
   });
 }
 
+const surfaceProps = [
+  { part: "_vab", body: "Earth", angle: c.launchPadRotation, x: -40000, y: -225, solid: true },
+  { part: "_launchpad", body: "Earth", angle: c.launchPadRotation, x: -3000, y: -225, solid: true },
+  { part: "_monolith", body: "Earth", angle: 120, x: 0, y: -22500, solid: false }
+];
+
+// topmost solid point of the part at each column across it, measured up from
+// the bottom edge that rests on the ground
+function propProfile(part) {
+  if (part._profile) {
+    return part._profile;
+  }
+  const bb = partBBox(part);
+  const columns = constrain(Math.round(bb.w / c.partUnits), 16, 1024);
+  const step = bb.w / columns;
+  const heights = new Array(columns).fill(0);
+  for (let i = 0; i < columns; i++) {
+    const x = bb.minX + (i + 0.5) * step;
+    let top = Infinity;
+    for (const group of part.groups) {
+      if (group.cutout) {
+        continue;
+      }
+      const points = group.points;
+      for (let j = 0; j < points.length; j++) {
+        const [x1, y1] = points[j];
+        const [x2, y2] = points[(j + 1) % points.length];
+        if ((x1 <= x && x2 > x) || (x2 <= x && x1 > x)) {
+          top = Math.min(top, y1 + ((y2 - y1) * (x - x1)) / (x2 - x1));
+        }
+      }
+    }
+    heights[i] = top === Infinity ? 0 : bb.maxY - top;
+  }
+  part._profile = { heights, step, minX: bb.minX };
+  return part._profile;
+}
+
+function propPlacement(prop) {
+  const part = hiddenPart(prop.part);
+  const body = getBody(prop.body);
+  if (!part || !body) {
+    return null;
+  }
+  const bb = partBBox(part);
+  const a = radians(prop.angle || 0);
+  const out = { x: Math.sin(a), y: -Math.cos(a) };
+  const side = (prop.x || 0) / c.partUnits;
+  const lift = (prop.y || 0) / c.partUnits;
+  const stand = body.size + bb.h / 2 / c.partUnits + lift;
+  return {
+    part,
+    body,
+    bb,
+    angle: a,
+    x: body.pos.x + out.x * stand + Math.cos(a) * side,
+    y: body.pos.y + out.y * stand + Math.sin(a) * side,
+    base: body.size + lift,
+    bearing: a + side / body.size
+  };
+}
+
+function bearingOf(dx, dy) {
+  return Math.atan2(dx, -dy);
+}
+
+function propContact(body, rocket, dx, dy, r) {
+  const bottom = r - rocketRadius(rocket);
+  const bearing = bearingOf(dx, dy);
+  for (const prop of surfaceProps) {
+    if (!prop.solid || prop.body !== body.id) {
+      continue;
+    }
+    const place = propPlacement(prop);
+    if (!place) {
+      continue;
+    }
+    const profile = propProfile(place.part);
+    const delta = bearing - place.bearing;
+    const along = Math.atan2(Math.sin(delta), Math.cos(delta)) * body.size * c.partUnits;
+    const column = Math.floor((along - profile.minX) / profile.step);
+    if (column < 0 || column >= profile.heights.length || profile.heights[column] <= 0) {
+      continue;
+    }
+    const top = place.base + profile.heights[column] / c.partUnits;
+    if (bottom >= top) {
+      continue;
+    }
+    const clear = (bottom - place.base) * c.partUnits;
+    let left = column;
+    let right = column;
+    while (left >= 0 && profile.heights[left] > clear) {
+      left--;
+    }
+    while (right < profile.heights.length && profile.heights[right] > clear) {
+      right++;
+    }
+    const stepWorld = profile.step / c.partUnits;
+    const leftDist = left < 0 ? Infinity : (column - left + 1) * stepWorld;
+    const rightDist = right >= profile.heights.length ? Infinity : (right - column + 1) * stepWorld;
+    const sideDist = Math.min(leftDist, rightDist);
+    if (sideDist < top - bottom) {
+      return { mode: "side", dist: sideDist, dir: leftDist <= rightDist ? -1 : 1 };
+    }
+    return { mode: "up", top };
+  }
+  return null;
+}
+
+function surfaceRadiusAt(body, dx, dy) {
+  let radius = body.size;
+  const bearing = bearingOf(dx, dy);
+  for (const prop of surfaceProps) {
+    if (!prop.solid || prop.body !== body.id) {
+      continue;
+    }
+    const place = propPlacement(prop);
+    if (!place) {
+      continue;
+    }
+    const delta = bearing - place.bearing;
+    const along = Math.atan2(Math.sin(delta), Math.cos(delta)) * body.size * c.partUnits;
+    const profile = propProfile(place.part);
+    const column = Math.floor((along - profile.minX) / profile.step);
+    if (column < 0 || column >= profile.heights.length) {
+      continue;
+    }
+    const height = profile.heights[column];
+    if (height > 0) {
+      radius = Math.max(radius, place.base + height / c.partUnits);
+    }
+  }
+  return radius;
+}
+
+function drawProps(cur) {
+  const s = scale / c.partUnits;
+  for (const prop of surfaceProps) {
+    const place = propPlacement(prop);
+    if (!place || place.bb.h * s < 2) {
+      continue;
+    }
+    const screenX = width / 2 + (place.x - cur.pos.x) * scale;
+    const screenY = height / 2 + (place.y - cur.pos.y) * scale;
+    const reach = Math.max(place.bb.w, place.bb.h) * s;
+    if (screenX < -reach || screenX > width + reach || screenY < -reach || screenY > height + reach) {
+      continue;
+    }
+    push();
+    translate(screenX, screenY);
+    rotate(place.angle);
+    drawPart(place.part, 0, 0, s);
+    pop();
+  }
+}
+
 function drawRocket(rocket, cur) {
   if (!rocket.stack) {
     return;
@@ -6858,6 +7670,8 @@ function draw() {
     drawBody(body, camera);
   }
 
+  drawProps(camera);
+
   for (const rocket of rockets) {
     drawRocket(rocket, camera);
   }
@@ -6927,7 +7741,18 @@ function draw() {
     GUIAPI.button(vb.x - 75, vb.y, vb.size, vb.size, { id: "map", ...menuStyle }, "Map");
     GUIAPI.button(vb.x - 150, vb.y, vb.size, vb.size, { id: "save", ...menuStyle }, "Save");
     GUIAPI.button(vb.x - 225, vb.y, vb.size, vb.size, { id: "load", ...menuStyle }, "Load");
+    if (isMobile) {
+      for (const b of mobileFlightButtons()) {
+        GUIAPI.button(b.x, b.y, b.sx, b.sy, { id: "touch-" + b.code, ...menuStyle }, b.label);
+      }
+      GUIAPI.button(vb.x - 300, vb.y, vb.size, vb.size, { id: "warp-up", ...menuStyle }, "▶▶");
+      GUIAPI.button(vb.x - 375, vb.y, vb.size, vb.size, { id: "warp-down", ...menuStyle }, "◀◀");
+    }
     GUIAPI.drawTooltip();
+  }
+
+  if (careerMissionsOpen) {
+    drawMissions();
   }
 
   if (!curRocket && !inVab) {
@@ -6942,11 +7767,20 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.6 [Public Beta]", width - 120, height - 40);
+  text("v1.4.7 [Public Beta]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
     drawBalanceBox();
+    textSize(18);
+    GUIAPI.button(width/2 - 87.5, 50, 175, 40, {
+      id: "career-missions",
+      ...menuStyle
+    }, "Missions");
+      GUIAPI.button(width/2 + 87.5, 50, 175, 40, {
+      id: "career-tech",
+      ...menuStyle
+    }, "Tech Tree");
   }
 
   if (consoleOpen) {
@@ -7340,6 +8174,35 @@ function debug() {
 }
 
 const held = new Set();
+const isMobile = forceMobileMode || matchMedia("(pointer: coarse)").matches;
+
+function mobileFlightButtons() {
+  const s = Math.min(width, height) / 7;
+  const pad = s / 4;
+  const y = height - s - pad;
+  return [
+    { code: "KeyQ", label: "◀", x: pad, y },
+    { code: "KeyE", label: "▶", x: pad * 2 + s, y },
+    { code: "KeyX", label: "X", x: width - (s + pad) * 2, y: y - s - pad },
+    { code: "KeyZ", label: "Z", x: width - s - pad, y: y - s - pad },
+    { code: "ControlLeft", label: "−", x: width - (s + pad) * 2, y },
+    { code: "ShiftLeft", label: "+", x: width - s - pad, y }
+  ].map(b => ({ ...b, sx: s, sy: s }));
+}
+
+function touchHeldCodes() {
+  const codes = new Set();
+  if (!isMobile || inVab || inMap || inMainMenu) {
+    return codes;
+  }
+  const points = mouseIsPressed ? [...touches, { x: mouseX, y: mouseY }] : touches;
+  for (const b of mobileFlightButtons()) {
+    if (points.some(p => p.x >= b.x && p.x <= b.x + b.sx && p.y >= b.y && p.y <= b.y + b.sy)) {
+      codes.add(b.code);
+    }
+  }
+  return codes;
+}
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
@@ -7417,17 +8280,19 @@ function flightControls() {
     return;
   }
   const step = 1 / frameRate();
+  const touched = touchHeldCodes();
+  const down = code => held.has(code) || touched.has(code);
 
-  if (held.has("ShiftLeft") || held.has("ShiftRight")) {
+  if (down("ShiftLeft") || down("ShiftRight")) {
     throttle = constrain(throttle + c.throttleStep, 0, 100);
   }
-  if (held.has("ControlLeft") || held.has("ControlRight")) {
+  if (down("ControlLeft") || down("ControlRight")) {
     throttle = constrain(throttle - c.throttleStep, 0, 100);
   }
-  if (held.has("KeyX")) {
+  if (down("KeyX")) {
     throttle = 0;
   }
-  if (held.has("KeyZ")) {
+  if (down("KeyZ")) {
     throttle = 100;
   }
 
@@ -7443,10 +8308,10 @@ function flightControls() {
   }
   const rate = (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
   rocket.spin = (rocket.spin || 0) - constrain(rocket.spin || 0, -rate * step, rate * step);
-  if (held.has("KeyQ") || held.has("ArrowLeft")) {
+  if (down("KeyQ") || down("ArrowLeft")) {
     rocket.angle -= rate * step * c.timewarp;
   }
-  if (held.has("KeyE") || held.has("ArrowRight")) {
+  if (down("KeyE") || down("ArrowRight")) {
     rocket.angle += rate * step * c.timewarp;
   }
 }
@@ -7481,6 +8346,12 @@ async function mousePressed() {
   GUIAPI.dispatch();
 
   if (inVab) {
+    if (careerMode) {
+      if (GUIAPI.clicked("career-missions")) {
+        careerMissionsOpen = true;
+        inMainMenu = false;
+      }
+    }
     if (GUIAPI.clicked("example-rockets")) {
       exampleRocketsOpen = !exampleRocketsOpen;
     }
@@ -7579,6 +8450,20 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("load")) {
       gamePick();
+      return;
+    }
+    if (GUIAPI.clicked("warp-down")) {
+      if (timeWarpCounter > 0) {
+        timeWarpCounter--;
+      }
+      c.timewarp = timeWarpSteps[timeWarpCounter];
+      return;
+    }
+    if (GUIAPI.clicked("warp-up")) {
+      if (timeWarpCounter < timeWarpSteps.length - 1) {
+        timeWarpCounter++;
+      }
+      c.timewarp = timeWarpSteps[timeWarpCounter];
       return;
     }
     if (GUIAPI.blocked() && !GUIAPI.clicked("vab") && !GUIAPI.clicked("map")) {
@@ -7749,6 +8634,10 @@ function mouseWheel(event) {
     scale *= 1 - c.zoomPower;
   }
 }
+
+document.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+}, { passive: false });
 
 window.addEventListener('wheel', function(e) {
   if (e.ctrlKey) {
