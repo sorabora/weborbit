@@ -7,11 +7,12 @@
 // - sorabora
 
 const showPitchGuide = true; // That blue pitch indicator on the rocket
-const prototypeCareerModeEnabled = false; // Enables the broken career mode
+const prototypeCareerModeEnabled = true; // Enables the broken career mode
+const forceMobileMode = false; // Pretends your desktop is a phone
 
 //
 
-let developerMode = false;
+let developerMode = true;
 if (!showPitchGuide) {
     developerMode = true;
 }
