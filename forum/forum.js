@@ -49,6 +49,19 @@ if (user) {
   username = profile?.username;
 }
 
+// purely cosmetic, clientside only. add whoever you like
+const cosmeticRoles = {
+  sorabora: [{ label: "Developer", color: "#a855f7" }]
+};
+
+const { data: allUsers } = await supabase.from("users").select("id, username, role");
+const usersById = {};
+const usersByName = {};
+for (const u of allUsers ?? []) {
+  usersById[u.id] = u;
+  usersByName[u.username] = u;
+}
+
 // Utilities
 
 function $(id) {
@@ -96,6 +109,8 @@ $("moderation-btn").onClick(() => {
 });
 
 $("delete-thread").onClick(async () => {
+  const reason = prompt("Reason for deleting this thread?");
+  if (reason === null) return;
   const { data, error } = await supabase
     .from("posts")
     .update({ deleted: true })
@@ -106,6 +121,7 @@ $("delete-thread").onClick(async () => {
   } else if (!data?.length) {
     alert("Nothing was deleted, probably blocked by RLS");
   } else {
+    await modLog("delete_thread", reason, urlParams.get("id"), null);
     alert(`Deleted thread: ${JSON.stringify(data)}`);
   }
 });
@@ -153,6 +169,30 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+function roleBadge(id) {
+  const u = usersById[id];
+  if (!u) return "";
+  let badges = "";
+  if (u.role == "admin") badges += `<span class="badge rounded-pill bg-danger">Admin</span> `;
+  if (u.role == "moderator") badges += `<span class="badge rounded-pill bg-warning text-dark">Moderator</span> `;
+  for (const cosmetic of cosmeticRoles[u.username] ?? []) {
+    badges += `<span class="badge rounded-pill" style="background-color: ${cosmetic.color}">${escapeHtml(cosmetic.label)}</span> `;
+  }
+  return badges;
+}
+
+function userLink(id, name, cls = "") {
+  return `<a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(usersById[id]?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
+}
+
+// escape first, then turn @mentions into links and newlines into breaks
+function renderContent(str) {
+  return escapeHtml(str)
+    .replace(/@(\w+)/g, (match, name) =>
+      usersByName[name] ? `<a href="u.html?id=${encodeURIComponent(usersByName[name].id)}">${match}</a>` : match)
+    .replace(/\n/g, "<br>");
+}
+
 if (page == "post-thread") {
   let selectedCategory = null;
   for (const item of document.querySelectorAll("#category-menu .dropdown-item")) {
@@ -188,7 +228,7 @@ if (page == "post-thread") {
     if (error) {
       alert(`Failed to post: ${error}`);
     } else {
-      for (const id of await mentionIds(content)) {
+      for (const id of mentionIds(content)) {
         await notify(id, "mention", post.id, null);
       }
       alert("Posted!");
@@ -231,7 +271,7 @@ if (page == "forum") {
             ${post.tags ? `<span class="badge rounded-pill bg-secondary">${escapeHtml(post.tags)}</span>` : ""}
             <span class="fs-4">${escapeHtml(post.title)}</span>
             <span class="fs-5 text-secondary">by</span>
-            <a class="fs-5" href="u.html?id=${encodeURIComponent(post.author)}">${escapeHtml(post.username)}</a>
+            ${userLink(post.author, post.username, "fs-5")}
             <span class="text-secondary ms-auto" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
           </div>
         </button>
@@ -264,8 +304,85 @@ if (page == "forum") {
   applyFilter(urlParams.get("filter") ?? "all");
 }
 
-// user page not implemented
-if (page == "u") {}
+if (page == "u") {
+  const id = urlParams.get("id");
+  const profile = usersById[id];
+  if (!profile) {
+    $("profile").append(`<h1>User Not Found</h1><p class="text-secondary">id: ${escapeHtml(id ?? "(missing)")}</p>`);
+  } else {
+    const { data: threads } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("author", id)
+      .not("deleted", "is", true)
+      .order("created_at", { ascending: false });
+    const { data: replies } = await supabase
+      .from("replies")
+      .select("*")
+      .eq("author", id)
+      .not("deleted", "is", true)
+      .order("created_at", { ascending: false });
+
+    $("profile").append(`
+      <h1>${escapeHtml(profile.username)} ${roleBadge(id)}</h1>
+      <p class="text-secondary">${(threads ?? []).length} threads, ${(replies ?? []).length} comments</p>
+    `);
+
+    // only admins get to see what a mod has been up to
+    if (isAdmin) {
+      const { data: log } = await supabase
+        .from("mod_log")
+        .select("*")
+        .eq("actor", id)
+        .order("created_at", { ascending: false });
+      $("threads-list").append(`<h2 class="mt-4">Moderation Log</h2>`);
+      if (!log?.length) {
+        $("threads-list").append(`<p class="text-secondary">No actions logged.</p>`);
+      }
+      for (let entry of log ?? []) {
+        $("threads-list").append(`
+          <div class="p-3 mb-3 border border-danger rounded">
+            <span class="badge rounded-pill bg-danger">${escapeHtml(entry.action)}</span>
+            <span class="text-secondary" title="${new Date(entry.created_at).toLocaleString()}">${timeAgo(entry.created_at)}</span>
+            ${entry.post_id ? `<a class="ms-2" href="thread.html?id=${entry.post_id}">View thread</a>` : ""}
+            <p class="mb-0">${entry.reason ? escapeHtml(entry.reason) : "<span class='text-secondary'>no reason given</span>"}</p>
+          </div>
+        `);
+      }
+    }
+
+    $("threads-list").append(`<h2 class="mt-4">Threads</h2>`);
+    if (!threads?.length) {
+      $("threads-list").append(`<p class="text-secondary">No threads yet.</p>`);
+    }
+    for (let post of threads ?? []) {
+      const btn = $("threads-list").append(`
+        <button class="row bg-body-secondary p-3 mb-3 rounded border text-start">
+          <div class="col-12 d-flex align-items-center gap-2">
+            ${post.tags ? `<span class="badge rounded-pill bg-secondary">${escapeHtml(post.tags)}</span>` : ""}
+            <span class="fs-4">${escapeHtml(post.title)}</span>
+            <span class="text-secondary ms-auto" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
+          </div>
+        </button>
+      `);
+      btn.addEventListener("click", () => openThread(post.id));
+    }
+
+    $("threads-list").append(`<h2 class="mt-4">Comments</h2>`);
+    if (!replies?.length) {
+      $("threads-list").append(`<p class="text-secondary">No comments yet.</p>`);
+    }
+    for (let reply of replies ?? []) {
+      $("threads-list").append(`
+        <div class="p-3 mb-3 border bg-body-secondary rounded">
+          <span class="text-secondary" title="${new Date(reply.created_at).toLocaleString()}">${timeAgo(reply.created_at)}</span>
+          <a class="ms-2" href="thread.html?id=${reply.post_id}">View thread</a>
+          <p class="mb-0">${renderContent(reply.content)}</p>
+        </div>
+      `);
+    }
+  }
+}
 
 if (page == "inbox") {
   if (!user) {
@@ -285,7 +402,7 @@ if (page == "inbox") {
       $("inbox").append(`
         <div class="p-3 mb-3 border bg-body-secondary rounded ${note.read ? "" : "border-primary"}">
           <span class="badge rounded-pill ${note.type == "mention" ? "bg-primary" : "bg-secondary"}">${escapeHtml(note.type)}</span>
-          <a href="u.html?id=${encodeURIComponent(note.sender)}">${escapeHtml(note.senderUser?.username ?? "unknown")}</a>
+          ${userLink(note.sender, note.senderUser?.username)}
           <span class="text-secondary" title="${new Date(note.created_at).toLocaleString()}">${timeAgo(note.created_at)}</span>
           ${note.post_id ? `<a class="ms-2" href="thread.html?id=${note.post_id}">View thread</a>` : ""}
         </div>
@@ -318,11 +435,11 @@ if (page == "thread") {
     let d = new Date(data[0].created_at);
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     const formatted = d.toLocaleString('en-US', options);
-    const contentHTML = escapeHtml(data[0].content).replace(/\n/g, "<br>");
+    const contentHTML = renderContent(data[0].content);
 
     $("thread").append(`
       <h1>${escapeHtml(data[0].title)}</h1>
-      <p class="secondary"><span title="${formatted}">${timeAgo(data[0].created_at)}</span> by <a href="u.html?id=${encodeURIComponent(data[0].author)}">${escapeHtml(data[0].username)}</a></p>
+      <p class="secondary"><span title="${formatted}">${timeAgo(data[0].created_at)}</span> by ${userLink(data[0].author, data[0].username)}</p>
       <div class="p-4 border bg-body-secondary rounded">
         ${contentHTML}
       </div>
@@ -344,22 +461,36 @@ if (page == "thread") {
 
     const byParent = {};
     for (let post of data ?? []) {
+      // deleted replies stay as stubs so their children don't vanish with them
       (byParent[post.parentReply ?? "root"] ??= []).push(post);
     }
 
     function renderReplies(parent, container) {
       for (let post of byParent[parent] ?? []) {
-        container.insertAdjacentHTML("beforeend", `
+        container.insertAdjacentHTML("beforeend", post.deleted ? `
           <div class="p-4 mt-3 border bg-body-secondary rounded">
-            <a href="u.html?id=${encodeURIComponent(post.author)}">${escapeHtml(post.users?.username ?? "unknown")}</a>
+            <p class="mb-0 text-secondary fst-italic">[deleted]</p>
+            <div class="children ms-4"></div>
+          </div>
+        ` : `
+          <div class="p-4 mt-3 border bg-body-secondary rounded">
+            ${userLink(post.author, post.users?.username)}
             <span class="text-secondary" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
-            <p class="mb-0">${escapeHtml(post.content).replace(/\n/g, "<br>")}</p>
+            <p class="mb-0">${renderContent(post.content)}</p>
             <button class="btn btn-sm btn-link p-0 reply-btn">Reply</button>
+            ${isModerator ? `<button class="btn btn-sm btn-link p-0 ms-2 text-danger delete-reply-btn">Delete</button>` : ""}
             <div class="reply-box"></div>
             <div class="children ms-4"></div>
           </div>
         `);
         const div = container.lastElementChild;
+        if (post.deleted) {
+          renderReplies(post.id, div.querySelector(".children"));
+          continue;
+        }
+        if (isModerator) {
+          div.querySelector(".delete-reply-btn").addEventListener("click", () => deleteReply(post.id, div));
+        }
         div.querySelector(".reply-btn").addEventListener("click", () => {
           const box = div.querySelector(".reply-box");
           box.innerHTML = `
@@ -377,11 +508,41 @@ if (page == "thread") {
   }
 }
 
-async function mentionIds(content) {
-  const names = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
-  if (!names.length) return [];
-  const { data } = await supabase.from("users").select("id").in("username", names);
-  return (data ?? []).map(u => u.id);
+function mentionIds(content) {
+  return [...content.matchAll(/@(\w+)/g)]
+    .map(m => usersByName[m[1]]?.id)
+    .filter(Boolean);
+}
+
+async function modLog(action, reason, post_id, reply_id) {
+  const { error } = await supabase
+    .from("mod_log")
+    .insert({ action, reason, post_id, reply_id });
+  if (error) {
+    console.log(`Failed to write mod log: ${error.message}`);
+  }
+}
+
+async function deleteReply(id, div) {
+  const reason = prompt("Reason for deleting this comment?");
+  if (reason === null) return;
+  const { data, error } = await supabase
+    .from("replies")
+    .update({ deleted: true })
+    .eq("id", id)
+    .select();
+  if (error) {
+    alert(`Error when deleting comment: ${error.message}`);
+  } else if (!data?.length) {
+    alert("Nothing was deleted, probably blocked by RLS");
+  } else {
+    await modLog("delete_reply", reason, urlParams.get("id"), id);
+    // swap it for a stub in place so mass deleting doesn't mean reloading each time
+    for (const el of div.querySelectorAll(":scope > :not(.children)")) {
+      el.remove();
+    }
+    div.insertAdjacentHTML("afterbegin", `<p class="mb-0 text-secondary fst-italic">[deleted]</p>`);
+  }
 }
 
 async function notify(recipient, type, post_id, reply_id) {
@@ -411,7 +572,7 @@ async function postComment(content, parentReply) {
     return;
   }
 
-  const mentioned = await mentionIds(content);
+  const mentioned = mentionIds(content);
   for (const id of mentioned) {
     await notify(id, "mention", post_id, reply.id);
   }
