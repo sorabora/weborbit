@@ -3,6 +3,12 @@ const storedTheme =
   (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 document.documentElement.setAttribute("data-bs-theme", storedTheme);
 
+// loaded here so no page has to add the tag itself
+const fontAwesome = document.createElement("link");
+fontAwesome.rel = "stylesheet";
+fontAwesome.href = "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css";
+document.head.appendChild(fontAwesome);
+
 // patches the invite on every page so it only has to change here
 const discordInvite = "https://discord.gg/zv34r6aR3";
 
