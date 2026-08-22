@@ -96,14 +96,17 @@ $("moderation-btn").onClick(() => {
 });
 
 $("delete-thread").onClick(async () => {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("posts")
-    .delete()
+    .update({ deleted: true })
     .eq("id", urlParams.get("id"))
+    .select()
   if (error) {
-    alert(`Error when deleting thread: ${error}`)
+    alert(`Error when deleting thread: ${error.message}`)
+  } else if (!data?.length) {
+    alert("Nothing was deleted, probably blocked by RLS");
   } else {
-    alert("Deleted thread");
+    alert(`Deleted thread: ${JSON.stringify(data)}`);
   }
 });
 
@@ -115,7 +118,15 @@ function updateModDisplay() {
 
 // If you are authenticated, we show the username on the navbar plus a post thread button on the forum.
 if (user) {
+  const { count } = await supabase
+    .from("inbox")
+    .select("*", { count: "exact", head: true })
+    .eq("recipient", user.id)
+    .eq("read", false);
   $("navbar-items").append(`
+    <li class="nav-item">
+      <a class="nav-link" href="inbox.html">Inbox${count ? ` <span class="badge rounded-pill bg-danger">${count}</span>` : ""}</a>
+    </li>
     <li class="nav-item">
       <a class="nav-link">${escapeHtml(username ?? "")}</a>
     </li>
@@ -169,12 +180,17 @@ if (page == "post-thread") {
       return;
     }
 
-    const { error } = await supabase
+    const { data: post, error } = await supabase
     .from("posts")
     .insert({ title, content, tags })
+    .select()
+    .single()
     if (error) {
       alert(`Failed to post: ${error}`);
     } else {
+      for (const id of await mentionIds(content)) {
+        await notify(id, "mention", post.id, null);
+      }
       alert("Posted!");
       window.location.href = "forum.html";
     }
@@ -194,6 +210,7 @@ if (page == "forum") {
   function renderThreads(filter) {
     $("threads-list").el.innerHTML = "";
     let shown = (posts.data ?? []).filter((post) => {
+      if (post.deleted) return false;
       if (filter == "all") return true;
       if (filter == "new") return isRecent(post);
       return post.tags == filter;
@@ -250,16 +267,54 @@ if (page == "forum") {
 // user page not implemented
 if (page == "u") {}
 
+if (page == "inbox") {
+  if (!user) {
+    $("inbox").append(`<p class="text-secondary">Login to see your inbox.</p>`);
+  } else {
+    const { data, error } = await supabase
+      .from("inbox")
+      .select("*, senderUser:users!inbox_sender_fkey(username)")
+      .eq("recipient", user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      $("inbox").append(`<p class="text-danger">Failed to load inbox: ${escapeHtml(error.message)}</p>`);
+    } else if (!data?.length) {
+      $("inbox").append(`<p class="text-secondary">Nothing here yet.</p>`);
+    }
+    for (let note of data ?? []) {
+      $("inbox").append(`
+        <div class="p-3 mb-3 border bg-body-secondary rounded ${note.read ? "" : "border-primary"}">
+          <span class="badge rounded-pill ${note.type == "mention" ? "bg-primary" : "bg-secondary"}">${escapeHtml(note.type)}</span>
+          <a href="u.html?id=${encodeURIComponent(note.sender)}">${escapeHtml(note.senderUser?.username ?? "unknown")}</a>
+          <span class="text-secondary" title="${new Date(note.created_at).toLocaleString()}">${timeAgo(note.created_at)}</span>
+          ${note.post_id ? `<a class="ms-2" href="thread.html?id=${note.post_id}">View thread</a>` : ""}
+        </div>
+      `);
+    }
+    await supabase
+      .from("inbox")
+      .update({ read: true })
+      .eq("recipient", user.id)
+      .eq("read", false);
+  }
+}
+
 // display info about a thread
 
 if (page == "thread") {
   const id = urlParams.get("id");
   const { data, error } = await supabase
     .rpc('get_thread', { p_thread_id: id });
-  console.log(data);
+  console.log(data, error);
   let halt = false;
 
-  try {
+  if (error) {
+    $("thread").append(`<p class="text-danger">Failed to load thread: ${escapeHtml(error.message)}</p>`);
+    halt = true;
+  } else if (!data?.length) {
+    $("thread").append(`<h1>Thread Not Found</h1><p class="text-secondary">id: ${escapeHtml(id ?? "(missing)")}</p>`);
+    halt = true;
+  } else {
     let d = new Date(data[0].created_at);
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     const formatted = d.toLocaleString('en-US', options);
@@ -272,11 +327,6 @@ if (page == "thread") {
         ${contentHTML}
       </div>
     `)
-  } catch (e) {
-    $("thread").append(`
-      <h1>Thread Not Found</h1>
-    `)
-    halt = true;
   }
 
   if (!halt) {
@@ -291,20 +341,56 @@ if (page == "thread") {
       <p>Max 800 characters</p>
       <button id="comments-post" class="btn btn-primary btn-lg">Post</button>
     `);
+
+    const byParent = {};
     for (let post of data ?? []) {
-      $("comments").append(`
-        <div class="p-4 border bg-body-secondary rounded">
-          <a href="u.html?id=${encodeURIComponent(post.author)}">${escapeHtml(post.users?.username ?? "unknown")}</a>
-          <span class="text-secondary" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
-          <p class="mb-0">${escapeHtml(post.content).replace(/\n/g, "<br>")}</p>
-        </div>
-      `);
+      (byParent[post.parentReply ?? "root"] ??= []).push(post);
     }
+
+    function renderReplies(parent, container) {
+      for (let post of byParent[parent] ?? []) {
+        container.insertAdjacentHTML("beforeend", `
+          <div class="p-4 mt-3 border bg-body-secondary rounded">
+            <a href="u.html?id=${encodeURIComponent(post.author)}">${escapeHtml(post.users?.username ?? "unknown")}</a>
+            <span class="text-secondary" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
+            <p class="mb-0">${escapeHtml(post.content).replace(/\n/g, "<br>")}</p>
+            <button class="btn btn-sm btn-link p-0 reply-btn">Reply</button>
+            <div class="reply-box"></div>
+            <div class="children ms-4"></div>
+          </div>
+        `);
+        const div = container.lastElementChild;
+        div.querySelector(".reply-btn").addEventListener("click", () => {
+          const box = div.querySelector(".reply-box");
+          box.innerHTML = `
+            <textarea class="form-control" placeholder="I disagree!!!!!!"></textarea>
+            <button class="btn btn-sm btn-primary mt-1">Post</button>
+          `;
+          box.querySelector("button").addEventListener("click", () => {
+            postComment(box.querySelector("textarea").value, post.id);
+          });
+        });
+        renderReplies(post.id, div.querySelector(".children"));
+      }
+    }
+    renderReplies("root", $("comments").el);
   }
 }
 
-$("comments-post").onClick(async () => {
-  const content = $("comments-textarea").value.trim();
+async function mentionIds(content) {
+  const names = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
+  if (!names.length) return [];
+  const { data } = await supabase.from("users").select("id").in("username", names);
+  return (data ?? []).map(u => u.id);
+}
+
+async function notify(recipient, type, post_id, reply_id) {
+  if (!recipient || recipient == user?.id) return;
+  await supabase.from("inbox").insert({ recipient, type, post_id, reply_id });
+}
+
+async function postComment(content, parentReply) {
+  content = content.trim();
   if (content.length === 0) {
     alert("Comment can't be empty.");
     return;
@@ -313,15 +399,41 @@ $("comments-post").onClick(async () => {
     alert("Comment must be 800 characters or fewer.");
     return;
   }
-  const { error } = await supabase
+  const post_id = urlParams.get("id");
+  const { data: reply, error } = await supabase
     .from('replies')
-    .insert({ content, post_id: urlParams.get("id") });
+    .insert({ content, post_id, parentReply })
+    .select()
+    .single();
 
   if (error) {
     alert(`Error posting comment: ${JSON.stringify(error)}`);
-  } else {
-    alert("Posted Comment!");
+    return;
   }
+
+  const mentioned = await mentionIds(content);
+  for (const id of mentioned) {
+    await notify(id, "mention", post_id, reply.id);
+  }
+  const replied = new Set(mentioned);
+  if (parentReply) {
+    const { data: parent } = await supabase.from("replies").select("author").eq("id", parentReply).single();
+    if (parent && !replied.has(parent.author)) {
+      replied.add(parent.author);
+      await notify(parent.author, "reply", post_id, reply.id);
+    }
+  }
+  const { data: thread } = await supabase.from("posts").select("author").eq("id", post_id).single();
+  if (thread && !replied.has(thread.author)) {
+    await notify(thread.author, "reply", post_id, reply.id);
+  }
+
+  alert("Posted Comment!");
+  window.location.reload();
+}
+
+$("comments-post").onClick(() => {
+  postComment($("comments-textarea").value, null);
 });
 
 // auth logic
