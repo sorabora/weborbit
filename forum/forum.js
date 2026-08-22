@@ -56,15 +56,16 @@ const cosmeticRoles = {
 // points are worked out on the page, nothing is stored
 const pointValues = { thread: 1000, comment: 300, hourBonus: 0.0002 };
 
+// one gem for everyone, then stars, a crown, a sparkle and a halo pile on
 const gemTiers = [
-  { min: 0, name: "Stone", color: "#78716c" },
+  { min: 0, name: "Stone", color: "#78716c", flat: true },
   { min: 1500, name: "Quartz", color: "#d4d4d8" },
   { min: 6000, name: "Topaz", color: "#f59e0b" },
-  { min: 20000, name: "Emerald", color: "#10b981" },
-  { min: 50000, name: "Sapphire", color: "#3b82f6" },
-  { min: 120000, name: "Amethyst", color: "#a855f7" },
-  { min: 300000, name: "Ruby", color: "#f43f5e" },
-  { min: 600000, name: "Diamond", color: "#22d3ee" }
+  { min: 20000, name: "Emerald", color: "#10b981", stars: 1 },
+  { min: 50000, name: "Sapphire", color: "#3b82f6", stars: 2 },
+  { min: 120000, name: "Amethyst", color: "#a855f7", crown: true },
+  { min: 300000, name: "Ruby", color: "#f43f5e", crown: true, sparkle: true },
+  { min: 600000, name: "Diamond", color: "#22d3ee", crown: true, sparkle: true, halo: true }
 ];
 
 const { data: allUsers } = await supabase.from("users").select("id, username, role, posts, replies, created_at");
@@ -209,15 +210,29 @@ function gemTier(points) {
   return [...gemTiers].reverse().find(t => points >= t.min) ?? gemTiers[0];
 }
 
-// facets are drawn with opacity so the same svg works for every tier colour
+// the gem sits in the middle, everything else is pinned around it
 function gem(points, size = 14) {
   const tier = gemTier(points);
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="color: ${tier.color}; vertical-align: -0.15em" title="${tier.name}">
-      <path d="M4 9h16l-8 12z" fill="currentColor"/>
-      <path d="M7 3h10l3 6H4z" fill="currentColor" opacity="0.7"/>
-      <path d="M9.5 9 12 21l2.5-12z" fill="currentColor" opacity="0.45"/>
-      <path d="M7 3l2.5 6h5L17 3z" fill="currentColor" opacity="0.35"/>
-    </svg>`;
+  const box = Math.round(size * 1.8);
+  const at = (x, y, px, extra = "") =>
+    `position: absolute; left: ${x}%; top: ${y}%; transform: translate(-50%, -50%); font-size: ${px}px; ${extra}`;
+
+  let parts = "";
+  if (tier.halo) {
+    parts += `<span style="${at(50, 58, 0)} width: ${size * 1.5}px; height: ${size * 1.5}px; border: 1px solid currentColor; border-radius: 50%; opacity: 0.4"></span>`;
+  }
+  parts += `<i class="fa-solid fa-gem" style="${at(50, 58, size)}${tier.flat ? " opacity: 0.65" : ""}"></i>`;
+  if (tier.crown) {
+    parts += `<i class="fa-solid fa-crown" style="${at(50, 12, size * 0.55)}"></i>`;
+  }
+  for (const [i, x] of [22, 78].slice(0, tier.stars ?? 0).entries()) {
+    parts += `<i class="fa-solid fa-star" style="${at(x, 18 + i * 0, size * 0.4, "opacity: 0.9")}"></i>`;
+  }
+  if (tier.sparkle) {
+    parts += `<i class="fa-solid fa-burst" style="${at(88, 82, size * 0.45, "opacity: 0.85")}"></i>`;
+  }
+
+  return `<span title="${tier.name}" style="position: relative; display: inline-block; width: ${box}px; height: ${box}px; color: ${tier.color}; vertical-align: -0.45em">${parts}</span>`;
 }
 
 function gemBadge(points) {
@@ -362,6 +377,17 @@ if (page == "leaderboard") {
 
   $("leaderboard-note").el.textContent =
     `${pointValues.thread.toLocaleString()} points a thread, ${pointValues.comment.toLocaleString()} a comment, then multiplied by how long you have been here. If you don't post anything, it stays at zero.`;
+
+  $("leaderboard").append(`
+    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-4 border rounded">
+      ${gemTiers.map(t => `
+        <span class="d-inline-flex align-items-center gap-1">
+          ${gemBadge(t.min)}
+          <small class="text-secondary">${t.min.toLocaleString()}+</small>
+        </span>
+      `).join("")}
+    </div>
+  `);
 
   if (!ranked.length) {
     $("leaderboard").append(`<p class="text-secondary">Nobody here yet.</p>`);
