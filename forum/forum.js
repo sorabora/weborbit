@@ -49,12 +49,25 @@ if (user) {
   username = profile?.username;
 }
 
-// purely cosmetic, clientside only. add whoever you like
 const cosmeticRoles = {
-  sorabora: [{ label: "Developer", color: "#a855f7" }]
+  sorabora: [{ label: "Developer", color: "#a855f7" }],
 };
 
-const { data: allUsers } = await supabase.from("users").select("id, username, role");
+// points are worked out on the page, nothing is stored
+const pointValues = { thread: 1000, comment: 300, hourBonus: 0.0002 };
+
+const gemTiers = [
+  { min: 0, name: "Stone", color: "#78716c" },
+  { min: 1500, name: "Quartz", color: "#d4d4d8" },
+  { min: 6000, name: "Topaz", color: "#f59e0b" },
+  { min: 20000, name: "Emerald", color: "#10b981" },
+  { min: 50000, name: "Sapphire", color: "#3b82f6" },
+  { min: 120000, name: "Amethyst", color: "#a855f7" },
+  { min: 300000, name: "Ruby", color: "#f43f5e" },
+  { min: 600000, name: "Diamond", color: "#22d3ee" }
+];
+
+const { data: allUsers } = await supabase.from("users").select("id, username, role, posts, replies, created_at");
 const usersById = {};
 const usersByName = {};
 for (const u of allUsers ?? []) {
@@ -181,8 +194,46 @@ function roleBadge(id) {
   return badges;
 }
 
+// age only multiplies what you earned, so nothing times old is still nothing
+function ageMultiplier(u) {
+  const hours = Math.max(Math.floor((Date.now() - new Date(u.created_at)) / 3600000), 0);
+  return 1 + hours * pointValues.hourBonus;
+}
+
+function userPoints(u) {
+  const base = (u.posts ?? 0) * pointValues.thread + (u.replies ?? 0) * pointValues.comment;
+  return base ? Math.round(base * ageMultiplier(u)) : 0;
+}
+
+function gemTier(points) {
+  return [...gemTiers].reverse().find(t => points >= t.min) ?? gemTiers[0];
+}
+
+// facets are drawn with opacity so the same svg works for every tier colour
+function gem(points, size = 14) {
+  const tier = gemTier(points);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="color: ${tier.color}; vertical-align: -0.15em" title="${tier.name}">
+      <path d="M4 9h16l-8 12z" fill="currentColor"/>
+      <path d="M7 3h10l3 6H4z" fill="currentColor" opacity="0.7"/>
+      <path d="M9.5 9 12 21l2.5-12z" fill="currentColor" opacity="0.45"/>
+      <path d="M7 3l2.5 6h5L17 3z" fill="currentColor" opacity="0.35"/>
+    </svg>`;
+}
+
+function gemBadge(points) {
+  const tier = gemTier(points);
+  return `
+    <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
+      style="color: ${tier.color}; background-color: ${tier.color}22; border: 1px solid ${tier.color}66">
+      ${gem(points)}
+      ${tier.name}
+    </span>`;
+}
+
 function userLink(id, name, cls = "") {
-  return `<a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(usersById[id]?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
+  const u = usersById[id];
+  return `${u ? gem(userPoints(u)) : ""}
+    <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
 }
 
 // escape first, then turn @mentions into links and newlines into breaks
@@ -304,6 +355,34 @@ if (page == "forum") {
   applyFilter(urlParams.get("filter") ?? "all");
 }
 
+if (page == "leaderboard") {
+  const ranked = (allUsers ?? [])
+    .map(u => ({ ...u, points: userPoints(u) }))
+    .sort((a, b) => b.points - a.points);
+
+  $("leaderboard-note").el.textContent =
+    `${pointValues.thread.toLocaleString()} points a thread, ${pointValues.comment.toLocaleString()} a comment, then multiplied by how long you have been here. If you don't post anything, it stays at zero.`;
+
+  if (!ranked.length) {
+    $("leaderboard").append(`<p class="text-secondary">Nobody here yet.</p>`);
+  }
+  for (const [i, u] of ranked.entries()) {
+    const medals = ["#ffd700", "#c0c0c0", "#cd7f32"];
+    $("leaderboard").append(`
+      <div class="p-3 mb-2 border bg-body-secondary rounded d-flex align-items-center gap-3 ${u.id == user?.id ? "border-primary" : ""}">
+        <span class="fs-4 fw-semibold" style="min-width: 2.5rem; ${medals[i] ? `color: ${medals[i]}` : ""}">#${i + 1}</span>
+        <a href="u.html?id=${encodeURIComponent(u.id)}">${escapeHtml(u.username)}</a>
+        ${roleBadge(u.id)}
+        ${gemBadge(u.points)}
+        <span class="ms-auto text-end">
+          <span class="fs-5">${u.points.toLocaleString()}</span>
+          <span class="text-secondary d-block small">${u.posts ?? 0} threads &middot; ${u.replies ?? 0} comments</span>
+        </span>
+      </div>
+    `);
+  }
+}
+
 if (page == "u") {
   const id = urlParams.get("id");
   const profile = usersById[id];
@@ -323,9 +402,13 @@ if (page == "u") {
       .not("deleted", "is", true)
       .order("created_at", { ascending: false });
 
+    const points = userPoints(profile);
+    const next = gemTiers.find(t => t.min > points);
+
     $("profile").append(`
-      <h1>${escapeHtml(profile.username)} ${roleBadge(id)}</h1>
-      <p class="text-secondary">${(threads ?? []).length} threads, ${(replies ?? []).length} comments</p>
+      <h1>${escapeHtml(profile.username)} ${roleBadge(id)} ${gemBadge(points)}</h1>
+      <p class="text-secondary mb-0">${profile.posts ?? 0} threads, ${profile.replies ?? 0} comments, joined ${timeAgo(profile.created_at)}</p>
+      <p class="text-secondary">${points.toLocaleString()} points &middot; &times;${ageMultiplier(profile).toFixed(3)} for account age${next ? ` &middot; ${(next.min - points).toLocaleString()} to ${next.name}` : " &middot; max rank"}</p>
     `);
 
     // only admins get to see what a mod has been up to
