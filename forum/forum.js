@@ -251,11 +251,75 @@ function userLink(id, name, cls = "") {
     <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
 }
 
-// escape first, then turn @mentions into links and newlines into breaks
+const EMOTICON_CDN = "https://cdn.jsdelivr.net/gh/bernzrdo/msn-emoticons@main/original/";
+
+const EMOTICONS = [
+  ["(party)", "party-smile"],
+  ["(rock)", "eye-rolling-smile"],
+  ["(inlove)", "red-heart"],
+  ["(devil)", "devil"],
+  ["(angel)", "angel"],
+  ["(cake)", "birthday-cake"],
+  ["(beer)", "beer-mug"],
+  ["(coffee)", "coffee-cup"],
+  ["(pizza)", "pizza"],
+  ["(star)", "star"],
+  ["(sun)", "sun"],
+  ["(rain)", "storm-cloud"],
+  ["(email)", "e-mail"],
+  ["(phone)", "telephone-receiver"],
+  ["(h)", "left-hug"],
+  ["(l)", "red-heart"],
+  ["(u)", "broken-heart"],
+  ["(y)", "thumbs-up"],
+  ["(n)", "thumbs-down"],
+  ["(f)", "red-rose"],
+  ["(w)", "wilted-rose"],
+  [":-d", "open-mouthed-smile"],
+  [":d", "open-mouthed-smile"],
+  [":-(", "sad-smile"],
+  [":(", "sad-smile"],
+  [":-)", "smile"],
+  [":)", "smile"],
+  [";-)", "winking-smile"],
+  [";)", "winking-smile"],
+  [":-p", "smile-with-tongue-out"],
+  [":p", "smile-with-tongue-out"],
+  [":-o", "surprised-smile"],
+  [":o", "surprised-smile"],
+  [":-s", "confused-smile"],
+  [":s", "confused-smile"],
+  [":-$", "embarrassed-smile"],
+  [":$", "embarrassed-smile"],
+  ["8-)", "nerd-smile"],
+  ["8)", "nerd-smile"],
+  [":'(", "crying-face"],
+  ["<3", "red-heart"],
+  ["</3", "broken-heart"],
+].sort((a, b) => b[0].length - a[0].length);
+
+function emoticonImg(name, file) {
+  return `<img src="${EMOTICON_CDN}${file}.png" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" class="forum-emoticon" style="height:1.3em;width:auto;margin:0 0.05em;vertical-align:middle;">`;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const EMOTICON_PATTERN = new RegExp(
+  EMOTICONS.map(([token]) => escapeRegex(token)).join("|"),
+  "gi"
+);
+
+// escape first, then turn @mentions into links, emoticons into animated images, and newlines into breaks
 function renderContent(str) {
   return escapeHtml(str)
     .replace(/@(\w+)/g, (match, name) =>
       usersByName[name] ? `<a href="u.html?id=${encodeURIComponent(usersByName[name].id)}">${match}</a>` : match)
+    .replace(EMOTICON_PATTERN, (match) => {
+      const [, file] = EMOTICONS.find(([token]) => token.toLowerCase() === match.toLowerCase());
+      return emoticonImg(match, file);
+    })
     .replace(/\n/g, "<br>");
 }
 
