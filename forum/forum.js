@@ -1,6 +1,6 @@
 // Forums for the Weborbit Game
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+const { createClient } = window.supabase
 
 const supabaseUrl = 'https://sahuwtqsqbtplyhueokv.supabase.co'
 const supabaseKey = 'sb_publishable_6dhE2eLPTmmR2K4TJIf7Pg_vxjN6eg7'
@@ -50,7 +50,7 @@ if (user) {
 }
 
 const cosmeticRoles = {
-  sorabora: [{ label: "Developer", color: "#a855f7" }],
+  sorabora: [{ label: "Developer", color: "#da3bf6" }],
 };
 
 // points are worked out on the page, nothing is stored
