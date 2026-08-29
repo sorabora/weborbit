@@ -8,7 +8,7 @@
 
 [Discord](https://discord.gg/umYECmUqVV)
 
-[Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
+[Forums](https://sorabora.github.io/weborbit/forum.html/)
 
 *[Modding Toolkit](https://sorabora.github.io/Xopernicus/)*
 
