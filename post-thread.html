@@ -80,6 +80,12 @@
         </ul>
       </div>
       <textarea class="form-control" id="post-content" placeholder="Your post's content..." rows="5"></textarea>
+      <div id="mod-file-group" class="input-group input-group-lg mb-3 mt-3 d-none">
+        <span class="input-group-text" id="basic-addon1">🛠️</span>
+        <input id="mod-file" type="file" class="form-control" accept="application/json,.json">
+      </div>
+      <p id="mod-file-hint" class="text-secondary d-none">Mod file must be JSON, and 50KB or smaller.</p>
+      <p id="mod-file-hint2" class="text-secondary d-none">For security purposes your account must be at least 30 minutes old.</p>
       <div class="d-grid">
         <button class="btn btn-lg btn-primary px-4 mt-3" id="post-thread">Post Thread</button>
       </div>
