@@ -323,6 +323,8 @@ function renderContent(str) {
     .replace(/\n/g, "<br>");
 }
 
+const MOD_FILE_MAX_BYTES = 50 * 1024;
+
 if (page == "post-thread") {
   let selectedCategory = null;
   for (const item of document.querySelectorAll("#category-menu .dropdown-item")) {
@@ -333,6 +335,10 @@ if (page == "post-thread") {
     item.addEventListener("click", () => {
       selectedCategory = item.textContent.trim();
       document.getElementById("category-btn").textContent = selectedCategory;
+      const isModding = selectedCategory == "Modding";
+      $("mod-file-group").el.classList.toggle("d-none", !isModding);
+      $("mod-file-hint").el.classList.toggle("d-none", !isModding);
+      $("mod-file-hint2").el.classList.toggle("d-none", !isModding);
     });
   }
 
@@ -350,13 +356,40 @@ if (page == "post-thread") {
       return;
     }
 
+    let mod_url = null;
+    if (tags == "Modding") {
+      const file = $("mod-file").el.files[0];
+      if (!file) {
+        alert("Pick a mod JSON file first!");
+        return;
+      }
+      if (!file.name.toLowerCase().endsWith(".json")) {
+        alert("Mod file must be a .json file.");
+        return;
+      }
+      if (file.size > MOD_FILE_MAX_BYTES) {
+        alert(`Mod file is too big (${Math.ceil(file.size / 1024)}KB, max 50KB).`);
+        return;
+      }
+
+      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("mods").upload(path, file, {
+        contentType: "application/json",
+      });
+      if (uploadError) {
+        alert(`Failed to upload mod file: ${uploadError.message}`);
+        return;
+      }
+      mod_url = supabase.storage.from("mods").getPublicUrl(path).data.publicUrl;
+    }
+
     const { data: post, error } = await supabase
     .from("posts")
-    .insert({ title, content, tags })
+    .insert({ title, content, tags, mod_url })
     .select()
     .single()
     if (error) {
-      alert(`Failed to post: ${error}`);
+      alert(`Failed to post: ${error.message}`);
     } else {
       for (const id of mentionIds(content)) {
         await notify(id, "mention", post.id, null);
@@ -615,6 +648,7 @@ if (page == "thread") {
       <p class="secondary"><span title="${formatted}">${timeAgo(data[0].created_at)}</span> by ${userLink(data[0].author, data[0].username)}</p>
       <div class="p-4 border bg-body-secondary rounded">
         ${contentHTML}
+        ${data[0].mod_url ? `<a href="${escapeHtml(data[0].mod_url)}" class="btn btn-primary mt-3" download>Download Mod</a>` : ""}
       </div>
     `)
   }
