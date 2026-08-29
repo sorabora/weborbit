@@ -1343,8 +1343,9 @@ function drawCreditsMenu() {
   GUIAPI.label("@sorabora - Developer", { size: 28, align: CENTER, height: 80 });
   GUIAPI.label("Planet textures are modified versions of graphics by Solar System Scope (solarsystemscope.com), used under CC BY 4.0.", { size: 15, align: CENTER, height: 20 });
   GUIAPI.label("Open Sans font by Steve Matteson, used under the Apache License 2.0.", { size: 15, align: CENTER, height: 40 });
+  GUIAPI.label("VAB, launchtower and launchpad textures by @Croissant on SFS forums", { size: 15, align: CENTER, height: 20 });
 
-  GUIAPI.button(width/2 - 175, 380, 350, 85, {
+  GUIAPI.button(width/2 - 175, 380, 350, 130, {
     id: "credits-close",
     baseColor: "#1f398f",
     hoverColor: "#2a32c0",
