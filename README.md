@@ -1,10 +1,10 @@
 # Weborbit
 
 ![Stage](https://img.shields.io/badge/stage-pre_release-blue)
-![Stars](https://img.shields.io/github/stars/user/repo)
-![Last Commit](https://img.shields.io/github/last-commit/user/repo)
-![Top Language](https://img.shields.io/github/languages/top/user/repo)
-![Coverage](https://img.shields.io/codecov/c/github/user/repo)
+![Stars](https://img.shields.io/github/stars/sorabora/weborbit)
+![Last Commit](https://img.shields.io/github/last-commit/sorabora/weborbit)
+![Top Language](https://img.shields.io/github/languages/top/sorabora/weborbit)
+![Coverage](https://img.shields.io/codecov/c/github/sorabora/weborbit)
 
 [Discord](https://discord.gg/umYECmUqVV)
 
