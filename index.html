@@ -37,7 +37,7 @@
               <a class="nav-link" href="forum.html">Forums</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="https://discord.gg/YDvpbVEC8W">Discord</a>
+              <a class="nav-link" href="https://discord.gg/zv34r6aR3">Discord</a>
             </li>
           </ul>
         </div>
@@ -53,6 +53,7 @@
             <a href="game.html" class="btn btn-primary btn-lg px-4">Play The Game</a>
             <a href="forum.html" class="btn btn-dark btn-lg px-4">Join The Community</a>
           </div>
+          <div id="forum-stats" class="row g-2 mt-3"></div>
         </div>
         <div class="col-lg-6">
           <img src="Hero.png" class="img-fluid rounded-4 d-block mx-auto" alt="Rocket launching in the Weborbit game">
@@ -65,5 +66,32 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <script type="module">
+      import { supabase } from "./forum/forum.js";
+
+      const [{ count: threadCount }, { count: replyCount }, { count: userCount }] = await Promise.all([
+        supabase.from("posts").select("*", { count: "exact", head: true }),
+        supabase.from("replies").select("*", { count: "exact", head: true }),
+        supabase.from("users").select("*", { count: "exact", head: true }),
+      ]);
+
+      const stats = [
+        [threadCount, "Threads"],
+        [replyCount, "Replies"],
+        [userCount, "Members"],
+      ];
+      document.getElementById("forum-stats").innerHTML = stats
+        .map(
+          ([count, label]) => `
+            <div class="col-4">
+              <div class="border rounded-3 py-2 text-center">
+                <div class="fs-4 fw-semibold">${count ?? 0}</div>
+                <div class="text-secondary small">${label}</div>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    </script>
   </body>
 </html>
