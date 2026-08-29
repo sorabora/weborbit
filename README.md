@@ -10,9 +10,7 @@
 
 [Forums](https://d1p5zy7ykyy2fz.cloudfront.net/)
 
-[Modding Toolkit](https://sorabora.github.io/Xopernicus/)
-
-**[Bug Tracker](https://docs.google.com/spreadsheets/d/19nTjF6YmtObzQY5wZT1-g5W0uFzkRqWcJe90-qyIBZc/edit?usp=sharing)**
+*[Modding Toolkit](https://sorabora.github.io/Xopernicus/)*
 
 Copyright (C) 2026 sorabora (@sorabora)
 
