@@ -78,6 +78,7 @@ let c = {
   turnPower: 1.5,
   throttleStep: 2,
   crashSpeed: 55,
+  waterCrashSpeed: 90,
   turnProfile: [[0, 90], [0.02, 85], [0.05, 80], [0.1, 70], [0.2, 60], [0.35, 45], [0.55, 30], [0.75, 15], [1, 0]],
   turnCeiling: 100000,
   guideLength: 80,
@@ -95,3103 +96,7 @@ let c = {
   launchPadRotation: 300
 }
 
-const loaded = [
-{
-  "format": "xopernicus-partpack",
-  "version": 1,
-  "parts": [
-    {
-      "name": "_launchpad",
-      "size": [
-        26400,
-        14400
-      ],
-      "mass": 0,
-      "groups": [
-        {
-          "fill": "#858585",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -13200,
-              7200
-            ],
-            [
-              -12000,
-              7200
-            ],
-            [
-              -12000,
-              -7200
-            ],
-            [
-              -13200,
-              -7200
-            ]
-          ]
-        },
-        {
-          "fill": "#ffffff",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -9600,
-              -7200
-            ],
-            [
-              -8285.34,
-              -7174.17
-            ],
-            [
-              -8400,
-              7200
-            ],
-            [
-              -9600,
-              7200
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -7200
-            ],
-            [
-              -9600,
-              -4800
-            ],
-            [
-              -9600,
-              -4200
-            ],
-            [
-              -12000,
-              -6600
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -7200
-            ],
-            [
-              -9600,
-              -4800
-            ],
-            [
-              -9600,
-              -4200
-            ],
-            [
-              -12000,
-              -6600
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -6000
-            ],
-            [
-              -9600,
-              -3600
-            ],
-            [
-              -9600,
-              -3000
-            ],
-            [
-              -12000,
-              -5400
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -4800
-            ],
-            [
-              -9600,
-              -2400
-            ],
-            [
-              -9600,
-              -1800
-            ],
-            [
-              -12000,
-              -4200
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -3600
-            ],
-            [
-              -9600,
-              -1200
-            ],
-            [
-              -9600,
-              -600
-            ],
-            [
-              -12000,
-              -3000
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -2400
-            ],
-            [
-              -9600,
-              0
-            ],
-            [
-              -9600,
-              600
-            ],
-            [
-              -12000,
-              -1800
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              -1200
-            ],
-            [
-              -9600,
-              1200
-            ],
-            [
-              -9600,
-              1800
-            ],
-            [
-              -12000,
-              -600
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              0
-            ],
-            [
-              -9600,
-              2400
-            ],
-            [
-              -9600,
-              3000
-            ],
-            [
-              -12000,
-              600
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              1200
-            ],
-            [
-              -9600,
-              3600
-            ],
-            [
-              -9600,
-              4200
-            ],
-            [
-              -12000,
-              1800
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              2400
-            ],
-            [
-              -9600,
-              4800
-            ],
-            [
-              -9600,
-              5400
-            ],
-            [
-              -12000,
-              3000
-            ]
-          ]
-        },
-        {
-          "fill": "#6b6b6b",
-          "points": [
-            [
-              -12000,
-              3600
-            ],
-            [
-              -9600,
-              6000
-            ],
-            [
-              -9600,
-              6600
-            ],
-            [
-              -12000,
-              4200
-            ]
-          ]
-        },
-        {
-          "fill": "#595959",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -6000,
-              7200
-            ],
-            [
-              -2400,
-              6000
-            ],
-            [
-              9600,
-              6000
-            ],
-            [
-              13200,
-              7200
-            ]
-          ]
-        }
-      ],
-      "modules": {}
-    },
-    {
-      "name": "_vab",
-      "size": [
-        36690.18,
-        36288.2
-      ],
-      "mass": 1,
-      "groups": [
-        {
-          "fill": "#949494",
-          "points": [
-            [
-              -18345.09,
-              -17509.62
-            ],
-            [
-              -17654.91,
-              18144.1
-            ],
-            [
-              18345.09,
-              18144.1
-            ],
-            [
-              17359.85,
-              -18144.1
-            ]
-          ]
-        },
-        {
-          "fill": "#737373",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -9654.91,
-              -17855.9
-            ],
-            [
-              10345.09,
-              -17855.9
-            ],
-            [
-              10345.09,
-              2144.1
-            ],
-            [
-              -9654.91,
-              2144.1
-            ]
-          ]
-        }
-      ],
-      "modules": {}
-    },
-    {
-      "name": "_monolith",
-      "size": [
-        84000,
-        144000
-      ],
-      "mass": 1,
-      "groups": [
-        {
-          "fill": "#787878",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -42000,
-              72000
-            ],
-            [
-              42000,
-              72000
-            ],
-            [
-              42000,
-              -36000
-            ],
-            [
-              18000,
-              -72000
-            ],
-            [
-              -18000,
-              -72000
-            ],
-            [
-              -42000,
-              -36000
-            ]
-          ]
-        }
-      ],
-      "modules": {}
-    },
-    {
-      "name": "_flame",
-      "size": [
-        1448.54,
-        1603.36
-      ],
-      "mass": 0,
-      "groups": [
-        {
-          "fill": "#ff8614",
-          "gradient": {
-            "to": "#000000",
-            "angle": 90,
-            "toOpacity": 0
-          },
-          "points": [
-            [
-              -315.73,
-              -801.68
-            ],
-            [
-              -635.73,
-              478.32
-            ],
-            [
-              644.27,
-              478.32
-            ],
-            [
-              324.27,
-              -801.68
-            ]
-          ]
-        },
-        {
-          "fill": "#ffa629",
-          "gradient": {
-            "to": "#000000",
-            "angle": 90,
-            "toOpacity": 0.2,
-            "fromOpacity": 0.2
-          },
-          "points": [
-            [
-              -475.73,
-              -161.68
-            ],
-            [
-              484.27,
-              -161.68
-            ],
-            [
-              724.27,
-              798.32
-            ],
-            [
-              -724.27,
-              801.68
-            ]
-          ]
-        },
-        {
-          "fill": "#ffeb0a",
-          "gradient": {
-            "to": "#000000",
-            "angle": 90,
-            "toOpacity": 0
-          },
-          "opacity": 0.4,
-          "points": [
-            [
-              -155.73,
-              -401.68
-            ],
-            [
-              164.27,
-              -401.68
-            ],
-            [
-              484.27,
-              478.32
-            ],
-            [
-              -475.73,
-              478.32
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Animate Module": {
-          "To Animate": [
-            {
-              "Whole Prefab": true,
-              "Group": 0,
-              "Property": "Height",
-              "To": 0.7,
-              "Seconds": 0.4,
-              "Easing": "Ease In Out"
-            },
-            {
-              "Whole Prefab": true,
-              "Group": 0,
-              "Property": "Height",
-              "To": 1,
-              "Seconds": 0.4,
-              "Easing": "Ease In Out"
-            }
-          ],
-          "Loop": true,
-          "Trigger": [
-            "Part Enabled",
-            "Throttle Above 0"
-          ],
-          "Stop if condition false": true,
-          "Start Animation": [
-            {
-              "Whole Prefab": true,
-              "Group": 0,
-              "Property": "Height",
-              "Value": 0
-            }
-          ],
-          "End Animation": [
-            {
-              "Whole Prefab": true,
-              "Group": 0,
-              "Property": "Height",
-              "To": 0,
-              "Seconds": 0.6,
-              "Easing": "Linear"
-            }
-          ]
-        },
-        "Blur Module": {
-          "Blur": 5
-        }
-      }
-    },
-    {
-      "name": "_parachute",
-      "size": [
-        3520,
-        2480
-      ],
-      "mass": 0,
-      "groups": [
-        {
-          "fill": "#ff8614",
-          "points": [
-            [
-              -240,
-              -1240
-            ],
-            [
-              -1760,
-              -360
-            ],
-            [
-              1760,
-              -360
-            ],
-            [
-              400,
-              -1240
-            ]
-          ]
-        },
-        {
-          "fill": "#f56565",
-          "cutout": true,
-          "points": [
-            [
-              1440,
-              -360
-            ],
-            [
-              -1440,
-              -360
-            ],
-            [
-              80,
-              -920
-            ]
-          ]
-        },
-        {
-          "fill": "#ffffff",
-          "points": [
-            [
-              60,
-              -360
-            ],
-            [
-              100,
-              -360
-            ],
-            [
-              100,
-              1240
-            ],
-            [
-              60,
-              1240
-            ]
-          ]
-        }
-      ],
-      "modules": {}
-    },
-    {
-      "name": "Capsule",
-      "size": [
-        640,
-        640
-      ],
-      "mass": 4,
-      "groups": [
-        {
-          "fill": "#bababa",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -120,
-              -320
-            ],
-            [
-              -320,
-              320
-            ],
-            [
-              320,
-              320
-            ],
-            [
-              120,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 5
-        }
-      }
-    },
-    {
-      "name": "Spider Pod",
-      "size": [
-        160,
-        280
-      ],
-      "mass": 0.04,
-      "groups": [
-        {
-          "fill": "#4a5f73",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -120
-            ],
-            [
-              -80,
-              120
-            ],
-            [
-              80,
-              120
-            ],
-            [
-              80,
-              -120
-            ],
-            [
-              40,
-              -140
-            ],
-            [
-              -40,
-              -140
-            ]
-          ]
-        },
-        {
-          "fill": "#4a5f73",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              120
-            ],
-            [
-              80,
-              120
-            ],
-            [
-              40,
-              140
-            ],
-            [
-              -40,
-              140
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 0
-        }
-      }
-    },
-    {
-      "name": "Nano Reactionwheel",
-      "size": [
-        240,
-        80
-      ],
-      "mass": 0.002,
-      "groups": [
-        {
-          "fill": "#828282",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -120,
-              40
-            ],
-            [
-              120,
-              40
-            ],
-            [
-              120,
-              -40
-            ],
-            [
-              -120,
-              -40
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 5
-        }
-      }
-    },
-    {
-      "name": "Turbo Reactionwheel",
-      "size": [
-        640,
-        80
-      ],
-      "mass": 0.006,
-      "groups": [
-        {
-          "fill": "#666666",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -320,
-              -40
-            ],
-            [
-              -320,
-              40
-            ],
-            [
-              320,
-              40
-            ],
-            [
-              320,
-              -40
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 15
-        }
-      }
-    },
-    {
-      "name": "Large Turbo Reactionwheel",
-      "size": [
-        1280,
-        80
-      ],
-      "mass": 0.02,
-      "groups": [
-        {
-          "fill": "#666666",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -640,
-              -40
-            ],
-            [
-              -640,
-              40
-            ],
-            [
-              640,
-              40
-            ],
-            [
-              640,
-              -40
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 30
-        }
-      }
-    },
-    {
-      "name": "Extra Large Turbo Reactionwheel",
-      "size": [
-        2560,
-        80
-      ],
-      "mass": 0.04,
-      "groups": [
-        {
-          "fill": "#666666",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -1280,
-              -40
-            ],
-            [
-              -1280,
-              40
-            ],
-            [
-              1280,
-              40
-            ],
-            [
-              1280,
-              -40
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Controller Module": {
-          "Torque": 60
-        }
-      }
-    },
-    {
-      "name": "Mars Chute",
-      "size": [
-        89.18,
-        193.12
-      ],
-      "mass": 0.3,
-      "groups": [
-        {
-          "fill": "#51b2db",
-          "points": [
-            [
-              -12.17,
-              96.56
-            ],
-            [
-              44.59,
-              -96.56
-            ],
-            [
-              -15.34,
-              -71.4
-            ],
-            [
-              -44.59,
-              17.99
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Parachute Module": {
-          "Minimum Deploy Pressure": 0.25,
-          "Drag": 50,
-          "Max Deploy Speed": 2500
-        },
-        "Connection Disabler Module": {
-          "Connections to Disable": [
-            "Left",
-            "Right",
-            "Top",
-            "Bottom"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Drogue Chute",
-      "size": [
-        89.18,
-        193.12
-      ],
-      "mass": 0.1,
-      "groups": [
-        {
-          "fill": "#dbc451",
-          "points": [
-            [
-              -12.17,
-              96.56
-            ],
-            [
-              44.59,
-              -96.56
-            ],
-            [
-              -15.34,
-              -71.4
-            ],
-            [
-              -44.59,
-              17.99
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Parachute Module": {
-          "Minimum Deploy Pressure": 2.5,
-          "Drag": 50,
-          "Max Deploy Speed": 200
-        },
-        "Connection Disabler Module": {
-          "Connections to Disable": [
-            "Left",
-            "Right",
-            "Top",
-            "Bottom"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Parachute",
-      "size": [
-        240,
-        100
-      ],
-      "mass": 0.5,
-      "groups": [
-        {
-          "fill": "#cccccc",
-          "points": [
-            [
-              -40,
-              -50
-            ],
-            [
-              -120,
-              50
-            ],
-            [
-              120,
-              50
-            ],
-            [
-              40,
-              -50
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Parachute Module": {
-          "Minimum Deploy Pressure": 5,
-          "Drag": 2000,
-          "Max Deploy Speed": 70
-        },
-        "Connection Disabler Module": {
-          "Connections to Disable": [
-            "Left",
-            "Right"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Basic Engine",
-      "size": [
-        640,
-        560
-      ],
-      "mass": 0.9,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -320,
-              -280
-            ],
-            [
-              -320,
-              -200
-            ],
-            [
-              320,
-              -200
-            ],
-            [
-              320,
-              -280
-            ]
-          ]
-        },
-        {
-          "fill": "#c7c7c7",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -160,
-              -200
-            ],
-            [
-              160,
-              -200
-            ],
-            [
-              320,
-              280
-            ],
-            [
-              -320,
-              280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 1050,
-          "ISP": 320,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 1,
-          "SRB Mode": false
-        }
-      }
-    },
-    {
-      "name": "Upgraded Basic Engine",
-      "size": [
-        660,
-        560
-      ],
-      "mass": 1.1,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -310,
-              -280
-            ],
-            [
-              -310,
-              -200
-            ],
-            [
-              330,
-              -200
-            ],
-            [
-              330,
-              -280
-            ]
-          ]
-        },
-        {
-          "fill": "#c7c7c7",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -150,
-              -200
-            ],
-            [
-              170,
-              -200
-            ],
-            [
-              330,
-              280
-            ],
-            [
-              -310,
-              280
-            ]
-          ]
-        },
-        {
-          "fill": "#ffffff",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -210,
-              -200
-            ],
-            [
-              -190,
-              -200
-            ],
-            [
-              -310,
-              160
-            ],
-            [
-              -330,
-              160
-            ]
-          ]
-        },
-        {
-          "fill": "#fff3a8",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -310,
-              160
-            ],
-            [
-              -310,
-              140
-            ],
-            [
-              290,
-              140
-            ],
-            [
-              290,
-              160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 1450,
-          "ISP": 305,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 1
-        }
-      }
-    },
-    {
-      "name": "Alpha Engine",
-      "size": [
-        1280,
-        960
-      ],
-      "mass": 4,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -640,
-              -480
-            ],
-            [
-              -640,
-              -320
-            ],
-            [
-              640,
-              -320
-            ],
-            [
-              640,
-              -480
-            ]
-          ]
-        },
-        {
-          "fill": "#c7c7c7",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -240,
-              -320
-            ],
-            [
-              240,
-              -320
-            ],
-            [
-              640,
-              480
-            ],
-            [
-              -640,
-              480
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 5150,
-          "ISP": 305,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 2
-        }
-      }
-    },
-    {
-      "name": "Falcon-1 Engine",
-      "size": [
-        1280,
-        960
-      ],
-      "mass": 4,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -640,
-              -480
-            ],
-            [
-              -640,
-              -320
-            ],
-            [
-              640,
-              -320
-            ],
-            [
-              640,
-              -480
-            ]
-          ]
-        },
-        {
-          "fill": "#c7c7c7",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -240,
-              -320
-            ],
-            [
-              240,
-              -320
-            ],
-            [
-              640,
-              480
-            ],
-            [
-              -640,
-              480
-            ]
-          ]
-        },
-        {
-          "fill": "#525252",
-          "points": [
-            [
-              -540,
-              -320
-            ],
-            [
-              -480,
-              -320
-            ],
-            [
-              -480,
-              -160
-            ],
-            [
-              -400,
-              100
-            ],
-            [
-              -440,
-              140
-            ],
-            [
-              -540,
-              -160
-            ]
-          ]
-        },
-        {
-          "fill": "#858585",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -400,
-              100
-            ],
-            [
-              -440,
-              140
-            ],
-            [
-              471.14,
-              141.16
-            ],
-            [
-              451.63,
-              99.67
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 6770,
-          "ISP": 264,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 2
-        }
-      }
-    },
-    {
-      "name": "Vacuum Engine",
-      "size": [
-        480,
-        560
-      ],
-      "mass": 0.6,
-      "groups": [
-        {
-          "fill": "#dfcfb3",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -240,
-              -280
-            ],
-            [
-              -160,
-              -200
-            ],
-            [
-              160,
-              -200
-            ],
-            [
-              240,
-              -280
-            ]
-          ]
-        },
-        {
-          "fill": "#c4c4c4",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -80,
-              -200
-            ],
-            [
-              80,
-              -200
-            ],
-            [
-              240,
-              280
-            ],
-            [
-              -240,
-              280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 235,
-          "ISP": 420,
-          "Fuel Flow": "Positive",
-          "Resource": "Hydrolox",
-          "Flame Scale": 1
-        }
-      }
-    },
-    {
-      "name": "Upgraded Vacuum Engine",
-      "size": [
-        580,
-        560
-      ],
-      "mass": 0.8,
-      "groups": [
-        {
-          "fill": "#5e5e5e",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -290,
-              -280
-            ],
-            [
-              -170,
-              -200
-            ],
-            [
-              150,
-              -200
-            ],
-            [
-              290,
-              -280
-            ]
-          ]
-        },
-        {
-          "fill": "#5cb8ff",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -90,
-              -200
-            ],
-            [
-              70,
-              -200
-            ],
-            [
-              230,
-              280
-            ],
-            [
-              -250,
-              280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 300,
-          "ISP": 450,
-          "Fuel Flow": "Positive",
-          "Resource": "Hydrolox",
-          "Flame Scale": 1
-        }
-      }
-    },
-    {
-      "name": "Stoat Engine",
-      "size": [
-        480,
-        320
-      ],
-      "mass": 0.75,
-      "groups": [
-        {
-          "fill": "#dfcfb3",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -240,
-              -160
-            ],
-            [
-              -160,
-              -80
-            ],
-            [
-              160,
-              -80
-            ],
-            [
-              240,
-              -160
-            ]
-          ]
-        },
-        {
-          "fill": "#c4c4c4",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -80,
-              -80
-            ],
-            [
-              80,
-              -80
-            ],
-            [
-              240,
-              160
-            ],
-            [
-              -240,
-              160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 250,
-          "ISP": 330,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 1
-        }
-      }
-    },
-    {
-      "name": "Pup engine",
-      "size": [
-        160,
-        220
-      ],
-      "mass": 0.03,
-      "groups": [
-        {
-          "fill": "#dfcfb3",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -110
-            ],
-            [
-              -20,
-              -30
-            ],
-            [
-              20,
-              -30
-            ],
-            [
-              80,
-              -110
-            ]
-          ]
-        },
-        {
-          "fill": "#c4c4c4",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -20,
-              -30
-            ],
-            [
-              20,
-              -30
-            ],
-            [
-              80,
-              110
-            ],
-            [
-              -80,
-              110
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 20,
-          "ISP": 315,
-          "Fuel Flow": "Positive",
-          "Resource": "Kerolox",
-          "Flame Scale": 0.25
-        }
-      }
-    },
-    {
-      "name": "Ion Engine",
-      "size": [
-        160,
-        100
-      ],
-      "mass": 0.03,
-      "groups": [
-        {
-          "fill": "#383838",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -50
-            ],
-            [
-              -80,
-              10
-            ],
-            [
-              80,
-              10
-            ],
-            [
-              80,
-              -50
-            ]
-          ]
-        },
-        {
-          "fill": "#999999",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -60,
-              10
-            ],
-            [
-              60,
-              10
-            ],
-            [
-              60,
-              50
-            ],
-            [
-              -60,
-              50
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 0.0025,
-          "ISP": 3000,
-          "Fuel Flow": "Positive",
-          "Resource": "Xenon",
-          "Flame Scale": 0.1
-        }
-      }
-    },
-    {
-      "name": "Hydrolox Tank",
-      "size": [
-        640,
-        320
-      ],
-      "mass": 2.7,
-      "groups": [
-        {
-          "fill": "#009dff",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -160
-            ],
-            [
-              -320,
-              160
-            ],
-            [
-              320,
-              160
-            ],
-            [
-              320,
-              -160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 2.5,
-          "Resource": "Hydrolox"
-        }
-      }
-    },
-    {
-      "name": "SM Hydrolox Tank",
-      "size": [
-        640,
-        640
-      ],
-      "mass": 5.33,
-      "groups": [
-        {
-          "fill": "#009dff",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -320
-            ],
-            [
-              -320,
-              320
-            ],
-            [
-              320,
-              320
-            ],
-            [
-              320,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 5,
-          "Resource": "Hydrolox"
-        }
-      }
-    },
-    {
-      "name": "MD Hydrolox Tank",
-      "size": [
-        640,
-        1280
-      ],
-      "mass": 10.67,
-      "groups": [
-        {
-          "fill": "#009dff",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -640
-            ],
-            [
-              -320,
-              640
-            ],
-            [
-              320,
-              640
-            ],
-            [
-              320,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 10,
-          "Resource": "Hydrolox"
-        }
-      }
-    },
-    {
-      "name": "LG Hydrolox Tank",
-      "size": [
-        640,
-        2560
-      ],
-      "mass": 21.33,
-      "groups": [
-        {
-          "fill": "#009dff",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -1280
-            ],
-            [
-              -320,
-              1280
-            ],
-            [
-              320,
-              1280
-            ],
-            [
-              320,
-              -1280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 20,
-          "Resource": "Hydrolox"
-        }
-      }
-    },
-    {
-      "name": "Xenon Tank",
-      "size": [
-        320,
-        160
-      ],
-      "mass": 2.4,
-      "groups": [
-        {
-          "fill": "#2b2b31",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -80
-            ],
-            [
-              -160,
-              80
-            ],
-            [
-              160,
-              80
-            ],
-            [
-              160,
-              -80
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 2.2,
-          "Resource": "Xenon"
-        }
-      }
-    },
-    {
-      "name": "Tiny XS Fuel Tank",
-      "size": [
-        320,
-        160
-      ],
-      "mass": 1.1875,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -80
-            ],
-            [
-              -160,
-              80
-            ],
-            [
-              160,
-              80
-            ],
-            [
-              160,
-              -80
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 1,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "Tiny SM Fuel Tank",
-      "size": [
-        320,
-        320
-      ],
-      "mass": 2.375,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -160
-            ],
-            [
-              -160,
-              160
-            ],
-            [
-              160,
-              160
-            ],
-            [
-              160,
-              -160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 2,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "Tiny MD Fuel Tank",
-      "size": [
-        320,
-        640
-      ],
-      "mass": 4.75,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -320
-            ],
-            [
-              -160,
-              320
-            ],
-            [
-              160,
-              320
-            ],
-            [
-              160,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 4,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "Tiny LG Fuel Tank",
-      "size": [
-        320,
-        1280
-      ],
-      "mass": 9.5,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -640
-            ],
-            [
-              -160,
-              640
-            ],
-            [
-              160,
-              640
-            ],
-            [
-              160,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 8,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "XS Fuel Tank",
-      "size": [
-        640,
-        320
-      ],
-      "mass": 4.75,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -160
-            ],
-            [
-              -320,
-              160
-            ],
-            [
-              320,
-              160
-            ],
-            [
-              320,
-              -160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 4.5,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "SM Fuel Tank",
-      "size": [
-        640,
-        640
-      ],
-      "mass": 9.5,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -320
-            ],
-            [
-              -320,
-              320
-            ],
-            [
-              320,
-              320
-            ],
-            [
-              320,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 9,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "MD Fuel Tank",
-      "size": [
-        640,
-        1280
-      ],
-      "mass": 19,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -640
-            ],
-            [
-              -320,
-              640
-            ],
-            [
-              320,
-              640
-            ],
-            [
-              320,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 18,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "LG Fuel Tank",
-      "size": [
-        640,
-        2560
-      ],
-      "mass": 38,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -1280
-            ],
-            [
-              -320,
-              1280
-            ],
-            [
-              320,
-              1280
-            ],
-            [
-              320,
-              -1280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 36,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "XS Big Fuel Tank",
-      "size": [
-        1280,
-        640
-      ],
-      "mass": 19,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -640,
-              -320
-            ],
-            [
-              -640,
-              320
-            ],
-            [
-              640,
-              320
-            ],
-            [
-              640,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 18,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "SM Big Fuel Tank",
-      "size": [
-        1280,
-        1280
-      ],
-      "mass": 38,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -640,
-              -640
-            ],
-            [
-              -640,
-              640
-            ],
-            [
-              640,
-              640
-            ],
-            [
-              640,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 36,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "MD Big Fuel Tank",
-      "size": [
-        1280,
-        2560
-      ],
-      "mass": 76,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -640,
-              -1280
-            ],
-            [
-              -640,
-              1280
-            ],
-            [
-              640,
-              1280
-            ],
-            [
-              640,
-              -1280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 72,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "LG Big Fuel Tank",
-      "size": [
-        1280,
-        5120
-      ],
-      "mass": 152,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -640,
-              -2560
-            ],
-            [
-              -640,
-              2560
-            ],
-            [
-              640,
-              2560
-            ],
-            [
-              640,
-              -2560
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 144,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "XS Massive Fuel Tank",
-      "size": [
-        2560,
-        1280
-      ],
-      "mass": 76,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -640
-            ],
-            [
-              -1280,
-              640
-            ],
-            [
-              1280,
-              640
-            ],
-            [
-              1280,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 72,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "SM Massive Fuel Tank",
-      "size": [
-        2560,
-        2560
-      ],
-      "mass": 152,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -1280
-            ],
-            [
-              -1280,
-              1280
-            ],
-            [
-              1280,
-              1280
-            ],
-            [
-              1280,
-              -1280
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 144,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "MD Massive Fuel Tank",
-      "size": [
-        2560,
-        5120
-      ],
-      "mass": 304,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -2560
-            ],
-            [
-              -1280,
-              2560
-            ],
-            [
-              1280,
-              2560
-            ],
-            [
-              1280,
-              -2560
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 288,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "LG Massive Fuel Tank",
-      "size": [
-        2560,
-        10240
-      ],
-      "mass": 608,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -5120
-            ],
-            [
-              -1280,
-              5120
-            ],
-            [
-              1280,
-              5120
-            ],
-            [
-              1280,
-              -5120
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 576,
-          "Resource": "Kerolox"
-        }
-      }
-    },
-    {
-      "name": "Massive Base",
-      "size": [
-        4160,
-        1281
-      ],
-      "mass": 40,
-      "groups": [
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -640.5
-            ],
-            [
-              -2080,
-              640.5
-            ],
-            [
-              2080,
-              640.5
-            ],
-            [
-              1280,
-              -640.5
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Resource Module": {
-          "Amount": 30,
-          "Resource": "Kerolox"
-        },
-        "Connection Disabler Module": {
-          "Connections to Disable": [
-            "Left",
-            "Right"
-          ]
-        }
-      }
-    },
-    {
-      "name": "UR30 Booster",
-      "size": [
-        640,
-        1520
-      ],
-      "mass": 18,
-      "groups": [
-        {
-          "fill": "#ffffff",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -160,
-              280
-            ],
-            [
-              160,
-              280
-            ],
-            [
-              320,
-              760
-            ],
-            [
-              -320,
-              760
-            ]
-          ]
-        },
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              280
-            ],
-            [
-              320,
-              280
-            ],
-            [
-              320,
-              -760
-            ],
-            [
-              -320,
-              -760
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 720,
-          "ISP": 180,
-          "Fuel Flow": "Positive",
-          "Resource": "Solid Fuel",
-          "Flame Scale": 1,
-          "SRB Mode": true
-        },
-        "Resource Module": {
-          "Amount": 15,
-          "Resource": "Solid Fuel"
-        }
-      }
-    },
-    {
-      "name": "UR60 Booster",
-      "size": [
-        640,
-        6200
-      ],
-      "mass": 144,
-      "groups": [
-        {
-          "fill": "#ffffff",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -160,
-              2620
-            ],
-            [
-              160,
-              2620
-            ],
-            [
-              320,
-              3100
-            ],
-            [
-              -320,
-              3100
-            ]
-          ]
-        },
-        {
-          "fill": "#eef1f2",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              2660
-            ],
-            [
-              160,
-              2660
-            ],
-            [
-              160,
-              -3100
-            ],
-            [
-              -320,
-              -3100
-            ]
-          ]
-        },
-        {
-          "fill": "#525252",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              160,
-              -3100
-            ],
-            [
-              320,
-              -3100
-            ],
-            [
-              320,
-              2660
-            ],
-            [
-              160,
-              2660
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 2650,
-          "ISP": 215,
-          "Fuel Flow": "Positive",
-          "Resource": "Solid Fuel",
-          "Flame Scale": 1,
-          "SRB Mode": true
-        },
-        "Resource Module": {
-          "Amount": 125,
-          "Resource": "Solid Fuel"
-        }
-      }
-    },
-    {
-      "name": "UR120 Booster",
-      "size": [
-        1440,
-        11520
-      ],
-      "mass": 758,
-      "groups": [
-        {
-          "fill": "#ffffff",
-          "texture": "DarkPlate.avif",
-          "points": [
-            [
-              -160,
-              4720
-            ],
-            [
-              160,
-              4720
-            ],
-            [
-              720,
-              5760
-            ],
-            [
-              -720,
-              5760
-            ]
-          ]
-        },
-        {
-          "fill": "#d6d6d6",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -720,
-              4800
-            ],
-            [
-              720,
-              4800
-            ],
-            [
-              720,
-              -5760
-            ],
-            [
-              -720,
-              -5760
-            ]
-          ]
-        },
-        {
-          "fill": "#c4c4c4",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -720,
-              4800
-            ],
-            [
-              720,
-              4800
-            ],
-            [
-              400,
-              4960
-            ],
-            [
-              -400,
-              4960
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 14000,
-          "ISP": 220,
-          "Fuel Flow": "Positive",
-          "Resource": "Solid Fuel",
-          "Flame Scale": 3,
-          "SRB Mode": true
-        },
-        "Resource Module": {
-          "Amount": 650,
-          "Resource": "Solid Fuel"
-        }
-      }
-    },
-    {
-      "name": "XL Decoupler",
-      "size": [
-        2560,
-        1280
-      ],
-      "mass": 0.4,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -1280,
-              -640
-            ],
-            [
-              -1280,
-              640
-            ],
-            [
-              1280,
-              640
-            ],
-            [
-              1280,
-              -640
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Decoupler Module": {
-          "Separation Force": 120
-        }
-      }
-    },
-    {
-      "name": "LG Decoupler",
-      "size": [
-        1280,
-        640
-      ],
-      "mass": 0.2,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -640,
-              -320
-            ],
-            [
-              -640,
-              320
-            ],
-            [
-              640,
-              320
-            ],
-            [
-              640,
-              -320
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Decoupler Module": {
-          "Separation Force": 100
-        }
-      }
-    },
-    {
-      "name": "MD Decoupler",
-      "size": [
-        640,
-        320
-      ],
-      "mass": 0.1,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -320,
-              -160
-            ],
-            [
-              -320,
-              160
-            ],
-            [
-              320,
-              160
-            ],
-            [
-              320,
-              -160
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Decoupler Module": {
-          "Separation Force": 80
-        }
-      }
-    },
-    {
-      "name": "SM Decoupler",
-      "size": [
-        320,
-        160
-      ],
-      "mass": 0.05,
-      "groups": [
-        {
-          "fill": "#949494",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -160,
-              -80
-            ],
-            [
-              -160,
-              80
-            ],
-            [
-              160,
-              80
-            ],
-            [
-              160,
-              -80
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Decoupler Module": {
-          "Separation Force": 60
-        }
-      }
-    },
-    {
-      "name": "Drill",
-      "size": [
-        160,
-        100
-      ],
-      "mass": 0.25,
-      "groups": [
-        {
-          "fill": "#383838",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -50
-            ],
-            [
-              -80,
-              10
-            ],
-            [
-              80,
-              10
-            ],
-            [
-              80,
-              -50
-            ]
-          ]
-        },
-        {
-          "fill": "#999999",
-          "texture": "LightPlate.avif",
-          "points": [
-            [
-              -60,
-              10
-            ],
-            [
-              60,
-              10
-            ],
-            [
-              60,
-              50
-            ],
-            [
-              -60,
-              50
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 0.0025,
-          "ISP": 0.1,
-          "Fuel Flow": "Negative",
-          "Resource": "Ore",
-          "Flame Scale": 0
-        },
-        "Prototype Module": {}
-      }
-    },
-    {
-      "name": "Burner",
-      "size": [
-        160,
-        60
-      ],
-      "mass": 0.25,
-      "groups": [
-        {
-          "fill": "#ff0000",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -30
-            ],
-            [
-              -80,
-              30
-            ],
-            [
-              80,
-              30
-            ],
-            [
-              80,
-              -30
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Engine Module": {
-          "Thrust": 0.2,
-          "ISP": 0.00001,
-          "Fuel Flow": "Positive",
-          "Resource": "Ore",
-          "Flame Scale": 0
-        },
-        "Prototype Module": {}
-      }
-    },
-    {
-      "name": "Ore Tank",
-      "size": [
-        160,
-        100
-      ],
-      "mass": 4,
-      "groups": [
-        {
-          "fill": "#383838",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -80,
-              -50
-            ],
-            [
-              -80,
-              50
-            ],
-            [
-              80,
-              50
-            ],
-            [
-              80,
-              -50
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Prototype Module": {},
-        "Resource Module": {
-          "Amount": 3.6,
-          "Resource": "Ore"
-        }
-      }
-    },
-    {
-      "name": "Fuel Pipe",
-      "size": [
-        80,
-        100
-      ],
-      "mass": 4,
-      "groups": [
-        {
-          "fill": "#ff2600",
-          "texture": "MetalPlate.avif",
-          "points": [
-            [
-              -40,
-              -50
-            ],
-            [
-              -40,
-              50
-            ],
-            [
-              40,
-              50
-            ],
-            [
-              40,
-              -50
-            ]
-          ]
-        }
-      ],
-      "modules": {
-        "Prototype Module": {},
-        "Fuelpipe Module": {
-          "Input Fuel": "Ore",
-          "Output Fuel": "Kerolox",
-          "Rate (Kg/Sec)": 100
-        }
-      }
-    }
-  ]
-}
-]
-
-
+const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]}]
 const u = {
   careerMode: {
     "format": "xopernicus-config",
@@ -3838,24 +743,21 @@ function paintGroup(ctx, spec) {
     if (source) {
       // not image()/tint(): p5 tints through a buffer that ignores the clip
       // and lands at half size on retina
+      const tinted = !group.untinted && group.fill && group.fill.toLowerCase() !== "#ffffff"
+        ? tintedTexture(group.texture, source, group.fill)
+        : source;
       ctx.drawImage(
-        source,
+        tinted,
         sx + (bb.minX - bb.cx) * sw,
         sy + (bb.minY - bb.cy) * sh,
         bb.w * sw,
         bb.h * sh
       );
-      if (group.fill && group.fill.toLowerCase() !== "#ffffff") {
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = group.fill;
-        ctx.fill(holed, "evenodd");
-        ctx.globalCompositeOperation = "source-over";
-      }
     } else {
       ctx.fillStyle = spec.recolor || groupFillOn(ctx, group, bb, sx, sy, sw, sh);
       ctx.fill(holed, "evenodd");
     }
-    if (glow <= 0) {
+    if (glow <= 0 && !(source && textureHasAlpha(group.texture, source))) {
       ctx.strokeStyle = "rgba(0, 0, 0, 0.27)";
       ctx.lineWidth = 1.5;
       ctx.stroke(holed);
@@ -3864,6 +766,51 @@ function paintGroup(ctx, spec) {
     // the clip must not outlive the group or everything after it vanishes
     ctx.restore();
   }
+}
+
+const alphaCache = new Map();
+
+function textureHasAlpha(name, source) {
+  let known = alphaCache.get(name);
+  if (known === undefined) {
+    const canvas = document.createElement("canvas");
+    const size = 64;
+    canvas.width = size;
+    canvas.height = size;
+    const actx = canvas.getContext("2d", { willReadFrequently: true });
+    actx.drawImage(source, 0, 0, size, size);
+    const data = actx.getImageData(0, 0, size, size).data;
+    known = false;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 250) {
+        known = true;
+        break;
+      }
+    }
+    alphaCache.set(name, known);
+  }
+  return known;
+}
+
+const tintCache = new Map();
+
+function tintedTexture(name, source, fill) {
+  const key = `${name}|${fill}`;
+  let canvas = tintCache.get(key);
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.width = source.width;
+    canvas.height = source.height;
+    const tctx = canvas.getContext("2d");
+    tctx.drawImage(source, 0, 0);
+    tctx.globalCompositeOperation = "multiply";
+    tctx.fillStyle = fill;
+    tctx.fillRect(0, 0, canvas.width, canvas.height);
+    tctx.globalCompositeOperation = "destination-in";
+    tctx.drawImage(source, 0, 0);
+    tintCache.set(key, canvas);
+  }
+  return canvas;
 }
 
 const blurCache = new Map();
@@ -4408,8 +1355,6 @@ function drawCreditsMenu() {
 function drawModLoaderMenu() {
   GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
   GUIAPI.label("Modloader", { size: 28, align: CENTER, height: 40 });
-  GUIAPI.label("The modloader is only for parts, and to install a mod you have to fork the repo and edit the 'loaded' variable and add a mod to the array.", { size: 18, align: CENTER, height: 60 });
-  GUIAPI.label("This is all temporary and code mods and deticated modloading wil be added.", { size: 18, align: CENTER, height: 80 });
   
   for (let i = 0; i < loaded.length; i++) {
     const pack = loaded[i];
@@ -4418,12 +1363,19 @@ function drawModLoaderMenu() {
   }
 
   const close = GUIAPI.row(85);
-  GUIAPI.button(width/2 - 175, close.y, 350, 85, {
+  GUIAPI.button(width/2 - 350, close.y, 350, 85, {
     id: "modloader-close",
     baseColor: "#1f398f",
     hoverColor: "#2a32c0",
     activeColor: "#1a1770"
   }, "Close");
+
+  GUIAPI.button(width/2, close.y, 350, 85, {
+    id: "modloader-new",
+    baseColor: "#1f8f1f",
+    hoverColor: "#2ac050",
+    activeColor: "#177023"
+  }, "Load New");
 }
 
 async function getData() {
@@ -5366,7 +2318,7 @@ function gameSave() {
   const save = {
     format: "xopernicus-save",
     version: 1,
-    t, balance, careerMode, target, camera, rockets
+    t, balance, careerMode, target, camera, rockets, loaded
   };
   const text = JSON.stringify(save, (key, value) => {
     if (key === "fx") {
@@ -5383,7 +2335,34 @@ function gameSave() {
   launchToast("Game saved.");
 }
 
-function gameLoad(text) {
+async function gameLoad(text) {
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch (err) {
+    console.warn("save won't load:", err);
+    launchToast("Save won't load.");
+    return;
+  }
+  if (raw.format !== "xopernicus-save" || !Array.isArray(raw.rockets)) {
+    launchToast("Not a save file.");
+    return;
+  }
+  if (Array.isArray(raw.loaded) && raw.loaded.length) {
+    const known = new Set(loaded.map(pack => JSON.stringify(pack)));
+    let addedMods = false;
+    for (const pack of raw.loaded) {
+      const key = JSON.stringify(pack);
+      if (!known.has(key)) {
+        known.add(key);
+        loaded.push(pack);
+        addedMods = true;
+      }
+    }
+    if (addedMods) {
+      await loadPartTextures();
+    }
+  }
   const parts = partAPI.list();
   let save;
   try {
@@ -5400,10 +2379,6 @@ function gameLoad(text) {
   } catch (err) {
     console.warn("save won't load:", err);
     launchToast("Save won't load.");
-    return;
-  }
-  if (save.format !== "xopernicus-save" || !Array.isArray(save.rockets)) {
-    launchToast("Not a save file.");
     return;
   }
   t = save.t;
@@ -5731,7 +2706,10 @@ const bootTextures = {
   Saturn: "assets/Saturn.avif",
   Uranus: "assets/Uranus.avif",
   Neptune: "assets/Neptune.avif",
-  CoolScreen: "assets/CoolScreen.avif"
+  CoolScreen: "assets/CoolScreen.avif",
+  VAB: "assets/VAB.png",
+  Launchpad: "assets/Launchpad.webp",
+  Launchtower: "assets/Launchtower.webp"
 };
 
 function assetBytesLoaded() {
@@ -6741,6 +3719,17 @@ function surfaceCollide(rocket, body) {
 
   const contact = propContact(body, rocket, dx, dy, r);
   if (!contact && isWater(body, dx, dy)) {
+    if (r < body.size + rocketRadius(rocket)) {
+      const splash = relativeVelocity(rocket, body);
+      const speed = Math.hypot(splash.x, splash.y);
+      if (speed >= c.waterCrashSpeed) {
+        cd.speed = speed;
+        cd.limit = c.waterCrashSpeed;
+        cd.body = body.id;
+        cd.time = t;
+        rocket.destroyed = true;
+      }
+    }
     return;
   }
   const floor = (contact ? contact.top : body.size) + rocketRadius(rocket);
@@ -6748,6 +3737,7 @@ function surfaceCollide(rocket, body) {
     const hit = relativeVelocity(rocket, body);
     if (Math.hypot(hit.x, hit.y) >= c.crashSpeed) {
       cd.speed = Math.hypot(hit.x, hit.y);
+      cd.limit = c.crashSpeed;
       cd.body = body.id;
       cd.time = t;
       rocket.destroyed = true;
@@ -6769,6 +3759,7 @@ function surfaceCollide(rocket, body) {
   const impact = relativeVelocity(rocket, body);
   if (Math.hypot(impact.x, impact.y) >= c.crashSpeed) {
     cd.speed = Math.hypot(impact.x, impact.y);
+    cd.limit = c.crashSpeed;
     cd.body = body.id;
     cd.time = t;
     rocket.destroyed = true;
@@ -7358,8 +4349,9 @@ function drawReentryGlow(rocket, s) {
 }
 
 const surfaceProps = [
-  { part: "_vab", body: "Earth", angle: c.launchPadRotation, x: -40000, y: -225, solid: true },
-  { part: "_launchpad", body: "Earth", angle: c.launchPadRotation, x: -3000, y: -225, solid: true },
+  { part: "_vab", body: "Earth", angle: c.launchPadRotation, x: -120000, y: -225, solid: true, scaleX: 10, scaleY: 10, collideY: 0.8 },
+  { part: "_launchtower", body: "Earth", angle: c.launchPadRotation, x: -33000, y: -225, solid: true, scaleX: 4, scaleY: 4, collideX: 0.35, collideY: 0.85 },
+  { part: "_launchpad", body: "Earth", angle: c.launchPadRotation, x: -3000, y: -225, solid: true, scaleX: 3, scaleY: 3, collideY: 0.193, collideX: 0.95 },
   { part: "_monolith", body: "Earth", angle: 120, x: 0, y: -22500, solid: false }
 ];
 
@@ -7395,6 +4387,17 @@ function propProfile(part) {
   return part._profile;
 }
 
+function propScales(prop) {
+  const scaleX = prop.scaleX === undefined ? 1 : prop.scaleX;
+  const scaleY = prop.scaleY === undefined ? 1 : prop.scaleY;
+  return {
+    scaleX,
+    scaleY,
+    collideX: prop.collideX === undefined ? scaleX : prop.collideX,
+    collideY: prop.collideY === undefined ? scaleY : prop.collideY
+  };
+}
+
 function propPlacement(prop) {
   const part = hiddenPart(prop.part);
   const body = getBody(prop.body);
@@ -7402,15 +4405,17 @@ function propPlacement(prop) {
     return null;
   }
   const bb = partBBox(part);
+  const scales = propScales(prop);
   const a = radians(prop.angle || 0);
   const out = { x: Math.sin(a), y: -Math.cos(a) };
   const side = (prop.x || 0) / c.partUnits;
   const lift = (prop.y || 0) / c.partUnits;
-  const stand = body.size + bb.h / 2 / c.partUnits + lift;
+  const stand = body.size + (bb.h * scales.scaleY) / 2 / c.partUnits + lift;
   return {
     part,
     body,
     bb,
+    scales,
     angle: a,
     x: body.pos.x + out.x * stand + Math.cos(a) * side,
     y: body.pos.y + out.y * stand + Math.sin(a) * side,
@@ -7435,17 +4440,18 @@ function propContact(body, rocket, dx, dy, r) {
       continue;
     }
     const profile = propProfile(place.part);
+    const { collideX, collideY } = place.scales;
     const delta = bearing - place.bearing;
     const along = Math.atan2(Math.sin(delta), Math.cos(delta)) * body.size * c.partUnits;
-    const column = Math.floor((along - profile.minX) / profile.step);
+    const column = Math.floor((along - profile.minX * collideX) / (profile.step * collideX));
     if (column < 0 || column >= profile.heights.length || profile.heights[column] <= 0) {
       continue;
     }
-    const top = place.base + profile.heights[column] / c.partUnits;
+    const top = place.base + (profile.heights[column] * collideY) / c.partUnits;
     if (bottom >= top) {
       continue;
     }
-    const clear = (bottom - place.base) * c.partUnits;
+    const clear = (bottom - place.base) * c.partUnits / collideY;
     let left = column;
     let right = column;
     while (left >= 0 && profile.heights[left] > clear) {
@@ -7454,7 +4460,7 @@ function propContact(body, rocket, dx, dy, r) {
     while (right < profile.heights.length && profile.heights[right] > clear) {
       right++;
     }
-    const stepWorld = profile.step / c.partUnits;
+    const stepWorld = (profile.step * collideX) / c.partUnits;
     const leftDist = left < 0 ? Infinity : (column - left + 1) * stepWorld;
     const rightDist = right >= profile.heights.length ? Infinity : (right - column + 1) * stepWorld;
     const sideDist = Math.min(leftDist, rightDist);
@@ -7480,11 +4486,12 @@ function surfaceRadiusAt(body, dx, dy) {
     const delta = bearing - place.bearing;
     const along = Math.atan2(Math.sin(delta), Math.cos(delta)) * body.size * c.partUnits;
     const profile = propProfile(place.part);
-    const column = Math.floor((along - profile.minX) / profile.step);
+    const { collideX, collideY } = place.scales;
+    const column = Math.floor((along - profile.minX * collideX) / (profile.step * collideX));
     if (column < 0 || column >= profile.heights.length) {
       continue;
     }
-    const height = profile.heights[column];
+    const height = profile.heights[column] * collideY;
     if (height > 0) {
       radius = Math.max(radius, place.base + height / c.partUnits);
     }
@@ -7496,19 +4503,19 @@ function drawProps(cur) {
   const s = scale / c.partUnits;
   for (const prop of surfaceProps) {
     const place = propPlacement(prop);
-    if (!place || place.bb.h * s < 2) {
+    if (!place || place.bb.h * place.scales.scaleY * s < 2) {
       continue;
     }
     const screenX = width / 2 + (place.x - cur.pos.x) * scale;
     const screenY = height / 2 + (place.y - cur.pos.y) * scale;
-    const reach = Math.max(place.bb.w, place.bb.h) * s;
+    const reach = Math.max(place.bb.w * place.scales.scaleX, place.bb.h * place.scales.scaleY) * s;
     if (screenX < -reach || screenX > width + reach || screenY < -reach || screenY > height + reach) {
       continue;
     }
     push();
     translate(screenX, screenY);
     rotate(place.angle);
-    drawPart(place.part, 0, 0, s);
+    drawPart(place.part, 0, 0, s, { wide: place.scales.scaleX, tall: place.scales.scaleY });
     pop();
   }
 }
@@ -7758,7 +4765,7 @@ function draw() {
   if (!curRocket && !inVab) {
     skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
     GUIAPI.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
-    GUIAPI.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${c.crashSpeed} m/s the airframe takes`);
+    GUIAPI.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
     GUIAPI.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
   } else {
     skillIssue = null;
@@ -7767,7 +4774,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.4.7 [Public Beta]", width - 120, height - 40);
+  text("v1.5.0 [Public Pre-Release]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -7819,7 +4826,7 @@ function draw() {
     GUIAPI.button(width/2 - 175, unknown.y, 350, 85, {
       id: "example-unknown-527",
       ...menuStyle
-    }, "Unknown_527's Rocket - Orbital");
+    }, "Simple Orbiter - Orbital");
 
     const close = GUIAPI.row(85);
     GUIAPI.button(width/2 - 175, close.y, 350, 85, {
@@ -8391,6 +5398,20 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("modloader-close")) {
       inModLoaderMenu = false;
+      return;
+    }
+    if (GUIAPI.clicked("modloader-new")) {
+      const answer = prompt("Paste JSON of part pack data here");
+      if (answer) {
+        try {
+          const pack = JSON.parse(answer);
+          loaded.push(pack);
+          await loadPartTextures();
+        } catch (err) {
+          alert(`Couldn't parse that part pack: ${err.message}`);
+        }
+      }
+      console.log(loaded);
       return;
     }
     if (GUIAPI.clicked("announcements-close")) {
