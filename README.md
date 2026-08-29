@@ -1,6 +1,6 @@
 # Weborbit
 
-(https://img.shields.io/badge/stage-pre_release-blue)
+![License](https://img.shields.io/badge/stage-pre_release-blue)
 
 [Discord](https://discord.gg/umYECmUqVV)
 
