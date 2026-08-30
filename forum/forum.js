@@ -38,14 +38,16 @@ if (user) {
     .from("users")
     .select("username, role")
     .eq("id", user.id)
-    .single();
-  switch (profile.role) {
-    case "admin":
-      isAdmin = true;
-    case "moderator":
-      isModerator = true;
+    .maybeSingle();
+  if (profile) {
+    switch (profile.role) {
+      case "admin":
+        isAdmin = true;
+      case "moderator":
+        isModerator = true;
+    }
+    console.log(profile.role);
   }
-  console.log(profile.role);
   username = profile?.username;
 }
 
