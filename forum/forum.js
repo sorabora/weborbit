@@ -345,6 +345,10 @@ if (page == "post-thread") {
   }
 
   $("post-thread").onClick(async () => {
+    if (user && !username) {
+      alert("Your profile wasn't fully created during signup. Please log out and sign up again with the same email, or contact support.");
+      return;
+    }
     const title = $("post-title").value;
     const tags = selectedCategory;
     const content = $("post-content").value;
@@ -760,6 +764,10 @@ async function notify(recipient, type, post_id, reply_id) {
 }
 
 async function postComment(content, parentReply) {
+  if (user && !username) {
+    alert("Your profile wasn't fully created during signup. Please log out and sign up again with the same email, or contact support.");
+    return;
+  }
   content = content.trim();
   if (content.length === 0) {
     alert("Comment can't be empty.");
@@ -823,9 +831,19 @@ $("signup-btn").onClick(async () => {
     return;
   }
   if (data.user) {
-    await supabase
-      .from("users")
-      .insert({ id: data.user.id, username })
+    let profileError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      ({ error: profileError } = await supabase
+        .from("users")
+        .insert({ id: data.user.id, username }));
+      if (!profileError) break;
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+    if (profileError) {
+      alert(`Signup failed: ${profileError.message}\n\nYour account was created but your profile wasn't. Please log in to finish setting it up.`);
+      $("signup-btn").enable();
+      return;
+    }
     alert("Account Created!")
     return;
   }
@@ -845,6 +863,22 @@ $("login-btn").onClick(async () => {
     return;
   }
   if (data.session) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", data.user.id)
+      .maybeSingle();
+    if (!profile) {
+      let newUsername = prompt("Your profile wasn't fully set up. Pick a username to finish setting up your account:");
+      while (newUsername) {
+        const { error: profileError } = await supabase
+          .from("users")
+          .insert({ id: data.user.id, username: newUsername });
+        if (!profileError) break;
+        newUsername = prompt(`That didn't work (${profileError.message}). Try a different username:`);
+      }
+    }
     alert("Login succeeded")
+    window.location.reload();
   }
 });
