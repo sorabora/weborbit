@@ -51,9 +51,25 @@ if (user) {
   username = profile?.username;
 }
 
-const cosmeticRoles = {
-  sorabora: [{ label: "Developer", color: "#da3bf6" }],
+const badgeColors = {
+  Developer: "#da3bf6",
+  "Forum Legend": "#f59e0b",
 };
+const defaultBadgeColor = "#6366f1";
+
+let cosmeticRoles = {};
+try {
+  const res = await fetch("https://raw.githubusercontent.com/sorabora/Centralorbit/main/ROLES.json");
+  const rolesList = await res.json();
+  for (const entry of rolesList) {
+    cosmeticRoles[entry.username] = (entry.badges ?? []).map(label => ({
+      label,
+      color: badgeColors[label] ?? defaultBadgeColor,
+    }));
+  }
+} catch (e) {
+  console.log("Failed to load ROLES.json", e);
+}
 
 // points are worked out on the page, nothing is stored
 const pointValues = { thread: 1000, comment: 300, hourBonus: 0.0002 };
@@ -253,9 +269,9 @@ function userLink(id, name, cls = "") {
     <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
 }
 
-const EMOTICON_CDN = "https://cdn.jsdelivr.net/gh/bernzrdo/msn-emoticons@main/original/";
+const emoticonCdn = "https://cdn.jsdelivr.net/gh/bernzrdo/msn-emoticons@main/original/";
 
-const EMOTICONS = [
+const emoticons = [
   ["(party)", "party-smile"],
   ["(rock)", "eye-rolling-smile"],
   ["(inlove)", "red-heart"],
@@ -301,15 +317,15 @@ const EMOTICONS = [
 ].sort((a, b) => b[0].length - a[0].length);
 
 function emoticonImg(name, file) {
-  return `<img src="${EMOTICON_CDN}${file}.png" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" class="forum-emoticon" style="height:1.3em;width:auto;margin:0 0.05em;vertical-align:middle;">`;
+  return `<img src="${emoticonCdn}${file}.png" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" class="forum-emoticon" style="height:1.3em;width:auto;margin:0 0.05em;vertical-align:middle;">`;
 }
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const EMOTICON_PATTERN = new RegExp(
-  EMOTICONS.map(([token]) => escapeRegex(token)).join("|"),
+const emoticonPattern = new RegExp(
+  emoticons.map(([token]) => escapeRegex(token)).join("|"),
   "gi"
 );
 
@@ -318,14 +334,14 @@ function renderContent(str) {
   return escapeHtml(str)
     .replace(/@(\w+)/g, (match, name) =>
       usersByName[name] ? `<a href="u.html?id=${encodeURIComponent(usersByName[name].id)}">${match}</a>` : match)
-    .replace(EMOTICON_PATTERN, (match) => {
-      const [, file] = EMOTICONS.find(([token]) => token.toLowerCase() === match.toLowerCase());
+    .replace(emoticonPattern, (match) => {
+      const [, file] = emoticons.find(([token]) => token.toLowerCase() === match.toLowerCase());
       return emoticonImg(match, file);
     })
     .replace(/\n/g, "<br>");
 }
 
-const MOD_FILE_MAX_BYTES = 50 * 1024;
+const modFileMaxBytes = 50 * 1024;
 
 if (page == "post-thread") {
   let selectedCategory = null;
@@ -373,7 +389,7 @@ if (page == "post-thread") {
         alert("Mod file must be a .json file.");
         return;
       }
-      if (file.size > MOD_FILE_MAX_BYTES) {
+      if (file.size > modFileMaxBytes) {
         alert(`Mod file is too big (${Math.ceil(file.size / 1024)}KB, max 50KB).`);
         return;
       }
