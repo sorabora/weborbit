@@ -394,7 +394,11 @@ if (page == "post-thread") {
         return;
       }
 
-      const path = `${user.id}/${Date.now()}-${file.name}`;
+      // timestamp-uuid-originalname keeps uploads collision-proof and sortable
+      // by time, while the uuid stops two people uploading in the same
+      // millisecond from clobbering each other
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
       const { error: uploadError } = await supabase.storage.from("mods").upload(path, file, {
         contentType: "application/json",
       });
