@@ -5,6 +5,7 @@ let scale = 5;
 let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
 let transferTarget = null;
+let rendezvousTarget = null;
 let mapClick = null;
 let throttle = 0;
 let target = "untitled-1";
@@ -27,6 +28,10 @@ const controls = {
 };
 let timeWarpSteps = [0.25, 0.5, 1, 2, 3, 5, 25, 100, 500, 2500, 10000, 50000, 250000, 1000000, 5000000, 25000000, 100000000, 500000000]
 let timeWarpCounter = 2;
+let warpUntil = null;
+let burnLogging = false;
+let burnLog = [];
+let lastAutomatedBurnT = -Infinity;
 let toasts = [];
 let t = 0;
 let elapsed = 0;
@@ -93,10 +98,12 @@ let c = {
   reentryMinSpeed: 500,
   chuteWidthPower: 0.5,
   chuteHeightPower: 0.1,
-  launchPadRotation: 300
+  launchPadRotation: 300,
+  dockRange: 50,
+  dockConnect: 4
 }
 
-const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]}]
+const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"RCS Engine","size":[60,80],"mass":0.03,"groups":[{"fill":"#666","texture":"LightPlate.avif","points":[[0,10],[20,10],[30,40],[-10,40]]},{"fill":"#666","points":[[0,10],[0,-10],[-30,-20],[-30,20]]},{"fill":"#666","points":[[0,-10],[20.03,-10],[30,-40],[-10,-40]]},{"fill":"#e8e8e8","points":[[0,-10],[20,-10],[20,10],[0,10]]}],"modules":{"RCS Module":{"Thruster Directions":["Top","Bottom","Left","Right"],"Thrust":19,"ISP":220,"Resource":"Kerolox"}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Docking Port","size":[640,320],"mass":0.5,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Docking Module":{"Attractive Force":2,"Disconnect Force":4}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]}]
 const u = {
   careerMode: {
     "format": "xopernicus-config",
@@ -1472,7 +1479,6 @@ function drawMap() {
   for (const rocket of rockets) {
     drawRocketOrbit(rocket, mapX, mapY);
   }
-  drawTransfer(ship, mapX, mapY);
 
   textAlign(CENTER, TOP);
   textSize(12);
@@ -1502,11 +1508,14 @@ function drawMap() {
     text(body.id, x, y + r + 4);
   }
 
+  drawTransfer(ship, mapX, mapY);
+  drawDockPlan(ship, mapX, mapY);
+
   for (const rocket of rockets) {
     const x = mapX(rocket.pos);
     const y = mapY(rocket.pos);
     noStroke();
-    fill(rocket.id === target ? "#5ccfff" : "#8888aa");
+    fill(rocket.id === target ? "#5ccfff" : rocket.id === rendezvousTarget ? "#ffb347" : "#8888aa");
     if (rocket.id === target) {
       push();
       translate(x, y);
@@ -1528,20 +1537,225 @@ function drawMap() {
     hoverColor: "#2a6ac0",
     activeColor: "#173d70"
   }, "Fly");
+  let mapY2 = mb.y + mb.size + 10;
   if (mapPan.x || mapPan.y) {
-    GUIAPI.button(mb.x, mb.y + mb.size + 10, mb.size, mb.size, {
+    GUIAPI.button(mb.x, mapY2, mb.size, mb.size, {
       id: "map-recenter",
       baseColor: "#4a4a5a",
       hoverColor: "#5b5b6e",
       tooltip: ["Back to the ship"]
     }, "◎");
     GUIAPI.drawTooltip();
+    mapY2 += mb.size + 10;
+  }
+
+  const burn = pendingBurnWait(ship);
+  if (warpUntil !== null) {
+    const wb = { x: width - mb.size * 2.6 - 20, y: mapY2, w: mb.size * 2.6, h: mb.size };
+    GUIAPI.button(wb.x, wb.y, wb.w, wb.h, {
+      id: "map-warp-cancel",
+      baseColor: "#7a2a2a",
+      hoverColor: "#a03c3c",
+      activeColor: "#5e1f1f"
+    }, `Warping… ${formatTime(Math.max(warpUntil - t, 0))}`);
+  } else if (burn !== null) {
+    const wb = { x: width - mb.size * 2.6 - 20, y: mapY2, w: mb.size * 2.6, h: mb.size };
+    GUIAPI.button(wb.x, wb.y, wb.w, wb.h, {
+      id: "map-warp-burn",
+      baseColor: "#8f5a1f",
+      hoverColor: "#c07a2a",
+      activeColor: "#70481a",
+      tooltip: [`Warp ${formatTime(burn.seconds)} to the ${burn.label}`]
+    }, `⏩ Warp to ${burn.label}`);
+    GUIAPI.drawTooltip();
   }
   cursor(mouseIsPressed ? "grabbing" : "grab");
 }
 
+function pendingBurnWait(ship) {
+  if (rendezvousTarget) {
+    const node = activeNode(ship);
+    if (!node || !Number.isFinite(node.t) || Math.abs(node.dv) < 0.5) {
+      return null;
+    }
+    const seconds = node.t - t;
+    return { seconds, label: node.label, dv: node.dv, due: seconds <= 30 };
+  }
+  if (transferTarget) {
+    const plan = transferPlan(ship, getBody(transferTarget));
+    if (!plan || !Number.isFinite(plan.wait)) {
+      return null;
+    }
+    if (Math.abs(plan.dv1) > 1) {
+      return { seconds: plan.wait, label: "burn", dv: plan.dv1, due: plan.wait <= 30 };
+    }
+    if (plan.flight > 1 && Number.isFinite(plan.flight)) {
+      return { seconds: plan.flight, label: "capture", dv: plan.dv2, due: false };
+    }
+  }
+  return null;
+}
+
+// the ISP + propellant feed the automated burn should draw from: whichever
+// active, fuelled Engine Module comes first, falling back to a fuelled RCS
+// Module if the rocket has no working engine at all
+function autoBurnSource(rocket) {
+  if (!rocket.stack) {
+    return null;
+  }
+  for (let i = 0; i < rocket.stack.parts.length; i++) {
+    const entry = rocket.stack.parts[i];
+    const engine = (entry.part.modules || {})["Engine Module"];
+    if (!engine || !entry.on || engine["Fuel Flow"] === "Negative" || !(engine.ISP > 0)) {
+      continue;
+    }
+    const propellants = engineResources(engine).map(p => ({ ...p, feed: feedTanks(rocket.stack, i, p.resource) }));
+    if (propellants.every(p => p.feed.length && feedHeld(p.feed, p.resource) > 0)) {
+      return { isp: engine.ISP, propellants };
+    }
+  }
+  for (let i = 0; i < rocket.stack.parts.length; i++) {
+    const entry = rocket.stack.parts[i];
+    const rcs = (entry.part.modules || {})["RCS Module"];
+    if (!rcs || !(rcs.ISP > 0)) {
+      continue;
+    }
+    const resource = rcs.Resource || defaultResource;
+    const feed = feedTanks(rocket.stack, i, resource);
+    if (feed.length && feedHeld(feed, resource) > 0) {
+      return { isp: rcs.ISP, propellants: [{ resource, ratio: 1, feed }] };
+    }
+  }
+  return null;
+}
+
+function snapshotDockPlan(rocket) {
+  if (!rendezvousTarget) {
+    return null;
+  }
+  const other = rockets.find(r => r.id === rendezvousTarget);
+  const plan = other && dockPlan(rocket, other);
+  if (!plan) {
+    return null;
+  }
+  return {
+    mode: plan.mode,
+    dv: plan.dv,
+    seconds: plan.seconds,
+    distance: plan.distance
+  };
+}
+
+function logBurnEvent(rocket, kind, dv) {
+  if (!burnLogging) {
+    return;
+  }
+  const parent = rocket.parentBody && getBody(rocket.parentBody);
+  const rel = parent && relativeVelocity(rocket, parent);
+  const ph = parent && orbitPhase(rocket.pos, rocket.vel, parent);
+  const entry = {
+    t,
+    kind,
+    dv,
+    body: rocket.parentBody,
+    speed: rel ? Math.hypot(rel.x, rel.y) : null,
+    altitude: parent ? distanceTo(rocket, parent) - parent.size : null,
+    periapsis: ph && ph.closed ? ph.periapsis - parent.size : null,
+    apoapsis: ph && ph.closed ? ph.apoapsis - parent.size : null,
+    plan: snapshotDockPlan(rocket)
+  };
+  burnLog.push(entry);
+  console.log("[burn]", entry);
+}
+
+function downloadBurnLog() {
+  if (!burnLog.length) {
+    launchToast("No burn log entries yet, turn logging on with Shift+L first.");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(burnLog, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "burn-log.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  launchToast(`Downloaded ${burnLog.length} burn log entries.`);
+}
+
+// instantly applies a Δv along the ship's current prograde (positive) or
+// retrograde (negative) direction, spending real propellant for it via the
+// rocket equation. an engine if the rocket has a fuelled one, RCS otherwise
+function executeAutomatedBurn(rocket, dv) {
+  const cooldown = 5;
+  if (t - lastAutomatedBurnT < cooldown) {
+    launchToast(`Wait ${Math.ceil(cooldown - (t - lastAutomatedBurnT))}s for the last burn to settle first.`);
+    return false;
+  }
+  const parent = getBody(rocket.parentBody);
+  const vel = relativeVelocity(rocket, parent);
+  const speed = Math.hypot(vel.x, vel.y);
+  if (speed <= 0) {
+    return false;
+  }
+  const source = autoBurnSource(rocket);
+  if (!source) {
+    launchToast("No fuelled engine or RCS to perform the burn.");
+    return false;
+  }
+  const wetMass = rocket.mass;
+  const wantMass = wetMass - wetMass * Math.exp(-Math.abs(dv) / (source.isp * G0));
+
+  // this has to be all-or-nothing: a phasing/transfer burn only works if you
+  // hit the exact Δv it was planned around. stopping partway doesn't get you
+  // "most of the way there" — it strands you on some other, unplanned orbit,
+  // and the next recomputed plan can end up needing MORE Δv than before, not
+  // less. so if there isn't enough fuel to finish it, don't start it
+  let available = Infinity;
+  for (const p of source.propellants) {
+    let have = 0;
+    for (const entry of p.feed) {
+      have += entry.tanks[p.resource] || 0;
+    }
+    available = Math.min(available, p.ratio > 0 ? have / p.ratio : Infinity);
+  }
+  if (available < wantMass) {
+    launchToast(`Not enough fuel for the full ${format("speed", Math.abs(dv))} burn`);
+    return false;
+  }
+
+  for (const p of source.propellants) {
+    const want = wantMass * p.ratio;
+    let share = 0;
+    for (const entry of p.feed) {
+      share += entry.tanks[p.resource] || 0;
+    }
+    if (share <= 0) {
+      continue;
+    }
+    for (const entry of p.feed) {
+      const inTank = entry.tanks[p.resource] || 0;
+      entry.tanks[p.resource] = Math.max(inTank - want * (inTank / share), 0);
+    }
+  }
+  rocket.tanks = stackTanks(rocket.stack);
+  rocket.tanksMax = stackTanks(rocket.stack, "tanksMax");
+  rocket.fuel = totalFuel(rocket.tanks);
+  rocket.fuelMax = totalFuel(rocket.tanksMax);
+  rocket.mass = rocket.dryMass + rocket.fuel;
+
+  const scale = dv / speed;
+  rocket.vel.x += vel.x * scale;
+  rocket.vel.y += vel.y * scale;
+  lastAutomatedBurnT = t;
+  logBurnEvent(rocket, "automated", dv);
+  return true;
+}
+
 function transferPlan(ship, dest) {
-  if (!ship || !dest) {
+  if (!ship || !dest || dest === getBody(ship.parentBody)) {
     return null;
   }
   const parent = getBody(ship.parentBody);
@@ -1554,6 +1768,9 @@ function transferPlan(ship, dest) {
   const origin = escaping ? parent.pos : ship.pos;
   const r1 = escaping ? parent.orbitRadius : Math.hypot(ship.pos.x - body.pos.x, ship.pos.y - body.pos.y);
   const r2 = dest.orbitRadius;
+  if (r1 === r2) {
+    return null;
+  }
   const at = (r1 + r2) / 2;
   const vel = relativeVelocity(ship, parent);
   const speed = Math.hypot(vel.x, vel.y);
@@ -1626,6 +1843,317 @@ function drawTransfer(ship, mapX, mapY) {
     mapX({ x: ax, y: ay }) + 8,
     mapY({ x: ax, y: ay }) - 6
   );
+}
+
+// raw current gap/closing-speed between two craft — only meaningful once
+// they're already close together on a converging final approach
+function rendezvousPlan(ship, other) {
+  if (!ship || !other || ship === other) {
+    return null;
+  }
+  const relPos = { x: other.pos.x - ship.pos.x, y: other.pos.y - ship.pos.y };
+  const relVel = { x: other.vel.x - ship.vel.x, y: other.vel.y - ship.vel.y };
+  const distance = Math.hypot(relPos.x, relPos.y);
+  const closeAng = Math.atan2(relPos.y, relPos.x);
+  const closeDv = 0.05 * Math.hypot(relVel.x, relVel.y) + Math.min(distance / 60, 20);
+  const matchDv = Math.hypot(relVel.x, relVel.y);
+  return { distance, closeAng, closeDv, matchDv, matchAng: Math.atan2(relVel.y, relVel.x) };
+}
+
+// r, angle and mean angular rate of an orbit around `parent`, from vis-viva.
+// works for any closed (elliptical) orbit, not just circular ones.
+function orbitalElements(pos, vel, parent) {
+  const mu = gravParam(parent);
+  const rx = pos.x - parent.pos.x;
+  const ry = pos.y - parent.pos.y;
+  const vx = vel.x - parent.vel.x;
+  const vy = vel.y - parent.vel.y;
+  const r = Math.hypot(rx, ry);
+  const v2 = vx * vx + vy * vy;
+  const energy = v2 / 2 - mu / r;
+  const a = -mu / (2 * energy);
+  const closed = energy < 0 && a > 0;
+  const period = closed ? TWO_PI * Math.sqrt(a ** 3 / mu) : Infinity;
+  const cross = rx * vy - ry * vx;
+  const w = closed ? Math.sign(cross || 1) * (TWO_PI / period) : 0;
+  return { r, a, period, w, angle: Math.atan2(ry, rx), closed, speed: Math.sqrt(v2) };
+}
+
+// real Kepler mean-anomaly math: eccentricity, both apsis radii, and time
+// from right now to each apsis passage, for whatever orbit (pos, vel) is
+// currently on. unlike orbitalElements' angle (a snapshot), these times are
+// stable and correctly counting down as the orbit is coasted — nothing here
+// depends on any other vessel, so it can't go unstable partway through a
+// maneuver the way re-solving against a moving target every frame does
+function orbitPhase(pos, vel, parent) {
+  const mu = gravParam(parent);
+  const rx = pos.x - parent.pos.x;
+  const ry = pos.y - parent.pos.y;
+  const vx = vel.x - parent.vel.x;
+  const vy = vel.y - parent.vel.y;
+  const r = Math.hypot(rx, ry);
+  const v2 = vx * vx + vy * vy;
+  const rdotv = rx * vx + ry * vy;
+  const energy = v2 / 2 - mu / r;
+  const a = -mu / (2 * energy);
+  if (!(energy < 0 && a > 0)) {
+    return { closed: false };
+  }
+  const ex = (v2 / mu - 1 / r) * rx - (rdotv / mu) * vx;
+  const ey = (v2 / mu - 1 / r) * ry - (rdotv / mu) * vy;
+  const e = Math.hypot(ex, ey);
+  const period = TWO_PI * Math.sqrt(a ** 3 / mu);
+  const n = TWO_PI / period;
+  const periapsis = a * (1 - e);
+  const apoapsis = a * (1 + e);
+  if (e < 1e-6) {
+    // no well-defined apsis line on a circular orbit — nothing to time
+    return { closed: true, a, e, period, periapsis, apoapsis, timeToPeriapsis: NaN, timeToApoapsis: NaN };
+  }
+  let nu = Math.acos(constrain((ex * rx + ey * ry) / (e * r), -1, 1));
+  if (rdotv < 0) {
+    nu = TWO_PI - nu;
+  }
+  const E = 2 * Math.atan2(Math.sqrt(1 - e) * Math.sin(nu / 2), Math.sqrt(1 + e) * Math.cos(nu / 2));
+  let M = E - e * Math.sin(E);
+  if (M < 0) {
+    M += TWO_PI;
+  }
+  const timeToPeriapsis = ((TWO_PI - M) % TWO_PI) / n;
+  const timeToApoapsis = ((Math.PI - M + TWO_PI) % TWO_PI) / n;
+  return { closed: true, a, e, period, periapsis, apoapsis, timeToPeriapsis, timeToApoapsis };
+}
+
+// a maneuver is COMMITTED: planned once, stored on the rocket with an absolute
+// burn time, and left alone until the orbit actually changes. re-deriving it
+// every frame against a moving target is what made the old plan flicker, and
+// made "wait" drift instead of counting down one second per second
+function nodeOrbitChanged(ph, node) {
+  return Math.abs(ph.a - node.a) / node.a > 2e-3 || Math.abs(ph.e - node.e) > 2e-3;
+}
+
+// which stage of a rendezvous the ship's own orbit says it's in:
+//   both apsides at the target's radius -> co-orbital, only the phase is wrong
+//   exactly one apsis there             -> mid-transfer, coast to it and capture
+//   neither                             -> different orbit size, Hohmann across
+function planManeuver(ship, other, ph, el1, el2, parent, mu) {
+  const r2 = el2.r;
+  const tol = 0.02;
+  const periNear = Math.abs(ph.periapsis - r2) / r2 < tol;
+  const apoNear = Math.abs(ph.apoapsis - r2) / r2 < tol;
+  const sig = { a: ph.a, e: ph.e };
+
+  if (periNear !== apoNear) {
+    const toPeri = periNear;
+    const arriveR = toPeri ? ph.periapsis : ph.apoapsis;
+    const coast = toPeri ? ph.timeToPeriapsis : ph.timeToApoapsis;
+    if (!Number.isFinite(coast)) {
+      return null;
+    }
+    const arriveSpeed = Math.sqrt(mu * (2 / arriveR - 1 / ph.a));
+    return { t: t + coast, dv: Math.sqrt(mu / arriveR) - arriveSpeed, label: "capture", r: arriveR, ...sig };
+  }
+
+  if (periNear && apoNear) {
+    const w2 = el2.w;
+    if (!w2) {
+      return null;
+    }
+    const r1 = el1.r;
+    let phaseT = ((el1.angle - el2.angle) % TWO_PI) / w2;
+    let a2 = 0;
+    let far = 0;
+    for (let k = 0; k < 8; k++) {
+      if (phaseT > 0) {
+        a2 = Math.cbrt(mu * (phaseT / TWO_PI) ** 2);
+        far = 2 * a2 - r1;
+        if (far > parent.size * 1.05) {
+          break;
+        }
+      }
+      phaseT += TWO_PI / Math.abs(w2);
+    }
+    if (!(far > parent.size * 1.05)) {
+      return null;
+    }
+    const vPhase = Math.sqrt(mu * (2 / r1 - 1 / a2));
+    return { t, dv: vPhase - el1.speed, label: "burn", r: r1, live: true, ...sig };
+  }
+
+  // burn at an apsis so the burn radius is a fixed property of the orbit
+  // rather than wherever the ship happens to be this frame
+  const raise = r2 > ph.apoapsis;
+  let r1 = raise ? ph.periapsis : ph.apoapsis;
+  let wait = raise ? ph.timeToPeriapsis : ph.timeToApoapsis;
+  if (!Number.isFinite(wait)) {
+    r1 = el1.r;
+    wait = 0;
+  }
+  const at = (r1 + r2) / 2;
+  const need = Math.sqrt(mu * (2 / r1 - 1 / at));
+  const have = Math.sqrt(mu * (2 / r1 - 1 / ph.a));
+  return { t: t + wait, dv: need - have, label: "burn", r: r1, live: wait <= 0, ...sig };
+}
+
+function activeNode(ship) {
+  if (!ship || !rendezvousTarget) {
+    if (ship) {
+      ship.node = null;
+    }
+    return null;
+  }
+  const other = rockets.find(rocket => rocket.id === rendezvousTarget);
+  if (!other || other === ship || ship.parentBody !== other.parentBody) {
+    ship.node = null;
+    return null;
+  }
+  const parent = getBody(ship.parentBody);
+  const ph = orbitPhase(ship.pos, ship.vel, parent);
+  const el1 = orbitalElements(ship.pos, ship.vel, parent);
+  const el2 = orbitalElements(other.pos, other.vel, parent);
+  if (!ph.closed || !el1.closed || !el2.closed) {
+    ship.node = null;
+    return null;
+  }
+  const distance = Math.hypot(other.pos.x - ship.pos.x, other.pos.y - ship.pos.y);
+  if (distance < Math.max(50000, el1.r * 0.05)) {
+    ship.node = null;
+    return null;
+  }
+
+  const node = ship.node;
+  if (node && node.target === rendezvousTarget && !node.live && !nodeOrbitChanged(ph, node)) {
+    // a capture recurs every lap, so a missed one just rolls to the next
+    while (node.label === "capture" && node.t < t - 1) {
+      node.t += ph.period;
+    }
+    return node;
+  }
+  const fresh = planManeuver(ship, other, ph, el1, el2, parent, gravParam(parent));
+  if (fresh) {
+    fresh.target = rendezvousTarget;
+  }
+  ship.node = fresh;
+  return fresh;
+}
+
+// the game's leapfrog integrator only resolves an orbit correctly if each
+// caps c.timewarp so a frame's substeps can't cover a large fraction of
+// whatever orbit the ship is on right now — generalizes the atmosphere
+// clamp to run every frame, in any view, for any body
+function clampTimewarpForOrbit(rocket) {
+  if (!rocket || !rocket.parentBody || rocket.landed) {
+    return;
+  }
+  const parent = getBody(rocket.parentBody);
+  const el = orbitalElements(rocket.pos, rocket.vel, parent);
+  if (!el.closed || !Number.isFinite(el.period) || el.period <= 0) {
+    return;
+  }
+  const safeDt = (el.period / 1000) * c.maxSubsteps;
+  let idx = timeWarpSteps.length - 1;
+  while (idx > 0 && timeWarpSteps[idx] / frameRate() > safeDt) {
+    idx--;
+  }
+  if (c.timewarp > timeWarpSteps[idx]) {
+    c.timewarp = timeWarpSteps[idx];
+  }
+  timeWarpCounter = Math.min(timeWarpCounter, idx);
+}
+
+// a real plan for reaching another vessel, not just "how far / how fast
+// relative to it right now": a Hohmann-style transfer when its orbit is a
+// different size, a phasing-orbit maneuver when it's the same size but out
+// of phase (the common "launched, now catch up" case), or the old raw
+// close/match readout once you're already nearby on a converging approach.
+function dockPlan(ship, other) {
+  if (!ship || !other || ship === other) {
+    return null;
+  }
+  const distance = Math.hypot(other.pos.x - ship.pos.x, other.pos.y - ship.pos.y);
+
+  if (ship.parentBody !== other.parentBody) {
+    if (distance < 50000) {
+      return { mode: "approach", distance, ...rendezvousPlan(ship, other) };
+    }
+    return { mode: "different-orbit", distance };
+  }
+
+  const parent = getBody(ship.parentBody);
+  const el1 = orbitalElements(ship.pos, ship.vel, parent);
+  if (el1.closed && distance < Math.max(50000, el1.r * 0.05)) {
+    return { mode: "approach", distance, ...rendezvousPlan(ship, other) };
+  }
+
+  const node = activeNode(ship);
+  if (!node) {
+    return { mode: "different-orbit", distance };
+  }
+  const seconds = node.t - t;
+  const burnAng = el1.angle + el1.w * Math.max(seconds, 0);
+  return {
+    mode: node.label,
+    distance,
+    parent,
+    seconds,
+    dv: node.dv,
+    r: node.r,
+    burnAng,
+    burn: { x: parent.pos.x + Math.cos(burnAng) * node.r, y: parent.pos.y + Math.sin(burnAng) * node.r }
+  };
+}
+
+function drawDockPlan(ship, mapX, mapY) {
+  const other = rendezvousTarget && rockets.find(rocket => rocket.id === rendezvousTarget);
+  if (!other) {
+    return;
+  }
+  const plan = dockPlan(ship, other);
+  if (!plan) {
+    return;
+  }
+  const sx = mapX(ship.pos);
+  const sy = mapY(ship.pos);
+  const ox = mapX(other.pos);
+  const oy = mapY(other.pos);
+  stroke("#5ccfffaa");
+  strokeWeight(1);
+  line(sx, sy, ox, oy);
+  noStroke();
+  fill("#5ccfff");
+  textAlign(LEFT, BOTTOM);
+  textSize(12);
+
+  if (plan.mode === "different-orbit") {
+    text(
+      `⇢ ${other.id}  no rendezvous plan, match altitude and SOI first`,
+      (sx + ox) / 2 + 8,
+      (sy + oy) / 2 - 6
+    );
+    return;
+  }
+
+  if (plan.mode === "approach") {
+    text(
+      `⇢ ${other.id}  close Δv ${format("speed", plan.closeDv)}  ${(plan.distance / 1000).toFixed(1)} km`,
+      (sx + ox) / 2 + 8,
+      (sy + oy) / 2 - 12
+    );
+    text(`match Δv ${format("speed", plan.matchDv)}`, (sx + ox) / 2 + 8, (sy + oy) / 2 - 0);
+    return;
+  }
+
+  const bx = mapX(plan.burn);
+  const by = mapY(plan.burn);
+  fill("#5ccfff");
+  circle(bx, by, 8);
+  const when = plan.seconds <= 1 ? "now" : `in ${formatTime(plan.seconds)}`;
+  text(
+    `⇢ ${other.id}  ${plan.mode} Δv ${format("speed", Math.abs(plan.dv))}  ${when}`,
+    bx + 8,
+    by - 6
+  );
+  text(`${(plan.distance / 1000).toFixed(1)} km apart`, bx + 8, by + 14);
 }
 
 function bodyStateAt(body, time) {
@@ -1974,6 +2502,17 @@ function stackMass() {
 
 let defaultResource = "Kerolox";
 
+// Resources: [{ Resource, Ratio }, ...] is an optional multi-propellant list; when
+// absent, engines fall back to the legacy single Resource string for backwards compat.
+function engineResources(engine) {
+  const list = engine["More Resources"];
+  if (Array.isArray(list) && list.length) {
+    const total = list.reduce((sum, p) => sum + (p.Ratio || 0), 0) || 1;
+    return list.map(p => ({ resource: p.Resource || defaultResource, ratio: (p.Ratio || 0) / total }));
+  }
+  return [{ resource: engine.Resource || defaultResource, ratio: 1 }];
+}
+
 function stackFuel() {
   const tanks = {};
   for (const inst of vab.parts) {
@@ -2041,9 +2580,10 @@ function stageBreakdown() {
       if (!section.includes(entry) || !engine || engine["Fuel Flow"] === "Negative") {
         continue;
       }
-      const resource = engine.Resource || defaultResource;
-      for (const tank of feedTanks(stack, i, resource)) {
-        feed.add(tank);
+      for (const p of engineResources(engine)) {
+        for (const tank of feedTanks(stack, i, p.resource)) {
+          feed.add(tank);
+        }
       }
       const push = (engine.Thrust || 0) * c.newtonsPerThrust;
       thrust += push;
@@ -3334,10 +3874,10 @@ function engineOutput(rocket) {
     if (!entry.on) {
       continue;
     }
-    const resource = engine.Resource || defaultResource;
-    const feed = feedTanks(rocket.stack, i, resource);
     const direction = engine["Fuel Flow"] === "Negative" ? -1 : 1;
-    if (!feed.length || (direction > 0 && feedHeld(feed, resource) <= 0)) {
+    const propellants = engineResources(engine).map(p => ({ ...p, feed: feedTanks(rocket.stack, i, p.resource) }));
+    const ready = propellants.every(p => p.feed.length && (direction < 0 || feedHeld(p.feed, p.resource) > 0));
+    if (!ready) {
       continue;
     }
     const thrust = (engine.Thrust || 0) * c.newtonsPerThrust * level;
@@ -3350,7 +3890,46 @@ function engineOutput(rocket) {
     out.torque += (entry.ox / c.partUnits) * fy - (entry.oy / c.partUnits) * fx;
     const isp = engine.ISP || 0;
     if (isp > 0) {
-      out.draws.push({ feed, resource, rate: (thrust / (isp * G0)) * direction });
+      const totalRate = (thrust / (isp * G0)) * direction;
+      for (const p of propellants) {
+        out.draws.push({ feed: p.feed, resource: p.resource, rate: totalRate * p.ratio });
+      }
+    }
+  }
+  return out;
+}
+
+function rcsOutput(rocket) {
+  const out = { vx: 0, vy: 0, draws: [], firing: new Set() };
+  if (!rocket.stack || rocket.id !== target) {
+    return out;
+  }
+  const touched = touchHeldCodes();
+  const down = code => held.has(code) || touched.has(code);
+  for (let i = 0; i < rocket.stack.parts.length; i++) {
+    const entry = rocket.stack.parts[i];
+    const rcs = (entry.part.modules || {})["RCS Module"];
+    if (!rcs) {
+      continue;
+    }
+    const resource = rcs.Resource || defaultResource;
+    const feed = feedTanks(rocket.stack, i, resource);
+    if (!feed.length || feedHeld(feed, resource) <= 0) {
+      continue;
+    }
+    const thrust = (rcs.Thrust || 0) * c.newtonsPerThrust;
+    const dirs = rcs["Thruster Directions"] || [];
+    let used = 0;
+    if (dirs.includes("Top") && down("KeyI")) { out.vy -= thrust; used += thrust; }
+    if (dirs.includes("Bottom") && down("KeyK")) { out.vy += thrust; used += thrust; }
+    if (dirs.includes("Left") && down("KeyJ")) { out.vx -= thrust; used += thrust; }
+    if (dirs.includes("Right") && down("KeyL")) { out.vx += thrust; used += thrust; }
+    if (used > 0) {
+      out.firing.add(entry);
+      const isp = rcs.ISP || 0;
+      if (isp > 0) {
+        out.draws.push({ feed, resource, rate: used / (isp * G0) });
+      }
     }
   }
   return out;
@@ -3358,14 +3937,17 @@ function engineOutput(rocket) {
 
 function thrustAccel(rocket) {
   const out = engineOutput(rocket);
-  if (out.thrust === 0) {
+  const rcs = rcsOutput(rocket);
+  const vx = out.vx + rcs.vx;
+  const vy = out.vy + rcs.vy;
+  if (vx === 0 && vy === 0) {
     return { x: 0, y: 0 };
   }
   const cos = Math.cos(rocket.angle);
   const sin = Math.sin(rocket.angle);
   return {
-    x: (out.vx * cos - out.vy * sin) / rocket.mass,
-    y: (out.vx * sin + out.vy * cos) / rocket.mass
+    x: (vx * cos - vy * sin) / rocket.mass,
+    y: (vx * sin + vy * cos) / rocket.mass
   };
 }
 
@@ -3373,7 +3955,8 @@ function burnFuel(rocket, h) {
   if (!rocket.stack || !rocket.tanks) {
     return;
   }
-  for (const draw of engineOutput(rocket).draws) {
+  const draws = [...engineOutput(rocket).draws, ...rcsOutput(rocket).draws];
+  for (const draw of draws) {
     const want = draw.rate * h;
     let share = 0;
     for (const entry of draw.feed) {
@@ -3461,6 +4044,54 @@ function drawPitchGuide(rocket) {
   pop();
 }
 
+// points an arrow along prograde/retrograde (whichever the next planned burn
+// needs) with the burn's Δv underneath, for whatever transfer/dock/phasing
+// plan is currently active — same numbers as the map view's burn/capture text
+function drawBurnGuide(rocket) {
+  if (!rocket.parentBody) {
+    return;
+  }
+  const burn = pendingBurnWait(rocket);
+  if (!burn || !burn.dv) {
+    return;
+  }
+  const parent = getBody(rocket.parentBody);
+  const vel = relativeVelocity(rocket, parent);
+  const speed = Math.hypot(vel.x, vel.y);
+  if (speed <= 0) {
+    return;
+  }
+  const sign = Math.sign(burn.dv);
+  const dir = { x: (vel.x / speed) * sign, y: (vel.y / speed) * sign };
+  const perp = { x: -dir.y, y: dir.x };
+  const sx = width / 2 + (rocket.pos.x - camera.pos.x) * scale;
+  const sy = height / 2 + (rocket.pos.y - camera.pos.y) * scale;
+  const tipX = sx + dir.x * c.guideLength;
+  const tipY = sy + dir.y * c.guideLength;
+  const heading = Math.atan2(dir.y, dir.x);
+
+  push();
+  stroke("#ffb347");
+  strokeWeight(2);
+  line(sx, sy, tipX, tipY);
+  noStroke();
+  fill("#ffb347");
+  push();
+  translate(tipX, tipY);
+  rotate(heading);
+  triangle(9, 0, -6, -5, -6, 5);
+  pop();
+  // offset perpendicular to the arrow, not further along it, so the label
+  // never lands on top of the line no matter which way it's pointing
+  translate(tipX + perp.x * 16, tipY + perp.y * 16);
+  rotate(-camera.angle);
+  textSize(12);
+  textAlign(CENTER, CENTER);
+  const when = burn.due ? "now" : `in ${formatTime(burn.seconds)}, warp to it`;
+  text(`${burn.label} Δv ${format("speed", Math.abs(burn.dv))} ${when}`, 0, 0);
+  pop();
+}
+
 function chuteState(rocket, entry, chute) {
   if (entry.torn) {
     return "  torn";
@@ -3494,6 +4125,8 @@ function drawPartHover(rocket) {
     action = chuteState(rocket, entry, modules["Parachute Module"]);
   } else if (modules["Engine Module"]) {
     action = entry.on ? "  click to shut down" : "  click to light";
+  } else if (modules["Docking Module"] && rocket.dockedWith) {
+    action = "  click to undock";
   }
 
   const s = scale / c.partUnits;
@@ -3662,6 +4295,84 @@ function decouple(rocket, entry) {
   const impulse = ((entry.part.modules["Decoupler Module"] || {})["Separation Force"] || 0) * c.newtonsPerThrust;
   const cut = (a, b) => (a === entry && b.oy < entry.oy) || (b === entry && a.oy < entry.oy);
   splitRocket(rocket, cut, impulse);
+}
+
+function dockingParts(rocket) {
+  if (!rocket.stack) {
+    return [];
+  }
+  return rocket.stack.parts.filter(entry => (entry.part.modules || {})["Docking Module"]);
+}
+
+function undock(rocket) {
+  const other = rockets.find(r => r.id === rocket.dockedWith);
+  if (!other) {
+    return;
+  }
+  const force = Math.max(
+    ...dockingParts(rocket).map(e => e.part.modules["Docking Module"]["Disconnect Force"] || 0),
+    ...dockingParts(other).map(e => e.part.modules["Docking Module"]["Disconnect Force"] || 0)
+  );
+  const dx = other.pos.x - rocket.pos.x;
+  const dy = other.pos.y - rocket.pos.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const impulse = force * c.newtonsPerThrust;
+  rocket.vel.x -= (dx / dist) * (impulse / rocket.mass);
+  rocket.vel.y -= (dy / dist) * (impulse / rocket.mass);
+  other.vel.x += (dx / dist) * (impulse / other.mass);
+  other.vel.y += (dy / dist) * (impulse / other.mass);
+  rocket.dockedWith = null;
+  other.dockedWith = null;
+}
+
+function updateDocking(dt) {
+  for (const rocket of rockets) {
+    if (rocket.dockedWith && !rockets.some(r => r.id === rocket.dockedWith)) {
+      rocket.dockedWith = null;
+    }
+  }
+  for (let i = 0; i < rockets.length; i++) {
+    const a = rockets[i];
+    if (a.destroyed || !dockingParts(a).length) {
+      continue;
+    }
+    for (let j = i + 1; j < rockets.length; j++) {
+      const b = rockets[j];
+      if (b.destroyed || !dockingParts(b).length) {
+        continue;
+      }
+      if (a.dockedWith === b.id || b.dockedWith === a.id) {
+        continue;
+      }
+      const dx = b.pos.x - a.pos.x;
+      const dy = b.pos.y - a.pos.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist === 0 || dist > c.dockRange) {
+        continue;
+      }
+      if (dist < c.dockConnect) {
+        a.dockedWith = b.id;
+        b.dockedWith = a.id;
+        const vx = (a.vel.x * a.mass + b.vel.x * b.mass) / (a.mass + b.mass);
+        const vy = (a.vel.y * a.mass + b.vel.y * b.mass) / (a.mass + b.mass);
+        a.vel.x = b.vel.x = vx;
+        a.vel.y = b.vel.y = vy;
+        continue;
+      }
+      const forceA = Math.max(...dockingParts(a).map(e => e.part.modules["Docking Module"]["Attractive Force"] || 0));
+      const forceB = Math.max(...dockingParts(b).map(e => e.part.modules["Docking Module"]["Attractive Force"] || 0));
+      const pull = Math.min(forceA, forceB) * c.newtonsPerThrust;
+      if (pull <= 0) {
+        continue;
+      }
+      const ux = dx / dist;
+      const uy = dy / dist;
+      a.vel.x += ((ux * pull) / a.mass) * dt;
+      a.vel.y += ((uy * pull) / a.mass) * dt;
+      b.vel.x -= ((ux * pull) / b.mass) * dt;
+      b.vel.y -= ((uy * pull) / b.mass) * dt;
+    }
+  }
 }
 
 function rocketRadius(rocket) {
@@ -4274,8 +4985,6 @@ function driveAnimation(rocket, holder, anim, host) {
 
 function runAnimations(dt) {
   const live = new Set();
-  const flamePart = hiddenPart("_flame");
-  const flameAnim = flamePart && (flamePart.modules || {})["Animate Module"];
   for (const rocket of rockets) {
     for (const entry of rocket.stack ? rocket.stack.parts : []) {
       const anim = (entry.part.modules || {})["Animate Module"];
@@ -4283,12 +4992,17 @@ function runAnimations(dt) {
         live.add(entry);
         driveAnimation(rocket, entry, anim, entry);
       }
-      if (flameAnim && (entry.part.modules || {})["Engine Module"]) {
-        if (!entry.flame) {
-          entry.flame = { part: flamePart };
+      const engine = (entry.part.modules || {})["Engine Module"];
+      if (engine) {
+        const flamePart = hiddenPart(engine.Flame || "_flame");
+        const flameAnim = flamePart && (flamePart.modules || {})["Animate Module"];
+        if (flameAnim) {
+          if (!entry.flame || entry.flame.part !== flamePart) {
+            entry.flame = { part: flamePart };
+          }
+          live.add(entry.flame);
+          driveAnimation(rocket, entry.flame, flameAnim, entry);
         }
-        live.add(entry.flame);
-        driveAnimation(rocket, entry.flame, flameAnim, entry);
       }
     }
   }
@@ -4521,6 +5235,60 @@ function drawProps(cur) {
   }
 }
 
+function walkEntities(value, found) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  if (typeof value.type === "string" && "group" in value) {
+    found.push(value);
+    return;
+  }
+  for (const v of Object.values(value)) {
+    walkEntities(v, found);
+  }
+}
+
+function entityValues(modules) {
+  const found = [];
+  for (const value of Object.values(modules || {})) {
+    walkEntities(value, found);
+  }
+  return found;
+}
+
+function partGroupCenter(part, index) {
+  const group = (part.groups || [])[index];
+  if (!group) {
+    return null;
+  }
+  const xs = group.points.map(p => p[0]);
+  const ys = group.points.map(p => p[1]);
+  return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+}
+
+function drawEntities(entry, s) {
+  for (const entity of entityValues(entry.part.modules)) {
+    const target = hiddenPart(entity.type);
+    if (!target || entity.group == null) {
+      continue;
+    }
+    const anchor = partGroupCenter(entry.part, entity.group);
+    if (!anchor) {
+      continue;
+    }
+    const ra = (entry.rot || 0) * HALF_PI;
+    const lx = anchor.x + (entity.offsetX || 0);
+    const ly = anchor.y + (entity.offsetY || 0);
+    const wx = entry.ox + lx * Math.cos(ra) - ly * Math.sin(ra);
+    const wy = entry.oy + lx * Math.sin(ra) + ly * Math.cos(ra);
+    push();
+    translate(wx * s, wy * s);
+    rotate(ra + radians(entity.rotation || 0));
+    drawPart(target, 0, 0, s, { wide: entity.sizeX ?? 1, tall: entity.sizeY ?? 1 });
+    pop();
+  }
+}
+
 function drawRocket(rocket, cur) {
   if (!rocket.stack) {
     return;
@@ -4546,19 +5314,22 @@ function drawRocket(rocket, cur) {
   translate(screenX, screenY);
   rotate(rocket.angle);
   drawReentryGlow(rocket, s);
+  const rcsFiring = rcsOutput(rocket).firing;
   for (let i = 0; i < rocket.stack.parts.length; i++) {
     const entry = rocket.stack.parts[i];
     drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot });
+    drawEntities(entry, s);
     const engine = entry.part.modules["Engine Module"];
     let hasFuel = false;
     if (engine) {
-      const resource = engine.Resource || defaultResource;
-      const feed = feedTanks(rocket.stack, i, resource);
       const direction = engine["Fuel Flow"] === "Negative" ? -1 : 1;
-      hasFuel = feed.length > 0 && (direction < 0 || feedHeld(feed, resource) > 0);
+      hasFuel = engineResources(engine).every(p => {
+        const feed = feedTanks(rocket.stack, i, p.resource);
+        return feed.length > 0 && (direction < 0 || feedHeld(feed, p.resource) > 0);
+      });
     }
     if (engine && hasFuel && entry.on && throttle > 0) {
-      const flamePart = hiddenPart("_flame");
+      const flamePart = hiddenPart(engine.Flame || "_flame");
       if (flamePart) {
         const bb = partBBox(entry.part);
         const flameBB = partBBox(flamePart);
@@ -4577,6 +5348,38 @@ function drawRocket(rocket, cur) {
           s * flameScale,
           { fx, rot: entry.rot }
         );
+      }
+    }
+    const rcsMod = entry.part.modules["RCS Module"];
+    if (rcsMod && rcsFiring.has(entry)) {
+      const flamePart = hiddenPart(rcsMod.Flame || "_flame");
+      if (flamePart) {
+        const bb = partBBox(entry.part);
+        const touched = touchHeldCodes();
+        const down = code => held.has(code) || touched.has(code);
+        const dirs = rcsMod["Thruster Directions"] || [];
+        const nozzles = [
+          { key: "KeyI", dir: "Top", dx: 0, dy: bb.maxY - bb.cy, quarter: 0 },
+          { key: "KeyK", dir: "Bottom", dx: 0, dy: bb.minY - bb.cy, quarter: 2 },
+          { key: "KeyJ", dir: "Left", dx: bb.maxX - bb.cx, dy: 0, quarter: 1 },
+          { key: "KeyL", dir: "Right", dx: bb.minX - bb.cx, dy: 0, quarter: 3 }
+        ];
+        const rcsScale = 0.16;
+        const ra = (entry.rot || 0) * HALF_PI;
+        for (const n of nozzles) {
+          if (!dirs.includes(n.dir) || !down(n.key)) {
+            continue;
+          }
+          const rx = n.dx * Math.cos(ra) - n.dy * Math.sin(ra);
+          const ry = n.dx * Math.sin(ra) + n.dy * Math.cos(ra);
+          drawPart(
+            flamePart,
+            (entry.ox + rx) * s,
+            (entry.oy + ry) * s,
+            s * rcsScale,
+            { rot: ((entry.rot || 0) + n.quarter) % 4 }
+          );
+        }
       }
     }
     const chute = entry.part.modules["Parachute Module"];
@@ -4632,11 +5435,46 @@ function draw() {
 
   runAnimations(1 / frameRate());
 
-  const dt = (1 / frameRate()) * c.timewarp;
+  if (warpUntil !== null) {
+    const remaining = warpUntil - t;
+    if (remaining <= 0) {
+      c.timewarp = timeWarpSteps[timeWarpCounter];
+      warpUntil = null;
+    } else {
+      const perFrame = 1 / frameRate();
+      let idx = timeWarpSteps.length - 1;
+      while (idx > 0 && timeWarpSteps[idx] * perFrame > remaining) {
+        idx--;
+      }
+      c.timewarp = timeWarpSteps[idx];
+    }
+  }
+
+  clampTimewarpForOrbit(flyingRocket());
+
+  if (burnLogging) {
+    const controlled = flyingRocket();
+    if (controlled) {
+      const eo = engineOutput(controlled);
+      const ro = rcsOutput(controlled);
+      if (eo.thrust > 0) {
+        logBurnEvent(controlled, "manual-engine", null);
+      }
+      if (ro.firing.size > 0) {
+        logBurnEvent(controlled, "manual-rcs", null);
+      }
+    }
+  }
+
+  const dt = Math.min(
+    (1 / frameRate()) * c.timewarp,
+    warpUntil !== null ? Math.max(warpUntil - t, 1 / frameRate()) : Infinity
+  );
 
   const substeps = constrain(ceil(dt / c.maxStep), 1, c.maxSubsteps);
   const h = dt / substeps;
   updateBodies();
+  updateDocking(dt);
   for (let step = 0; step < substeps; step++) {
     for (const rocket of rockets) {
       if (rocket.destroyed || rocket.landed) {
@@ -4687,6 +5525,7 @@ function draw() {
     if (showPitchGuide) {
       drawPitchGuide(curRocket);
     }
+    drawBurnGuide(curRocket);
     if (!inMap) {
       drawPartHover(curRocket);
     }
@@ -4699,9 +5538,13 @@ function draw() {
   textSize(width/70);
   const lineHeight = width / 55;
   if (curRocket) {
+    const other = rendezvousTarget && rockets.find(rocket => rocket.id === rendezvousTarget);
+    const rel = other && rendezvousPlan(curRocket, other);
+    const close = rel && rel.distance <= 20000;
+
     text(`Reference: ${curRocket.parentBody}`, 25, 50)
-    text(`Velocity: ${calculateVelocity()}`, 25, 50 + lineHeight)
-    text(`Altitude: ${calculateAltitude()}`, 25, 50 + lineHeight * 2)
+    text(close ? `Rel. Velocity: ${format("speed", rel.matchDv)}` : `Velocity: ${calculateVelocity()}`, 25, 50 + lineHeight)
+    text(close ? `Rel. Distance: ${format("distance", rel.distance)}` : `Altitude: ${calculateAltitude()}`, 25, 50 + lineHeight * 2)
     text(`Atmospheric Pressure: ${calculatePressure()}`, 25, 50 + lineHeight * 3)
     text(`Apoapsis: ${calculateApoapsis()}`, 25, 50 + lineHeight * 4)
     text(`Periapsis: ${calculatePeriapsis()}`, 25, 50 + lineHeight * 5)
@@ -4749,6 +5592,31 @@ function draw() {
     GUIAPI.button(vb.x - 75, vb.y, vb.size, vb.size, { id: "map", ...menuStyle }, "Map");
     GUIAPI.button(vb.x - 150, vb.y, vb.size, vb.size, { id: "save", ...menuStyle }, "Save");
     GUIAPI.button(vb.x - 225, vb.y, vb.size, vb.size, { id: "load", ...menuStyle }, "Load");
+    const dueBurn = curRocket && pendingBurnWait(curRocket);
+    if (dueBurn && dueBurn.due) {
+      GUIAPI.button(vb.x - 550, vb.y, vb.size * 3, vb.size, {
+        id: "automate-burn",
+        baseColor: "#8f5a1f",
+        hoverColor: "#c07a2a",
+        activeColor: "#70481a",
+        tooltip: [`Instantly perform the ${format("speed", Math.abs(dueBurn.dv))} burn`]
+      }, "Automate Burn");
+    } else if (warpUntil !== null) {
+      GUIAPI.button(vb.x - 900, vb.y, vb.size * 3, vb.size, {
+        id: "flight-warp-cancel",
+        baseColor: "#7a2a2a",
+        hoverColor: "#a03c3c",
+        activeColor: "#5e1f1f"
+      }, `Warping... ${formatTime(Math.max(warpUntil - t, 0))}`);
+    } else if (dueBurn) {
+      GUIAPI.button(vb.x - 900, vb.y, vb.size * 3, vb.size, {
+        id: "flight-warp-burn",
+        baseColor: "#8f5a1f",
+        hoverColor: "#c07a2a",
+        activeColor: "#70481a",
+        tooltip: [`Warp ${formatTime(dueBurn.seconds)} to the ${dueBurn.label}`]
+      }, `Warp to ${dueBurn.label}`);
+    }
     if (isMobile) {
       for (const b of mobileFlightButtons()) {
         GUIAPI.button(b.x, b.y, b.sx, b.sy, { id: "touch-" + b.code, ...menuStyle }, b.label);
@@ -4775,7 +5643,7 @@ function draw() {
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
   fill("white");
-  text("v1.5.0 [Public Pre-Release]", width - 120, height - 40);
+  text("v1.5.1 [Public Pre-Release]", width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -5228,6 +6096,17 @@ function keyPressed(event) {
     return false;
   }
 
+  if (event.code === "KeyL" && event.shiftKey) {
+    burnLogging = !burnLogging;
+    launchToast(burnLogging ? "Burn logging on." : "Burn logging off.");
+    return false;
+  }
+
+  if (event.code === "KeyP" && event.shiftKey) {
+    downloadBurnLog();
+    return false;
+  }
+
   if (inVab) {
     if (event.code === "KeyR" && vab.drag) {
       vab.drag.inst.rot = ((vab.drag.inst.rot || 0) + 1) % 4;
@@ -5382,6 +6261,14 @@ async function mousePressed() {
     } else if (GUIAPI.clicked("map-recenter")) {
       mapPan.x = 0;
       mapPan.y = 0;
+    } else if (GUIAPI.clicked("map-warp-cancel")) {
+      warpUntil = null;
+    } else if (GUIAPI.clicked("map-warp-burn")) {
+      const ship = flyingRocket();
+      const burn = ship && pendingBurnWait(ship);
+      if (burn) {
+        warpUntil = t + burn.seconds;
+      }
     } else {
       mapClick = { x: mouseX, y: mouseY };
     }
@@ -5474,6 +6361,26 @@ async function mousePressed() {
       gamePick();
       return;
     }
+    if (GUIAPI.clicked("automate-burn")) {
+      const ship = flyingRocket();
+      const burn = ship && pendingBurnWait(ship);
+      if (burn && burn.due) {
+        executeAutomatedBurn(ship, burn.dv);
+      }
+      return;
+    }
+    if (GUIAPI.clicked("flight-warp-cancel")) {
+      warpUntil = null;
+      return;
+    }
+    if (GUIAPI.clicked("flight-warp-burn")) {
+      const ship = flyingRocket();
+      const burn = ship && pendingBurnWait(ship);
+      if (burn) {
+        warpUntil = t + burn.seconds;
+      }
+      return;
+    }
     if (GUIAPI.clicked("warp-down")) {
       if (timeWarpCounter > 0) {
         timeWarpCounter--;
@@ -5510,6 +6417,8 @@ async function mousePressed() {
       deployChute(rocket, entry);
     } else if (modules["Engine Module"]) {
       entry.on = !entry.on;
+    } else if (modules["Docking Module"] && rocket.dockedWith) {
+      undock(rocket);
     }
     return;
   }
@@ -5593,12 +6502,25 @@ function mouseReleased() {
       const anchor = ship ? ship.pos : camera.pos;
       const cx = anchor.x + mapPan.x;
       const cy = anchor.y + mapPan.y;
-      const hit = planets.find(body => {
-        const x = width / 2 + (body.pos.x - cx) * mapScale;
-        const y = height / 2 + (body.pos.y - cy) * mapScale;
-        return Math.hypot(mouseX - x, mouseY - y) <= Math.max(body.size * mapScale, 4) + 6;
+      const hitRocket = rockets.find(rocket => {
+        if (rocket.id === target) {
+          return false;
+        }
+        const x = width / 2 + (rocket.pos.x - cx) * mapScale;
+        const y = height / 2 + (rocket.pos.y - cy) * mapScale;
+        return Math.hypot(mouseX - x, mouseY - y) <= 8;
       });
-      transferTarget = hit && transferPlan(ship, hit) ? hit.id : null;
+      if (hitRocket) {
+        rendezvousTarget = hitRocket.id;
+      } else {
+        const hit = planets.find(body => {
+          const x = width / 2 + (body.pos.x - cx) * mapScale;
+          const y = height / 2 + (body.pos.y - cy) * mapScale;
+          return Math.hypot(mouseX - x, mouseY - y) <= Math.max(body.size * mapScale, 4) + 6;
+        });
+        transferTarget = hit && transferPlan(ship, hit) ? hit.id : null;
+        rendezvousTarget = null;
+      }
     }
     mapClick = null;
     return;
