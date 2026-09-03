@@ -201,6 +201,22 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+const usernameColors = {
+  Developer: "#22c55e",
+  staff: "#b19cd9",
+  "Part Developer": "#f97316",
+};
+
+function usernameColor(id) {
+  const u = usersById[id];
+  if (!u) return null;
+  for (const cosmetic of cosmeticRoles[u.username] ?? []) {
+    if (usernameColors[cosmetic.label]) return usernameColors[cosmetic.label];
+  }
+  if (u.role == "admin" || u.role == "moderator") return usernameColors.staff;
+  return null;
+}
+
 function roleBadge(id) {
   const u = usersById[id];
   if (!u) return "";
@@ -265,8 +281,9 @@ function gemBadge(points) {
 
 function userLink(id, name, cls = "") {
   const u = usersById[id];
+  const color = usernameColor(id);
   return `${u ? gem(userPoints(u)) : ""}
-    <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}">${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
+    <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}"${color ? ` style="color: ${color}"` : ""}>${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
 }
 
 const emoticonCdn = "https://cdn.jsdelivr.net/gh/bernzrdo/msn-emoticons@main/original/";
@@ -555,7 +572,7 @@ if (page == "u") {
     const next = gemTiers.find(t => t.min > points);
 
     $("profile").append(`
-      <h1>${escapeHtml(profile.username)} ${roleBadge(id)} ${gemBadge(points)}</h1>
+      <h1><span${usernameColor(id) ? ` style="color: ${usernameColor(id)}"` : ""}>${escapeHtml(profile.username)}</span> ${roleBadge(id)} ${gemBadge(points)}</h1>
       <p class="text-secondary mb-0">${profile.posts ?? 0} threads, ${profile.replies ?? 0} comments, joined ${timeAgo(profile.created_at)}</p>
       <p class="text-secondary">${points.toLocaleString()} points &middot; &times;${ageMultiplier(profile).toFixed(3)} for account age${next ? ` &middot; ${(next.min - points).toLocaleString()} to ${next.name}` : " &middot; max rank"}</p>
     `);
