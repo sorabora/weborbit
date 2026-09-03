@@ -360,6 +360,22 @@ function renderContent(str) {
 
 const modFileMaxBytes = 50 * 1024;
 
+// pulls the bits of a mod.json the Hangar filters on, so we don't have to
+// re-download and re-parse every mod file just to list them
+async function readModMetadata(file) {
+  try {
+    const json = JSON.parse(await file.text());
+    return {
+      mod_name: typeof json.name == "string" ? json.name : null,
+      mod_format: typeof json.format == "string" ? json.format : null,
+      format_version: Number.isFinite(json.version) ? json.version : null,
+      part_count: Array.isArray(json.parts) ? json.parts.length : null,
+    };
+  } catch {
+    return { mod_name: null, mod_format: null, format_version: null, part_count: null };
+  }
+}
+
 if (page == "post-thread") {
   let selectedCategory = null;
   for (const item of document.querySelectorAll("#category-menu .dropdown-item")) {
@@ -396,6 +412,8 @@ if (page == "post-thread") {
     }
 
     let mod_url = null;
+    let modMetadata = null;
+    let modFile = null;
     if (tags == "Modding") {
       const file = $("mod-file").el.files[0];
       if (!file) {
@@ -410,6 +428,8 @@ if (page == "post-thread") {
         alert(`Mod file is too big (${Math.ceil(file.size / 1024)}KB, max 50KB).`);
         return;
       }
+      modFile = file;
+      modMetadata = await readModMetadata(file);
 
       // timestamp-uuid-originalname keeps uploads collision-proof and sortable
       // by time, while the uuid stops two people uploading in the same
@@ -434,6 +454,14 @@ if (page == "post-thread") {
     if (error) {
       alert(`Failed to post: ${error.message}`);
     } else {
+      if (modFile) {
+        const { error: versionError } = await supabase
+          .from("post_mod_files")
+          .insert({ post_id: post.id, url: mod_url, filename: modFile.name, ...modMetadata });
+        if (versionError) {
+          console.log(`Failed to record mod file version: ${versionError.message}`);
+        }
+      }
       for (const id of mentionIds(content)) {
         await notify(id, "mention", post.id, null);
       }
@@ -836,9 +864,10 @@ function startEditThread(thread) {
           return;
         }
         mod_url = supabase.storage.from("mods").getPublicUrl(path).data.publicUrl;
+        const modMetadata = await readModMetadata(file);
         const { error: versionError } = await supabase
           .from("post_mod_files")
-          .insert({ post_id: thread.id, url: mod_url, filename: file.name });
+          .insert({ post_id: thread.id, url: mod_url, filename: file.name, ...modMetadata });
         if (versionError) {
           alert(`Failed to record mod file version: ${versionError.message}`);
           return;
