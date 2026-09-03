@@ -681,19 +681,48 @@ if (page == "thread") {
     $("thread").append(`<h1>Thread Not Found</h1><p class="text-secondary">id: ${escapeHtml(id ?? "(missing)")}</p>`);
     halt = true;
   } else {
-    let d = new Date(data[0].created_at);
+    const thread = data[0];
+    let d = new Date(thread.created_at);
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     const formatted = d.toLocaleString('en-US', options);
-    const contentHTML = renderContent(data[0].content);
+    const contentHTML = renderContent(thread.content);
+    const canEdit = user && (thread.author == user.id || isModerator);
 
     $("thread").append(`
-      <h1>${escapeHtml(data[0].title)}</h1>
-      <p class="secondary"><span title="${formatted}">${timeAgo(data[0].created_at)}</span> by ${userLink(data[0].author, data[0].username)}</p>
-      <div class="p-4 border bg-body-secondary rounded">
-        ${contentHTML}
-        ${data[0].mod_url ? `<a href="${escapeHtml(data[0].mod_url)}" class="btn btn-primary mt-3" download>Download Mod</a>` : ""}
+      <h1 id="thread-title">${escapeHtml(thread.title)}</h1>
+      <p class="secondary">
+        <span title="${formatted}">${timeAgo(thread.created_at)}</span> by ${userLink(thread.author, thread.username)}
+        ${thread.edited_at ? `<span class="text-secondary fst-italic" title="${new Date(thread.edited_at).toLocaleString()}">(edited)</span>` : ""}
+        ${canEdit ? `<button id="edit-thread-btn" class="btn btn-sm btn-link p-0 ms-2">Edit</button>` : ""}
+      </p>
+      <div id="thread-body" class="p-4 border bg-body-secondary rounded">
+        <div id="thread-content">${contentHTML}</div>
+        ${thread.mod_url ? `<a href="${escapeHtml(thread.mod_url)}" class="btn btn-primary mt-3" download>Download Mod</a>` : ""}
+        <div id="mod-versions"></div>
       </div>
-    `)
+    `);
+
+    if (thread.tags == "Modding") {
+      const { data: versions } = await supabase
+        .from("post_mod_files")
+        .select("url, filename, created_at")
+        .eq("post_id", id)
+        .order("created_at", { ascending: true });
+      if (versions?.length > 1) {
+        $("mod-versions").el.innerHTML = `
+          <p class="text-secondary mt-3 mb-1">Previous versions:</p>
+          ${versions.slice(0, -1).map(v => `
+            <a href="${escapeHtml(v.url)}" class="btn btn-sm btn-outline-secondary me-2 mb-2" download>
+              ${escapeHtml(v.filename)} <span class="text-secondary">(${timeAgo(v.created_at)})</span>
+            </a>
+          `).join("")}
+        `;
+      }
+    }
+
+    if (canEdit) {
+      $("edit-thread-btn").onClick(() => startEditThread(thread));
+    }
   }
 
   if (!halt) {
@@ -756,6 +785,90 @@ if (page == "thread") {
     }
     renderReplies("root", $("comments").el);
   }
+}
+
+function startEditThread(thread) {
+  const isModding = thread.tags == "Modding";
+  $("thread-title").el.outerHTML = `<input id="thread-title-input" class="form-control mb-2" value="${escapeHtml(thread.title)}">`;
+  $("thread-content").el.outerHTML = `<textarea id="thread-content-input" class="form-control" rows="8">${escapeHtml(thread.content)}</textarea>`;
+  $("thread-body").append(`
+    ${isModding ? `
+      <div class="mt-3">
+        <label class="form-label">Upload a new mod file version (optional, keeps old versions)</label>
+        <input id="edit-mod-file" type="file" class="form-control" accept="application/json,.json">
+      </div>
+    ` : ""}
+    <div id="edit-thread-controls" class="mt-3">
+      <button id="save-thread-edit" class="btn btn-primary">Save</button>
+      <button id="cancel-thread-edit" class="btn btn-link">Cancel</button>
+    </div>
+  `);
+
+  $("cancel-thread-edit").onClick(() => window.location.reload());
+
+  $("save-thread-edit").onClick(async () => {
+    const title = $("thread-title-input").value;
+    const content = $("thread-content-input").value;
+    if (!title || !content) {
+      alert("Title and content can't be empty.");
+      return;
+    }
+
+    let mod_url = thread.mod_url;
+    if (isModding) {
+      const file = $("edit-mod-file").el.files[0];
+      if (file) {
+        if (!file.name.toLowerCase().endsWith(".json")) {
+          alert("Mod file must be a .json file.");
+          return;
+        }
+        if (file.size > modFileMaxBytes) {
+          alert(`Mod file is too big (${Math.ceil(file.size / 1024)}KB, max 50KB).`);
+          return;
+        }
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${thread.author}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage.from("mods").upload(path, file, {
+          contentType: "application/json",
+        });
+        if (uploadError) {
+          alert(`Failed to upload mod file: ${uploadError.message}`);
+          return;
+        }
+        mod_url = supabase.storage.from("mods").getPublicUrl(path).data.publicUrl;
+        const { error: versionError } = await supabase
+          .from("post_mod_files")
+          .insert({ post_id: thread.id, url: mod_url, filename: file.name });
+        if (versionError) {
+          alert(`Failed to record mod file version: ${versionError.message}`);
+          return;
+        }
+      }
+    }
+
+    const { error: editLogError } = await supabase
+      .from("post_edits")
+      .insert({
+        post_id: thread.id,
+        previous_title: thread.title,
+        previous_content: thread.content,
+        previous_tags: thread.tags,
+      });
+    if (editLogError) {
+      alert(`Failed to log edit: ${editLogError.message}`);
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from("posts")
+      .update({ title, content, mod_url, edited_at: new Date().toISOString() })
+      .eq("id", thread.id);
+    if (updateError) {
+      alert(`Failed to save edit: ${updateError.message}`);
+      return;
+    }
+    window.location.reload();
+  });
 }
 
 function mentionIds(content) {
