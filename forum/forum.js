@@ -346,9 +346,11 @@ const emoticonPattern = new RegExp(
   "gi"
 );
 
-// escape first, then turn @mentions into links, emoticons into animated images, and newlines into breaks
+// escape first, then turn image links, @mentions and emoticons into markup, and newlines into breaks
 function renderContent(str) {
   return escapeHtml(str)
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi, (match, alt, url) =>
+      `<img src="${url}" alt="${alt}" class="forum-image" style="max-width:100%;max-height:400px;display:block;margin:0.5em 0;" loading="lazy">`)
     .replace(/@(\w+)/g, (match, name) =>
       usersByName[name] ? `<a href="u.html?id=${encodeURIComponent(usersByName[name].id)}">${match}</a>` : match)
     .replace(emoticonPattern, (match) => {
@@ -356,6 +358,23 @@ function renderContent(str) {
       return emoticonImg(match, file);
     })
     .replace(/\n/g, "<br>");
+}
+
+// prompts for an image link and drops in the () syntax renderContent knows how to embed
+function insertImageLink(textareaEl) {
+  const url = prompt("Paste an image link (https://...)");
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url.trim())) {
+    alert("That doesn't look like a valid http(s) image link.");
+    return;
+  }
+  const markdown = `![image](${url.trim()})`;
+  const start = textareaEl.selectionStart ?? textareaEl.value.length;
+  const end = textareaEl.selectionEnd ?? textareaEl.value.length;
+  textareaEl.value = textareaEl.value.slice(0, start) + markdown + textareaEl.value.slice(end);
+  textareaEl.focus();
+  const pos = start + markdown.length;
+  textareaEl.setSelectionRange(pos, pos);
 }
 
 const modFileMaxBytes = 50 * 1024;
@@ -377,6 +396,8 @@ async function readModMetadata(file) {
 }
 
 if (page == "post-thread") {
+  $("post-content-image-btn").onClick(() => insertImageLink($("post-content").el));
+
   let selectedCategory = null;
   for (const item of document.querySelectorAll("#category-menu .dropdown-item")) {
     if (item.textContent.trim() == "Announcements" && !isAdmin) {
@@ -481,6 +502,93 @@ if (page == "forum") {
   const isVeryRecent = (post) => (Date.now() - new Date(post.created_at)) <= 86400000;
   const isRecent = (post) => (Date.now() - new Date(post.created_at)) <= 172800000;
 
+  // xenforo-style groupings: a section header plus the categories under it
+  const categoryGroups = [
+    {
+      name: "Announcements",
+      categories: [
+        { name: "Announcements", color: "primary", description: "News and updates from the team." },
+      ],
+    },
+    {
+      name: "Weborbit",
+      categories: [
+        { name: "Modding", color: "warning", description: "Share and discuss mods." },
+        { name: "Questions", color: "info", description: "Ask for help with the game." },
+        { name: "Suggestions", color: "info", description: "Ideas for where Weborbit should go next." },
+        { name: "Bug Reports", color: "info", description: "Something broken? Report it here." },
+        { name: "Weborbit Rockets", color: "success", description: "Show off your builds." },
+        { name: "Mission Reports", color: "success", description: "How did your flight go?" },
+        { name: "Challenges", color: "success", description: "Community challenges and contests." },
+        { name: "Tutorials & Guides", color: "success", description: "Learn from other players." },
+      ],
+    },
+    {
+      name: "Community",
+      categories: [
+        { name: "Fanart", color: "success", description: "Art inspired by Weborbit." },
+        { name: "Real-life Rockets", color: "secondary", description: "Talk about actual rocketry." },
+        { name: "Off-Topic", color: "secondary", description: "Anything else." },
+      ],
+    },
+  ];
+
+  function statsFor(name) {
+    const inCategory = (posts.data ?? []).filter((post) => !post.deleted && post.tags == name);
+    const latest = inCategory[0] ?? null;
+    return { count: inCategory.length, latest };
+  }
+
+  function renderCategoryGrid() {
+    $("category-grid").el.innerHTML = "";
+    const newCount = (posts.data ?? []).filter((post) => !post.deleted && isRecent(post)).length;
+    $("category-grid").append(`
+      <button class="category-box w-100 text-start border rounded mb-3 bg-body-secondary" data-filter="new" style="border-left: 4px solid var(--bs-dark) !important;">
+        <div class="category-box-grid p-3">
+          <div class="category-box-info">
+            <div class="fw-semibold">New Posts</div>
+            <p class="text-secondary mb-0 small">Everything posted in the last 2 days.</p>
+          </div>
+          <div class="category-box-count text-secondary text-center small">
+            ${newCount}<br>thread${newCount == 1 ? "" : "s"}
+          </div>
+          <div class="category-box-latest"></div>
+        </div>
+      </button>
+    `).addEventListener("click", () => openFilter("new"));
+
+    for (const group of categoryGroups) {
+      $("category-grid").append(`<h5 class="mt-4 mb-2 text-secondary">${escapeHtml(group.name)}</h5>`);
+      for (const cat of group.categories) {
+        const { count, latest } = statsFor(cat.name);
+        const box = $("category-grid").append(`
+          <button class="category-box w-100 text-start border rounded mb-3 bg-body-secondary" data-filter="${escapeHtml(cat.name)}" style="border-left: 4px solid var(--bs-${cat.color}) !important;">
+            <div class="category-box-grid p-3">
+              <div class="category-box-info">
+                <div class="fw-semibold">${escapeHtml(cat.name)}</div>
+                <p class="text-secondary mb-0 small">${escapeHtml(cat.description)}</p>
+              </div>
+              <div class="category-box-count text-secondary text-center small">
+                ${count}<br>thread${count == 1 ? "" : "s"}
+              </div>
+              <div class="category-box-latest text-end">
+                ${latest ? `
+                  <div class="text-truncate">${escapeHtml(latest.title)}</div>
+                  <div class="text-secondary small text-nowrap">
+                    ${userLink(latest.author, latest.username)}
+                    &middot;
+                    <span title="${new Date(latest.created_at).toLocaleString()}">${timeAgo(latest.created_at)}</span>
+                  </div>
+                ` : `<span class="text-secondary small">No threads yet</span>`}
+              </div>
+            </div>
+          </button>
+        `);
+        box.addEventListener("click", () => openFilter(cat.name));
+      }
+    }
+  }
+
   function renderThreads(filter) {
     $("threads-list").el.innerHTML = "";
     let shown = (posts.data ?? []).filter((post) => {
@@ -514,28 +622,42 @@ if (page == "forum") {
     }
   }
 
-  const filterButtons = document.querySelectorAll("#filter-buttons [data-filter]");
+  function showCategoryGrid() {
+    $("category-grid").el.classList.remove("d-none");
+    $("thread-list-view").el.classList.add("d-none");
+  }
 
-  function applyFilter(filter) {
-    for (const b of filterButtons) b.classList.toggle("active", b.dataset.filter == filter);
+  function showThreadList(filter) {
+    $("category-grid").el.classList.add("d-none");
+    $("thread-list-view").el.classList.remove("d-none");
+    $("thread-list-title").el.textContent = filter == "new" ? "New Posts" : filter == "all" ? "All Threads" : filter;
     renderThreads(filter);
   }
 
-  for (const btn of filterButtons) {
-    btn.addEventListener("click", () => {
-      const filter = btn.dataset.filter;
-      const url = new URL(window.location);
-      if (filter == "all") {
-        url.searchParams.delete("filter");
-      } else {
-        url.searchParams.set("filter", filter);
-      }
-      history.replaceState(null, "", url);
-      applyFilter(filter);
-    });
+  function openFilter(filter) {
+    const url = new URL(window.location);
+    url.searchParams.set("filter", filter);
+    history.pushState(null, "", url);
+    showThreadList(filter);
   }
 
-  applyFilter(urlParams.get("filter") ?? "all");
+  $("back-to-categories").onClick(() => {
+    const url = new URL(window.location);
+    url.searchParams.delete("filter");
+    history.pushState(null, "", url);
+    showCategoryGrid();
+  });
+
+  window.addEventListener("popstate", () => {
+    const filter = new URLSearchParams(window.location.search).get("filter");
+    if (filter) showThreadList(filter);
+    else showCategoryGrid();
+  });
+
+  renderCategoryGrid();
+  const initialFilter = urlParams.get("filter");
+  if (initialFilter) showThreadList(initialFilter);
+  else showCategoryGrid();
 }
 
 if (page == "leaderboard") {
@@ -762,9 +884,11 @@ if (page == "thread") {
 
     $("comments").append(`
       <textarea id="comments-textarea" class="form-control" placeholder="I agree!!!!!!"></textarea>
+      <button type="button" id="comments-image-btn" class="btn btn-sm btn-outline-secondary mt-2">🖼️ Insert Image Link</button>
       <p>Max 800 characters</p>
       <button id="comments-post" class="btn btn-primary btn-lg">Post</button>
     `);
+    $("comments-image-btn").onClick(() => insertImageLink($("comments-textarea").el));
 
     const byParent = {};
     for (let post of data ?? []) {
@@ -802,9 +926,13 @@ if (page == "thread") {
           const box = div.querySelector(".reply-box");
           box.innerHTML = `
             <textarea class="form-control" placeholder="I disagree!!!!!!"></textarea>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-1 image-btn">🖼️ Insert Image Link</button>
             <button class="btn btn-sm btn-primary mt-1">Post</button>
           `;
-          box.querySelector("button").addEventListener("click", () => {
+          box.querySelector(".image-btn").addEventListener("click", () => {
+            insertImageLink(box.querySelector("textarea"));
+          });
+          box.querySelector(".btn-primary").addEventListener("click", () => {
             postComment(box.querySelector("textarea").value, post.id);
           });
         });
@@ -820,6 +948,7 @@ function startEditThread(thread) {
   $("thread-title").el.outerHTML = `<input id="thread-title-input" class="form-control mb-2" value="${escapeHtml(thread.title)}">`;
   $("thread-content").el.outerHTML = `<textarea id="thread-content-input" class="form-control" rows="8">${escapeHtml(thread.content)}</textarea>`;
   $("thread-body").append(`
+    <button type="button" id="thread-content-image-btn" class="btn btn-sm btn-outline-secondary mt-2">🖼️ Insert Image Link</button>
     ${isModding ? `
       <div class="mt-3">
         <label class="form-label">Upload a new mod file version (optional, keeps old versions)</label>
@@ -831,6 +960,8 @@ function startEditThread(thread) {
       <button id="cancel-thread-edit" class="btn btn-link">Cancel</button>
     </div>
   `);
+
+  $("thread-content-image-btn").onClick(() => insertImageLink($("thread-content-input").el));
 
   $("cancel-thread-edit").onClick(() => window.location.reload());
 
