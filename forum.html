@@ -10,6 +10,7 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
+    <link rel="stylesheet" href="forum-op.css">
     <script src="commons.js"></script>
   </head>
   <body>
@@ -57,25 +58,16 @@
 
       <button id="post-btn" class="d-none btn btn-lg btn-outline-primary mb-3">Post a Thread</button>
       <a href="leaderboard.html" class="btn btn-lg btn-outline-secondary mb-3">View Leaderboard</a>
-      <br>
-      <div id="filter-buttons">
-        <button class="btn btn-sm btn-outline-secondary mb-3" data-filter="all">All</button>
-        <button class="btn btn-sm btn-dark mb-3" data-filter="new">New Posts</button>
-        <button class="btn btn-sm btn-primary mb-3" data-filter="Announcements">Announcements</button>
-        <button class="btn btn-sm btn-warning mb-3" data-filter="Modding">Modding</button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Questions">Questions</button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Suggestions">Suggestions</button>
-        <button class="btn btn-sm btn-info mb-3" data-filter="Bug Reports">Bug Reports</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Weborbit Rockets">Weborbit Rockets</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Fanart">Fanart</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Tutorials &amp; Guides">Tutorials &amp; Guides</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Challenges">Challenges</button>
-        <button class="btn btn-sm btn-success mb-3" data-filter="Mission Reports">Mission Reports</button>
-        <button class="btn btn-sm btn-secondary mb-3" data-filter="Off-Topic">Off-Topic</button>
-        <button class="btn btn-sm btn-secondary mb-3" data-filter="Real-life Rockets">Real-life Rockets</button>
-      </div>
 
-      <div class="container d-grid" id="threads-list"></div>
+      <div id="category-grid"></div>
+
+      <div id="thread-list-view" class="d-none">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <button id="back-to-categories" class="btn btn-sm btn-outline-secondary">&larr; Categories</button>
+          <h4 id="thread-list-title" class="mb-0"></h4>
+        </div>
+        <div class="container d-grid px-0" id="threads-list"></div>
+      </div>
     </div>
     <script src="supabase.umd.js"></script>
     <script type="module" src="forum/forum.js"></script>
