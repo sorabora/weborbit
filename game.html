@@ -11,6 +11,28 @@
   <body>
     <main>
     </main>
+    <div id="fatalError" hidden>
+      <div class="flex">
+        <div class="container">
+          <h1>The JavaScript VM has crashed.</h1>
+          <img src="Favicon.ico" width="64" height="64">
+        </div>
+        <div class="container">
+          <h1>:(</h1>
+        </div>
+      </div>
+      <div class="flex">
+        <div class="container">
+          <pre id="errorDetails">Error Details:</pre>
+        </div>
+      </div>
+      <div class="flex">
+        <div class="container">
+          <pre id="errorPhase"></pre>
+        </div>
+      </div>
+    </div>
+    <script src="supabase.umd.js"></script>
     <script src="flags.js"></script>
     <script src="sketch.js"></script>
   </body>
