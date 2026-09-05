@@ -1,6 +1,9 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
+const gameVersion = "1.5.2";
+const modVersionSystemSince = "1.5.2";
+
 let scale = 5;
 let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
@@ -18,7 +21,7 @@ let gameFont;
 let eProgress = 0;
 let inCreditsMenu = false;
 let inModLoaderMenu = false;
-let inAnnouncementsMenu = false;
+let inFeaturedModsMenu = false;
 let inKeyBindsMenu = false;
 let careerMissionsOpen = false;
 let techTreeOpen = true;
@@ -37,7 +40,12 @@ let t = 0;
 let elapsed = 0;
 let tt = 0;
 let cd = {};
-let anRes = null;
+let featuredMods = null;
+
+const supabaseClient = window.supabase.createClient(
+  'https://sahuwtqsqbtplyhueokv.supabase.co',
+  'sb_publishable_6dhE2eLPTmmR2K4TJIf7Pg_vxjN6eg7'
+);
 let consoleOpen = false;
 let showHidden = false;
 let balance = 0;
@@ -103,7 +111,7 @@ let c = {
   dockConnect: 4
 }
 
-const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"RCS Engine","size":[60,80],"mass":0.03,"groups":[{"fill":"#666","texture":"LightPlate.avif","points":[[0,10],[20,10],[30,40],[-10,40]]},{"fill":"#666","points":[[0,10],[0,-10],[-30,-20],[-30,20]]},{"fill":"#666","points":[[0,-10],[20.03,-10],[30,-40],[-10,-40]]},{"fill":"#e8e8e8","points":[[0,-10],[20,-10],[20,10],[0,10]]}],"modules":{"RCS Module":{"Thruster Directions":["Top","Bottom","Left","Right"],"Thrust":19,"ISP":220,"Resource":"Kerolox"}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Docking Port","size":[640,320],"mass":0.5,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Docking Module":{"Attractive Force":2,"Disconnect Force":4}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]}]
+const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"RCS Engine","size":[60,80],"mass":0.03,"groups":[{"fill":"#666","texture":"LightPlate.avif","points":[[0,10],[20,10],[30,40],[-10,40]]},{"fill":"#666","points":[[0,10],[0,-10],[-30,-20],[-30,20]]},{"fill":"#666","points":[[0,-10],[20.03,-10],[30,-40],[-10,-40]]},{"fill":"#e8e8e8","points":[[0,-10],[20,-10],[20,10],[0,10]]}],"modules":{"RCS Module":{"Thruster Directions":["Top","Bottom","Left","Right"],"Thrust":19,"ISP":220,"Resource":"Kerolox"}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Docking Port","size":[640,320],"mass":0.5,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Docking Module":{"Attractive Force":2,"Disconnect Force":4}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]},{"format":"xopernicus-partpack","version":1,"name":"WIP Module Test Pack","parts":[{"name":"Variable Test Block","size":[320,320],"mass":0.5,"groups":[{"fill":"#8888ff","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Fuel","Type":"Number","Value":100},{"Name":"Ready","Type":"Boolean","Value":true},{"Name":"Label","Type":"String","Value":"Hello"}]}}},{"name":"Math Display Pod","size":[320,320],"mass":0.4,"groups":[{"fill":"#ffcc44","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"X","Type":"Number","Value":3},{"Name":"Y","Type":"Number","Value":4}]},"Math Module":{"Rows":[{"Expression":"sqrt(X^2 + Y^2)"},{"Expression":"(X + Y) * 2"}]},"GUI Module":{"Trigger":"On Click","Popup":true,"Elements":[{"Type":"Label","Label":"Hypotenuse: {{Math 1}}"},{"Type":"Label","Label":"Sum times 2: {{Math 2}}"}],"Actions":[]}}},{"name":"Logic Gate Block","size":[320,320],"mass":0.4,"groups":[{"fill":"#44cc88","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"A","Type":"Number","Value":5},{"Name":"B","Type":"Number","Value":5}]},"Boolean Logic Module":{"Rows":[{"Left":"A","Comparison":"eq","Right":"B"},{"Left":"A","Comparison":"gt","Right":"10"}]},"GUI Module":{"Trigger":"On Hover","Popup":true,"Elements":[{"Type":"Label","Label":"A equals B: {{Bool 1}}"},{"Type":"Label","Label":"A greater than 10: {{Bool 2}}"}],"Actions":[]}}},{"name":"Timed Charge","size":[320,320],"mass":0.6,"groups":[{"fill":"#ff4444","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Boom","Type":"Boolean","Value":false}]},"Variables Clock Module":{"Functions":[{"Name":"Fuse","Action":[{"actionDropdown":"Wait","Miliseconds":3000},{"actionDropdown":"Set Variable","Variable":{"$var":"Boom"},"Value":"true"}]}]},"Self Destruct Module":{"Trigger":{"$var":"Boom"}},"GUI Module":{"Trigger":"On Click","Popup":false,"Elements":[{"Type":"Label","Label":"Armed: {{Boom}}"},{"Type":"Button","Label":"Arm (3s fuse)","ID":"arm"}],"Actions":[{"ID":"arm","func":"Run Function","Function Name":"Fuse"}]}}},{"name":"Extra Data Logger","size":[320,320],"mass":0.3,"groups":[{"fill":"#aa66ff","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Reading","Type":"Number","Value":42}]},"Math Module":{"Rows":[{"Expression":"Reading * 2"}]},"Extra Data Module":{"Scope":"World","Data":[{"Key":"LoggerReading","Value":{"$var":"Reading"}}]},"GUI Module":{"Trigger":"On Switched to Rocket","Popup":true,"Elements":[{"Type":"Label","Label":"Reading: {{Reading}}"},{"Type":"Label","Label":"Doubled: {{Math 1}}"}],"Actions":[]}}},{"name":"Locked Decoupler","size":[320,160],"mass":0.1,"groups":[{"fill":"#888888","points":[[-160,-80],[160,-80],[160,80],[-160,80]]}],"modules":{"Decoupler Module":{"Separation Force":80},"Disable Action on Click":{}}},{"name":"Bipropellant Tank","size":[640,320],"mass":6,"groups":[{"fill":"#22aacc","texture":"LightPlate.avif","points":[[-320,-160],[320,-160],[320,160],[-320,160]]}],"modules":{"Resource Module":{"Amount":0,"Resource":"Kerolox","More Resources":[{"Resource":"Kerolox","Amount":5},{"Resource":"LOX","Amount":7}]}}},{"name":"Bipropellant Engine","size":[640,560],"mass":1.2,"groups":[{"fill":"#cc2222","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1400,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Ratio":1,"More Resources":[{"Resource":"LOX","Ratio":1.5}],"Flame Scale":1}}},{"name":"Fuse Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff9900","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Hydrolox","Rate (Kg/Sec)":50}}},{"name":"Calculator Block","size":[320,320],"mass":0.4,"groups":[{"fill":"#2f3b52","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"A","Type":"Number","Value":0},{"Name":"B","Type":"Number","Value":0},{"Name":"Op","Type":"String","Value":"+"}]},"Math Module":{"Rows":[{"Expression":"Op == \"+\" ? A + B : (Op == \"-\" ? A - B : (Op == \"*\" ? A * B : (Op == \"/\" ? A / B : 0)))"}]},"Variables Clock Module":{"Functions":[{"Name":"SetAdd","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"+"}]},{"Name":"SetSub","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"-"}]},{"Name":"SetMul","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"*"}]},{"Name":"SetDiv","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"/"}]}]},"GUI Module":{"Trigger":"On Click","Popup":false,"Elements":[{"Type":"Number Input","ID":"A","Label":"A"},{"Type":"Number Input","ID":"B","Label":"B"},{"Type":"Button","ID":"add","Label":"+"},{"Type":"Button","ID":"sub","Label":"-"},{"Type":"Button","ID":"mul","Label":"*"},{"Type":"Button","ID":"div","Label":"/"},{"Type":"Label","Label":"Op: {{Op}}"},{"Type":"Label","Label":"Result: {{Math 1}}"}],"Actions":[{"ID":"add","func":"Run Function","Function Name":"SetAdd"},{"ID":"sub","func":"Run Function","Function Name":"SetSub"},{"ID":"mul","func":"Run Function","Function Name":"SetMul"},{"ID":"div","func":"Run Function","Function Name":"SetDiv"}]}}}]}]
 const u = {
   careerMode: {
     "format": "xopernicus-config",
@@ -600,6 +608,176 @@ function partBBox(part) {
   return part._bbox;
 }
 
+function partReach(part) {
+  if (part._reach) {
+    return part._reach;
+  }
+  const bb = partBBox(part);
+  const solid = part.groups.filter(group => !group.noCollision);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const group of solid.length ? solid : part.groups) {
+    for (const [px, py] of group.points) {
+      minX = Math.min(minX, px);
+      maxX = Math.max(maxX, px);
+      minY = Math.min(minY, py);
+      maxY = Math.max(maxY, py);
+    }
+  }
+  part._reach = {
+    top: bb.cy - minY,
+    bottom: maxY - bb.cy,
+    left: bb.cx - minX,
+    right: maxX - bb.cx
+  };
+  return part._reach;
+}
+
+function parseVersion(v) {
+  return String(v ?? "0").replace(/^[~^<>=]+/, "").split(".").map(n => parseInt(n, 10) || 0);
+}
+
+function compareVersions(a, b) {
+  const pa = parseVersion(a);
+  const pb = parseVersion(b);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] || 0) - (pb[i] || 0);
+    if (diff) {
+      return diff < 0 ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+function satisfiesRange(version, range) {
+  if (!range) {
+    return true;
+  }
+  range = String(range).trim();
+  const v = parseVersion(version);
+  if (range.startsWith("~")) {
+    const base = parseVersion(range);
+    return v[0] === base[0] && v[1] === base[1] && (v[2] || 0) >= (base[2] || 0);
+  }
+  if (range.startsWith("^")) {
+    const base = parseVersion(range);
+    if (base[0] > 0) {
+      return v[0] === base[0] && compareVersions(version, range) >= 0;
+    }
+    if (base[1] > 0) {
+      return v[0] === 0 && v[1] === base[1] && compareVersions(version, range) >= 0;
+    }
+    return v[0] === 0 && v[1] === 0 && (v[2] || 0) === (base[2] || 0);
+  }
+  if (range.startsWith(">=")) {
+    return compareVersions(version, range.slice(2)) >= 0;
+  }
+  if (range.startsWith("<=")) {
+    return compareVersions(version, range.slice(2)) <= 0;
+  }
+  if (range.startsWith(">")) {
+    return compareVersions(version, range.slice(1)) > 0;
+  }
+  if (range.startsWith("<")) {
+    return compareVersions(version, range.slice(1)) < 0;
+  }
+  return compareVersions(version, range) === 0;
+}
+
+async function loadPack(pack, opts = {}) {
+  const name = pack.name || "This mod";
+  if (pack.requiredVersion && !satisfiesRange(gameVersion, pack.requiredVersion)) {
+    if (opts.silent) {
+      console.warn(`Skipped mod "${name}": requires game version ${pack.requiredVersion}, running ${gameVersion}`);
+    } else {
+      alert(`"${name}" requires game version ${pack.requiredVersion}, but you're running ${gameVersion}. It will not be loaded.`);
+    }
+    return false;
+  }
+  if (!opts.silent && pack.recommendedVersion && !satisfiesRange(gameVersion, pack.recommendedVersion)) {
+    const ok = confirm(`"${name}" recommends game version ${pack.recommendedVersion}, but you're running ${gameVersion}. Some things might not work right. Load it anyway?`);
+    if (!ok) {
+      return false;
+    }
+  }
+  loaded.push(pack);
+  if (!opts.silent) {
+    await resolveDependencies(pack);
+  }
+  return true;
+}
+
+async function loadFeaturedMod(data) {
+  const threadId = new URL(data.threadUrl).searchParams.get("id");
+  if (!threadId) {
+    alert(`Couldn't load that mod: no thread id in ${data.threadUrl}`);
+    return;
+  }
+  try {
+    const { data: rows, error } = await supabaseClient.rpc("get_thread", { p_thread_id: threadId });
+    if (error) {
+      throw new Error(error.message);
+    }
+    const thread = rows?.[0];
+    if (!thread?.mod_url) {
+      throw new Error("thread has no mod_url");
+    }
+    const res = await fetch(thread.mod_url);
+    if (!res.ok) {
+      throw new Error(`${res.status} ${res.statusText}`);
+    }
+    const pack = await res.json();
+    if (await loadPack(pack)) {
+      await loadPartTextures();
+      alert(`Loaded mod! "${pack.name || data.title}" by ${thread.username ?? "Unknown"}`);
+    }
+  } catch (err) {
+    alert(`Couldn't load that mod: ${err.message}`);
+  }
+}
+
+async function fetchDependency(dep) {
+  const res = await fetch(dep.url);
+  if (!res.ok) {
+    throw new Error(`${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+async function resolveDependencies(pack) {
+  for (const dep of pack.dependencies || []) {
+    if (!dep.url) {
+      continue;
+    }
+    let fetched;
+    try {
+      fetched = await fetchDependency(dep);
+    } catch (err) {
+      const wants = confirm(`"${pack.name || "This mod"}" depends on a mod at ${dep.url}, but it couldn't be fetched (${err.message}). Paste its JSON instead?`);
+      if (!wants) {
+        continue;
+      }
+      const answer = prompt(`Paste JSON for the mod at ${dep.url}`);
+      if (!answer) {
+        continue;
+      }
+      try {
+        fetched = JSON.parse(answer);
+      } catch (err2) {
+        alert(`Couldn't parse that part pack: ${err2.message}`);
+        continue;
+      }
+    }
+    if (loaded.find(p => p.name === fetched.name)) {
+      continue;
+    }
+    const wants = confirm(`"${pack.name || "This mod"}" depends on "${fetched.name || dep.url}"${fetched.modVersion ? " " + fetched.modVersion : ""}, which isn't loaded. Load it now?`);
+    if (!wants) {
+      continue;
+    }
+    await loadPack(fetched);
+  }
+}
+
 async function loadPartTextures() {
   const wanted = new Set();
   for (const pack of loaded) {
@@ -877,6 +1055,12 @@ function drawPart(part, sx, sy, s, opts = {}) {
     if (group.cutout) {
       continue;
     }
+    if (opts.layer === "back" && group.foreground) {
+      continue;
+    }
+    if (opts.layer === "front" && !group.foreground) {
+      continue;
+    }
     const groupFx = (fx.groups || {})[gi] || {};
     const stretch =
       groupFx.Width === undefined && groupFx.Height === undefined
@@ -913,14 +1097,12 @@ function opposite(side) {
 }
 
 function attachPoint(inst, side) {
-  const bb = partBBox(inst.part);
-  const halfW = (bb.w / 2) * vab.scale;
-  const halfH = (bb.h / 2) * vab.scale;
+  const reach = partReach(inst.part);
   const base = {
-    top: [0, -halfH],
-    bottom: [0, halfH],
-    left: [-halfW, 0],
-    right: [halfW, 0]
+    top: [0, -reach.top * vab.scale],
+    bottom: [0, reach.bottom * vab.scale],
+    left: [-reach.left * vab.scale, 0],
+    right: [reach.right * vab.scale, 0]
   }[side];
   const a = (inst.rot || 0) * HALF_PI;
   const cos = Math.cos(a);
@@ -1200,6 +1382,9 @@ function pointInPart(inst, mx, my) {
   const lx = dx * cos - dy * sin + bb.cx;
   const ly = dx * sin + dy * cos + bb.cy;
   for (const group of inst.part.groups) {
+    if (group.noCollision) {
+      continue;
+    }
     if (pointInPolygon(lx, ly, group.points)) {
       return true;
     }
@@ -1308,8 +1493,8 @@ function drawMainMenu() {
     575,
     250,
     125,
-    { id: "menu-announcements", ...menuStyle },
-    anRes ? `Announcements (${anRes.data.length})` : "Announcements"
+    { id: "menu-featured-mods", ...menuStyle },
+    featuredMods ? `Featured Mods (${featuredMods.length})` : "Featured Mods"
   );
   GUIAPI.button(
     width / 2,
@@ -1367,7 +1552,7 @@ function drawModLoaderMenu() {
   for (let i = 0; i < loaded.length; i++) {
     const pack = loaded[i];
     GUIAPI.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
-    GUIAPI.label(`v${pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
+    GUIAPI.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
   }
 
   const close = GUIAPI.row(85);
@@ -1388,45 +1573,50 @@ function drawModLoaderMenu() {
 
 async function getData() {
   try {
-    const response = await fetch("https://d1p5zy7ykyy2fz.cloudfront.net/api/discussions?filter[tag]=announcements&sort=-createdAt&include=firstPost");
-    
+    const response = await fetch("https://raw.githubusercontent.com/sorabora/Centralorbit/main/FEATURED_MODS.json");
+
     if (!response.ok) {
-      console.warn(`announcements: HTTP ${response.status}`);
+      console.warn(`featured mods: HTTP ${response.status}`);
       return null;
     }
 
     const res = await response.json();
     return res;
   } catch (e) {
-    console.warn("announcements won't load:", e);
+    console.warn("featured mods won't load:", e);
     return null;
   }
 }
 
-function drawAnnouncementsMenu() {
+const featuredTierLabels = {
+  1: "★☆☆ Featured",
+  2: "★★☆ Exceptional",
+  3: "★★★ Flagship"
+};
+
+function drawFeaturedModsMenu() {
   GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-  GUIAPI.label("Announcements", { size: 28, align: CENTER, height: 40 });
+  GUIAPI.label("Featured Mods", { size: 28, align: CENTER, height: 40 });
 
   let i = 0;
-  for (const an of anRes?.data ?? []) {
+  for (const mod of featuredMods ?? []) {
     if (i <= 10) {
-      GUIAPI.button(width / 2 - 250 , 225 + i * 60, 500, 50, {
-        id: "announcement-" + an.id,
+      GUIAPI.button(width / 2 - 275 , 225 + i * 90, 550, 80, {
+        id: "featured-mod-" + i,
         data: {
-          t: an.id,
-          slug: an.attributes.slug,
-          createdAt: an.attributes.createdAt,
-          type: "an"
+          threadUrl: mod.threadUrl,
+          title: mod.title,
+          type: "featured-mod"
         },
         baseColor: "#1f4f8f",
         hoverColor: "#2a6ac0",
         activeColor: "#173d70"
-      }, an.attributes.title);
+      }, `${mod.title}  ${featuredTierLabels[mod.tier] ?? ""}`);
       i++;
     }
   };
-  GUIAPI.button(width / 2 - 250 , 225 + i * 60, 500, 50, {
-    id: "announcements-close",
+  GUIAPI.button(width / 2 - 275 , 225 + i * 90, 550, 80, {
+    id: "featured-mods-close",
     baseColor: "#1f398f",
     hoverColor: "#2a32c0",
     activeColor: "#1a1770"
@@ -1946,9 +2136,15 @@ function planManeuver(ship, other, ph, el1, el2, parent, mu) {
   if (periNear !== apoNear) {
     const toPeri = periNear;
     const arriveR = toPeri ? ph.periapsis : ph.apoapsis;
-    const coast = toPeri ? ph.timeToPeriapsis : ph.timeToApoapsis;
+    let coast = toPeri ? ph.timeToPeriapsis : ph.timeToApoapsis;
     if (!Number.isFinite(coast)) {
       return null;
+    }
+    // sitting on the apsis right now means the next pass is a full lap away,
+    // not zero: without this the capture fires instantly and cancels the burn
+    // that was just made, which loops forever
+    if (coast < 1) {
+      coast += ph.period;
     }
     const arriveSpeed = Math.sqrt(mu * (2 / arriveR - 1 / ph.a));
     return { t: t + coast, dv: Math.sqrt(mu / arriveR) - arriveSpeed, label: "capture", r: arriveR, ...sig };
@@ -1960,24 +2156,47 @@ function planManeuver(ship, other, ph, el1, el2, parent, mu) {
       return null;
     }
     const r1 = el1.r;
-    let phaseT = ((el1.angle - el2.angle) % TWO_PI) / w2;
-    let a2 = 0;
-    let far = 0;
-    for (let k = 0; k < 8; k++) {
-      if (phaseT > 0) {
-        a2 = Math.cbrt(mu * (phaseT / TWO_PI) ** 2);
-        far = 2 * a2 - r1;
-        if (far > parent.size * 1.05) {
-          break;
+    const targetPeriod = TWO_PI / Math.abs(w2);
+    let gap = (el1.angle - el2.angle) % TWO_PI;
+    if (gap < 0) {
+      gap += TWO_PI;
+    }
+    // closing the gap over more laps means an orbit closer to the one already
+    // flown, which is drastically cheaper: a 20 degree gap costs ~12 m/s over
+    // 12 laps against ~350 m/s trying to force it in one
+    let best = null;
+    for (let laps = 1; laps <= 12; laps++) {
+      for (let k = 0; k <= laps + 1; k++) {
+        const total = gap / Math.abs(w2) + k * targetPeriod;
+        const loop = total / laps;
+        if (loop <= 0) {
+          continue;
+        }
+        const a2 = Math.cbrt(mu * (loop / TWO_PI) ** 2);
+        if (2 * a2 - r1 <= parent.size * 1.05) {
+          continue;
+        }
+        const score = Math.abs(loop - ph.period);
+        if (!best || score < best.score) {
+          best = { score, a2, total, laps };
         }
       }
-      phaseT += TWO_PI / Math.abs(w2);
     }
-    if (!(far > parent.size * 1.05)) {
+    if (!best) {
       return null;
     }
-    const vPhase = Math.sqrt(mu * (2 / r1 - 1 / a2));
-    return { t, dv: vPhase - el1.speed, label: "burn", r: r1, live: true, ...sig };
+    const vPhase = Math.sqrt(mu * (2 / r1 - 1 / best.a2));
+    return {
+      t,
+      dv: vPhase - el1.speed,
+      label: "burn",
+      r: r1,
+      live: true,
+      captureT: t + best.total,
+      laps: best.laps,
+      expectA: best.a2,
+      ...sig
+    };
   }
 
   // burn at an apsis so the burn radius is a fixed property of the orbit
@@ -2022,6 +2241,22 @@ function activeNode(ship) {
   }
 
   const node = ship.node;
+  if (node && node.target === rendezvousTarget && node.captureT && node.expectA &&
+      Math.abs(ph.a - node.expectA) / node.expectA < 5e-3) {
+    // the burn this node asked for has been flown, by hand or automated, so
+    // the capture it was solved for is now committed rather than re-derived
+    const chained = {
+      t: node.captureT,
+      dv: -node.dv,
+      label: "capture",
+      r: node.r,
+      a: ph.a,
+      e: ph.e,
+      target: rendezvousTarget
+    };
+    ship.node = chained;
+    return chained;
+  }
   if (node && node.target === rendezvousTarget && !node.live && !nodeOrbitChanged(ph, node)) {
     // a capture recurs every lap, so a missed one just rolls to the next
     while (node.label === "capture" && node.t < t - 1) {
@@ -2350,13 +2585,17 @@ function drawVab() {
   line(midX, 0, midX, height);
   for (const inst of vab.parts) {
     if (!dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { rot: inst.rot });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { rot: inst.rot, layer: "back" });
     }
   }
   for (const inst of vab.parts) {
     if (dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha: 0.9, rot: inst.rot });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha: 0.9, rot: inst.rot, layer: "back" });
     }
+  }
+  for (const inst of vab.parts) {
+    const alpha = dragSet.has(inst) ? 0.9 : 1;
+    drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha, rot: inst.rot, layer: "front" });
   }
 
   if (!vab.drag && mouseX >= panelW) {
@@ -2476,7 +2715,9 @@ function partCost(part) {
     total += m["Engine Module"].Thrust * cost.thrust + cost.isp * Math.pow(m["Engine Module"].ISP / 300, cost.ispPower);
   }
   if (m["Resource Module"]) {
-    total += m["Resource Module"].Amount * (cost.resource[m["Resource Module"].Resource] ?? 50);
+    for (const p of tankResources(m["Resource Module"])) {
+      total += p.amount * (cost.resource[p.resource] ?? 50);
+    }
   }
   if (m["Controller Module"]) total += m["Controller Module"].Torque * cost.torque;
   if (m["Parachute Module"]) total += m["Parachute Module"].Drag * cost.drag;
@@ -2502,15 +2743,26 @@ function stackMass() {
 
 let defaultResource = "Kerolox";
 
-// Resources: [{ Resource, Ratio }, ...] is an optional multi-propellant list; when
-// absent, engines fall back to the legacy single Resource string for backwards compat.
+// Resource/Ratio is the engine's main propellant; More Resources: [{ Resource, Ratio }, ...]
+// is an optional list of extra ones drawn alongside it in the same mix, split by ratio.
 function engineResources(engine) {
-  const list = engine["More Resources"];
+  const rows = [
+    { resource: engine.Resource || defaultResource, ratio: engine.Ratio || 1 },
+    ...(Array.isArray(engine["More Resources"]) ? engine["More Resources"] : [])
+      .map(p => ({ resource: p.Resource || defaultResource, ratio: p.Ratio || 0 }))
+  ];
+  const total = rows.reduce((sum, p) => sum + p.ratio, 0) || 1;
+  return rows.map(p => ({ resource: p.resource, ratio: p.ratio / total }));
+}
+
+// More Resources: [{ Resource, Amount }, ...] is an optional multi-tank list; when
+// absent, tanks fall back to the legacy single Resource/Amount fields for backwards compat.
+function tankResources(tank) {
+  const list = tank["More Resources"];
   if (Array.isArray(list) && list.length) {
-    const total = list.reduce((sum, p) => sum + (p.Ratio || 0), 0) || 1;
-    return list.map(p => ({ resource: p.Resource || defaultResource, ratio: (p.Ratio || 0) / total }));
+    return list.map(p => ({ resource: p.Resource || defaultResource, amount: p.Amount || 0 }));
   }
-  return [{ resource: engine.Resource || defaultResource, ratio: 1 }];
+  return [{ resource: tank.Resource || defaultResource, amount: tank.Amount || 0 }];
 }
 
 function stackFuel() {
@@ -2518,8 +2770,9 @@ function stackFuel() {
   for (const inst of vab.parts) {
     const resource = (inst.part.modules || {})["Resource Module"];
     if (resource) {
-      const name = resource.Resource || defaultResource;
-      tanks[name] = (tanks[name] || 0) + (resource.Amount || 0);
+      for (const p of tankResources(resource)) {
+        tanks[p.resource] = (tanks[p.resource] || 0) + p.amount;
+      }
     }
   }
   return tanks;
@@ -2531,6 +2784,386 @@ function totalFuel(tanks) {
     total += tanks[name];
   }
   return total;
+}
+
+const mathFuncs = {
+  abs: Math.abs, sign: Math.sign, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+  trunc: Math.trunc, sqrt: Math.sqrt, cbrt: Math.cbrt, pow: Math.pow, exp: Math.exp,
+  log: Math.log, log2: Math.log2, log10: Math.log10, sin: Math.sin, cos: Math.cos,
+  tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan, atan2: Math.atan2,
+  hypot: Math.hypot, min: Math.min, max: Math.max, random: Math.random,
+  clamp: (v, lo, hi) => Math.min(Math.max(v, lo), hi),
+  lerp: (a, b, f) => a + (b - a) * f
+};
+const mathConsts = { pi: Math.PI, tau: Math.PI * 2, e: Math.E };
+
+function tokenizeFormula(src) {
+  const toks = [];
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      let j = i;
+      while (j < src.length && /[0-9.]/.test(src[j])) j++;
+      toks.push({ t: "num", v: parseFloat(src.slice(i, j)) });
+      i = j; continue;
+    }
+    if (/[A-Za-z_]/.test(ch)) {
+      let j = i;
+      while (j < src.length && /[A-Za-z0-9_]/.test(src[j])) j++;
+      toks.push({ t: "id", v: src.slice(i, j) });
+      i = j; continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < src.length && src[j] !== '"') j++;
+      toks.push({ t: "str", v: src.slice(i + 1, j) });
+      i = j + 1; continue;
+    }
+    const two = src.slice(i, i + 2);
+    if (["==", "!=", "<=", ">=", "&&", "||"].includes(two)) {
+      toks.push({ t: "op", v: two }); i += 2; continue;
+    }
+    if ("+-*/%^()?:,<>!".includes(ch)) {
+      toks.push({ t: "op", v: ch }); i++; continue;
+    }
+    i++;
+  }
+  return toks;
+}
+
+function parseFormula(toks) {
+  let pos = 0;
+  const peek = () => toks[pos];
+  const next = () => toks[pos++];
+  const isOp = (tok, v) => !!tok && tok.t === "op" && tok.v === v;
+  const binaryLevel = (sub, ops) => () => {
+    let left = sub();
+    while (peek() && peek().t === "op" && ops[peek().v]) {
+      const op = ops[next().v];
+      const right = sub();
+      const l = left;
+      left = scope => op(l(scope), right(scope));
+    }
+    return left;
+  };
+  function parseExpr() {
+    const cond = parseOr();
+    if (isOp(peek(), "?")) {
+      next();
+      const a = parseExpr();
+      next();
+      const b = parseExpr();
+      return scope => (cond(scope) ? a(scope) : b(scope));
+    }
+    return cond;
+  }
+  const parseOr = binaryLevel(() => parseAnd(), { "||": (a, b) => a || b });
+  const parseAnd = binaryLevel(() => parseEq(), { "&&": (a, b) => a && b });
+  const parseEq = binaryLevel(() => parseRel(), { "==": (a, b) => a === b, "!=": (a, b) => a !== b });
+  const parseRel = binaryLevel(() => parseAdd(), {
+    "<": (a, b) => a < b, "<=": (a, b) => a <= b, ">": (a, b) => a > b, ">=": (a, b) => a >= b
+  });
+  const parseAdd = binaryLevel(() => parseMul(), { "+": (a, b) => a + b, "-": (a, b) => a - b });
+  const parseMul = binaryLevel(() => parsePow(), {
+    "*": (a, b) => a * b, "/": (a, b) => a / b, "%": (a, b) => a % b
+  });
+  function parsePow() {
+    const left = parseUnary();
+    if (isOp(peek(), "^")) {
+      next();
+      const right = parsePow();
+      return scope => Math.pow(left(scope), right(scope));
+    }
+    return left;
+  }
+  function parseUnary() {
+    if (isOp(peek(), "-")) { next(); const e = parseUnary(); return scope => -e(scope); }
+    if (isOp(peek(), "!")) { next(); const e = parseUnary(); return scope => !e(scope); }
+    return parsePrimary();
+  }
+  function parsePrimary() {
+    const tok = next();
+    if (!tok) return () => 0;
+    if (tok.t === "num") return () => tok.v;
+    if (tok.t === "str") return () => tok.v;
+    if (isOp(tok, "(")) {
+      const e = parseExpr();
+      next();
+      return e;
+    }
+    if (tok.t === "id") {
+      if (isOp(peek(), "(")) {
+        next();
+        const args = [];
+        if (!isOp(peek(), ")")) {
+          args.push(parseExpr());
+          while (isOp(peek(), ",")) { next(); args.push(parseExpr()); }
+        }
+        next();
+        const fn = mathFuncs[tok.v];
+        return scope => (fn ? fn(...args.map(a => a(scope))) : 0);
+      }
+      if (tok.v in mathConsts) {
+        const val = mathConsts[tok.v];
+        return () => val;
+      }
+      const name = tok.v;
+      return scope => scope[name];
+    }
+    return () => 0;
+  }
+  return parseExpr();
+}
+
+function evalFormula(expr, scope) {
+  try {
+    return parseFormula(tokenizeFormula(String(expr ?? "")))(scope);
+  } catch (e) {
+    return 0;
+  }
+}
+
+function isBinding(value) {
+  return !!value && typeof value === "object" && typeof value.$var === "string";
+}
+
+function resolveField(entry, value, seen) {
+  if (!isBinding(value)) {
+    return value;
+  }
+  seen = seen || new Set();
+  if (seen.has(value.$var)) {
+    return undefined;
+  }
+  seen.add(value.$var);
+  return resolveField(entry, partVars(entry)[value.$var], seen);
+}
+
+function initVars(entry) {
+  const mod = (entry.part.modules || {})["Variables Module"];
+  const vars = {};
+  for (const row of (mod && mod.Variables) || []) {
+    if (row.Name) {
+      vars[row.Name] = row.Value;
+    }
+  }
+  return vars;
+}
+
+function partVars(entry) {
+  if (!entry.vars) {
+    entry.vars = initVars(entry);
+  }
+  return entry.vars;
+}
+
+function moduleScope(entry) {
+  const scope = { ...partVars(entry) };
+  for (const mod of Object.values(entry.part.modules || {})) {
+    for (const [key, value] of Object.entries(mod)) {
+      if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") {
+        scope[key.replace(/ /g, "")] = resolveField(entry, value);
+      }
+    }
+  }
+  return scope;
+}
+
+function interpolate(str, scope) {
+  return String(str ?? "").replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_, name) => scope[name] ?? "");
+}
+
+function parseLogicValue(v) {
+  if (v === undefined) {
+    return v;
+  }
+  const n = Number(v);
+  return v !== "" && !Number.isNaN(n) ? n : v;
+}
+
+function firstList(mod) {
+  for (const value of Object.values(mod || {})) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+  return [];
+}
+
+function runMathModule(entry) {
+  const mod = (entry.part.modules || {})["Math Module"];
+  if (!mod) {
+    return;
+  }
+  const scope = moduleScope(entry);
+  firstList(mod).forEach((row, i) => {
+    partVars(entry)["Math " + (i + 1)] = evalFormula(row.Expression, scope);
+  });
+}
+
+const booleanOps = {
+  lt: (a, b) => a < b, lte: (a, b) => a <= b, eq: (a, b) => a === b,
+  gte: (a, b) => a >= b, gt: (a, b) => a > b
+};
+
+function runBooleanModule(entry) {
+  const mod = (entry.part.modules || {})["Boolean Logic Module"];
+  if (!mod) {
+    return;
+  }
+  const scope = moduleScope(entry);
+  firstList(mod).forEach((row, i) => {
+    const test = booleanOps[row.Comparison] || booleanOps.eq;
+    partVars(entry)["Bool " + (i + 1)] = test(evalFormula(row.Left, scope), evalFormula(row.Right, scope));
+  });
+}
+
+function runExtraDataModule(rocket, entry) {
+  const mod = (entry.part.modules || {})["Extra Data Module"];
+  if (!mod) {
+    return;
+  }
+  const store = mod.Scope === "World"
+    ? (worldData.data || (worldData.data = {}))
+    : mod.Scope === "Planet"
+      ? (getBody(rocket.parentBody).extraData || (getBody(rocket.parentBody).extraData = {}))
+      : (rocket.extraData || (rocket.extraData = {}));
+  for (const row of mod.Data || []) {
+    if (row.Key) {
+      store[row.Key] = resolveField(entry, row.Value);
+    }
+  }
+}
+
+const worldData = {};
+
+function applyClockAction(entry, action) {
+  const vars = partVars(entry);
+  const name = isBinding(action.Variable) ? action.Variable.$var : undefined;
+  if (action.actionDropdown === "Set Variable" && name) {
+    vars[name] = parseLogicValue(action.Value);
+  } else if (action.actionDropdown === "Change Variable" && name) {
+    vars[name] = (Number(vars[name]) || 0) + (Number(parseLogicValue(action.Value)) || 0);
+  } else if (action.actionDropdown === "Toggle Part") {
+    entry.on = !entry.on;
+  }
+}
+
+function runClockFunction(entry, name) {
+  const mod = (entry.part.modules || {})["Variables Clock Module"];
+  const fn = mod && (mod.Functions || []).find(f => f.Name === name);
+  if (!fn) {
+    return;
+  }
+  if (!entry._clock) {
+    entry._clock = {};
+  }
+  entry._clock[name] = { actions: fn.Action || [], i: 0, wait: 0 };
+}
+
+function tickClocks(entry, dt) {
+  if (!entry._clock) {
+    return;
+  }
+  for (const name in entry._clock) {
+    const state = entry._clock[name];
+    if (state.wait > 0) {
+      state.wait -= dt * 1000;
+      continue;
+    }
+    if (state.i >= state.actions.length) {
+      delete entry._clock[name];
+      continue;
+    }
+    const action = state.actions[state.i];
+    if (action.actionDropdown === "Wait") {
+      state.wait = action.Miliseconds || 0;
+    } else {
+      applyClockAction(entry, action);
+    }
+    state.i++;
+  }
+}
+
+function runSelfDestruct(rocket, entry) {
+  const mod = (entry.part.modules || {})["Self Destruct Module"];
+  if (!mod || rocket.destroyed) {
+    return;
+  }
+  if (resolveField(entry, Object.values(mod)[0])) {
+    cd.body = rocket.parentBody;
+    cd.speed = 0;
+    cd.limit = 0;
+    cd.time = t;
+    rocket.destroyed = true;
+  }
+}
+
+function runFuelpipes(rocket, dt) {
+  for (const entry of rocket.stack.parts) {
+    const pipe = (entry.part.modules || {})["Fuelpipe Module"];
+    if (!pipe) {
+      continue;
+    }
+    const input = pipe["Input Fuel"];
+    const output = pipe["Output Fuel"];
+    const rate = pipe["Rate (Kg/Sec)"] || 0;
+    if (!input || !output || rate <= 0) {
+      continue;
+    }
+    const drained = pipeDrain(rocket, input, rate * dt);
+    pipeDeposit(rocket, output, drained);
+  }
+}
+
+function pipeDrain(rocket, resource, want) {
+  const sources = rocket.stack.parts.filter(e => (e.tanks || {})[resource] > 0);
+  const avail = sources.reduce((sum, e) => sum + e.tanks[resource], 0);
+  let left = Math.min(avail, want);
+  const drained = left;
+  for (const e of sources) {
+    if (left <= 0) {
+      break;
+    }
+    const take = Math.min(e.tanks[resource], left);
+    e.tanks[resource] -= take;
+    left -= take;
+  }
+  return drained - left;
+}
+
+function pipeDeposit(rocket, resource, amount) {
+  if (amount <= 0) {
+    return;
+  }
+  const targets = rocket.stack.parts.filter(e => (e.tanksMax || {})[resource] > 0);
+  let left = amount;
+  for (const e of targets) {
+    if (left <= 0) {
+      break;
+    }
+    const room = (e.tanksMax[resource] || 0) - (e.tanks[resource] || 0);
+    const add = Math.min(room, left);
+    e.tanks[resource] = (e.tanks[resource] || 0) + add;
+    left -= add;
+  }
+}
+
+function runPartLogic(dt) {
+  for (const rocket of rockets) {
+    if (!rocket.stack) {
+      continue;
+    }
+    for (const entry of rocket.stack.parts) {
+      runMathModule(entry);
+      runBooleanModule(entry);
+      runExtraDataModule(rocket, entry);
+      tickClocks(entry, dt);
+      runSelfDestruct(rocket, entry);
+    }
+  }
 }
 
 function stageBreakdown() {
@@ -2896,8 +3529,9 @@ async function gameLoad(text) {
       const key = JSON.stringify(pack);
       if (!known.has(key)) {
         known.add(key);
-        loaded.push(pack);
-        addedMods = true;
+        if (await loadPack(pack, { silent: true })) {
+          addedMods = true;
+        }
       }
     }
     if (addedMods) {
@@ -3383,7 +4017,7 @@ async function executeLowPriority() {
     });
   }
 
-  anRes = await getData();
+  featuredMods = await getData();
 }
 
 function getBody(id) {
@@ -3505,7 +4139,7 @@ function format(unit, value) {
   }
 }
 
-const STEFAN_BOLTZMANN = 5.670374e-8;
+const stefanBoltzmann = 5.670374e-8;
 
 function calculateTemperature() {
   const rocket = rockets.find(rocket => rocket.id === target);
@@ -3527,7 +4161,7 @@ function ambientTemperature(rocket) {
   }
 
   const albedo = rocket.albedo || 0;
-  const equilibriumTemp = Math.pow(((1 - albedo) * flux) / (4 * STEFAN_BOLTZMANN), 0.25);
+  const equilibriumTemp = Math.pow(((1 - albedo) * flux) / (4 * stefanBoltzmann), 0.25);
 
   const rawAlt = distanceTo(rocket, body) - body.size;
   const alt = hasSurface(body) ? Math.max(rawAlt, 0) : rawAlt;
@@ -3559,7 +4193,7 @@ function updateRocketTemp(rocket, dt) {
   }
 
   const targetTemp = Math.pow(
-    Math.pow(ambient, 4) + (flux * c.reentryHeatFactor) / STEFAN_BOLTZMANN,
+    Math.pow(ambient, 4) + (flux * c.reentryHeatFactor) / stefanBoltzmann,
     0.25
   );
   const blend = 1 - Math.exp(-c.reentryCoolRate * dt);
@@ -3775,10 +4409,13 @@ function fillTanks(stack, trim) {
     if (!tank) {
       continue;
     }
-    const name = tank.Resource || defaultResource;
-    const held = (tank.Amount || 0) * c.kgPerTon * trim;
-    entry.tanks = { [name]: held };
-    entry.tanksMax = { [name]: held };
+    entry.tanks = {};
+    entry.tanksMax = {};
+    for (const p of tankResources(tank)) {
+      const held = p.amount * c.kgPerTon * trim;
+      entry.tanks[p.resource] = (entry.tanks[p.resource] || 0) + held;
+      entry.tanksMax[p.resource] = (entry.tanksMax[p.resource] || 0) + held;
+    }
   }
 }
 
@@ -3955,6 +4592,7 @@ function burnFuel(rocket, h) {
   if (!rocket.stack || !rocket.tanks) {
     return;
   }
+  runFuelpipes(rocket, h);
   const draws = [...engineOutput(rocket).draws, ...rcsOutput(rocket).draws];
   for (const draw of draws) {
     const want = draw.rate * h;
@@ -4172,6 +4810,9 @@ function flightPartAt(rocket, mx, my) {
     const px = rx * Math.cos(ra) - ry * Math.sin(ra) + bb.cx;
     const py = rx * Math.sin(ra) + ry * Math.cos(ra) + bb.cy;
     for (const group of entry.part.groups) {
+      if (group.noCollision) {
+        continue;
+      }
       if (pointInPolygon(px, py, group.points)) {
         return entry;
       }
@@ -4193,8 +4834,9 @@ function stackHalf(entries) {
     wet += (e.part.mass || 0) * c.kgPerTon;
     const tank = (e.part.modules || {})["Resource Module"];
     if (tank) {
-      const name = tank.Resource || defaultResource;
-      cap[name] = (cap[name] || 0) + (tank.Amount || 0) * c.kgPerTon;
+      for (const p of tankResources(tank)) {
+        cap[p.resource] = (cap[p.resource] || 0) + p.amount * c.kgPerTon;
+      }
     }
   }
   const cx = (minX + maxX) / 2;
@@ -5010,6 +5652,73 @@ function runAnimations(dt) {
   updateThreads(dt);
 }
 
+let prevGuiTarget = null;
+
+function drawPartGUIs() {
+  const rocket = flyingRocket();
+  if (inVab || inMap || !rocket || !rocket.stack) {
+    return;
+  }
+  const switched = target !== prevGuiTarget;
+  prevGuiTarget = target;
+  const hovered = flightPartAt(rocket, mouseX, mouseY);
+  rocket.stack.parts.forEach((entry, i) => {
+    const gui = (entry.part.modules || {})["GUI Module"];
+    if (!gui) {
+      return;
+    }
+    if (gui.Trigger === "On Switched to Rocket" && switched) {
+      entry.guiOpen = true;
+    }
+    if (gui.Trigger === "On Hover") {
+      entry.guiOpen = entry === hovered;
+    }
+    if (entry.guiOpen) {
+      renderGuiWindow(entry, gui, i);
+    }
+  });
+}
+
+function renderGuiWindow(entry, gui, idx) {
+  const sx = 260;
+  const sy = 46 + 28 * ((gui.Elements || []).length + 1);
+  if (!entry.guiPos) {
+    entry.guiPos = { x: (width - sx) / 2 + idx * 24, y: (height - sy) / 2 + idx * 24 };
+  }
+  const offsetX = gui.Popup ? 0 : entry.guiPos.x - (width - sx) / 2;
+  const offsetY = gui.Popup ? 0 : entry.guiPos.y - (height - sy) / 2;
+  const panel = GUIAPI.panel(sx, sy, { borderColor: "#555", offsetX, offsetY }, entry.part.name);
+  GUIAPI.button(panel.x + sx - 26, panel.y + 6, 20, 20, { id: "gui-close-" + idx, baseColor: "#733" }, "x");
+
+  const scope = moduleScope(entry);
+  for (const el of gui.Elements || []) {
+    if (el.Type === "Label") {
+      GUIAPI.label(interpolate(el.Label, scope));
+    } else if (el.Type === "Button") {
+      const r = GUIAPI.row(26);
+      GUIAPI.button(r.x, r.y, r.sx, r.sy, { id: "gui-btn-" + idx + "::" + el.ID }, el.Label || el.ID);
+    } else if (el.Type === "String Input" || el.Type === "Number Input") {
+      const r = GUIAPI.row(26);
+      GUIAPI.button(r.x, r.y, r.sx, r.sy, { id: "gui-input-" + idx + "::" + el.ID },
+        (el.Label || el.ID) + ": " + (partVars(entry)[el.ID] ?? ""));
+    }
+  }
+
+  if (!gui.Popup && GUIAPI.contains(panel.x, panel.y, sx, 28)) {
+    if (mouseIsPressed) {
+      if (!entry._guiDrag) {
+        entry._guiDrag = { dx: mouseX - entry.guiPos.x, dy: mouseY - entry.guiPos.y };
+      }
+      entry.guiPos.x = mouseX - entry._guiDrag.dx;
+      entry.guiPos.y = mouseY - entry._guiDrag.dy;
+    } else {
+      entry._guiDrag = null;
+    }
+  } else if (!mouseIsPressed) {
+    entry._guiDrag = null;
+  }
+}
+
 function reentryGlowColor(tempC) {
   const stops = [
     [800, [255, 40, 0]],
@@ -5317,7 +6026,7 @@ function drawRocket(rocket, cur) {
   const rcsFiring = rcsOutput(rocket).firing;
   for (let i = 0; i < rocket.stack.parts.length; i++) {
     const entry = rocket.stack.parts[i];
-    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot });
+    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "back" });
     drawEntities(entry, s);
     const engine = entry.part.modules["Engine Module"];
     let hasFuel = false;
@@ -5402,6 +6111,9 @@ function drawRocket(rocket, cur) {
       }
     }
   }
+  for (const entry of rocket.stack.parts) {
+    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "front" });
+  }
   pop();
 }
 
@@ -5434,6 +6146,7 @@ function draw() {
   flightControls();
 
   runAnimations(1 / frameRate());
+  runPartLogic(1 / frameRate());
 
   if (warpUntil !== null) {
     const remaining = warpUntil - t;
@@ -5575,8 +6288,8 @@ function draw() {
     if (inModLoaderMenu) {
       drawModLoaderMenu();
     }
-    if (inAnnouncementsMenu) {
-      drawAnnouncementsMenu();
+    if (inFeaturedModsMenu) {
+      drawFeaturedModsMenu();
     }
     if (inKeyBindsMenu) {
       drawKeyBindsMenu();
@@ -5642,8 +6355,12 @@ function draw() {
 
   runHook("draw:main", { rocket: curRocket, camera });
   textSize(12);
-  fill("white");
-  text("v1.5.1 [Public Pre-Release]", width - 120, height - 40);
+  if (inMainMenu) {
+    fill("black")
+    rect(width - 195, height - 65, 150, 50)
+  }
+  fill("gold");
+  text(`v${gameVersion} [GOLD]`, width - 120, height - 40);
 
   if (careerMode) {
     drawCostBox();
@@ -5704,8 +6421,10 @@ function draw() {
     }, "Close");
   }
 
+  drawPartGUIs();
+
   runHook("draw:absolute", { rocket: curRocket, camera });
-  
+
   if (developerMode) {
     fill("Red");
     circle(10, 10, 5);
@@ -6213,9 +6932,35 @@ function buttonOnClick(button) {
   const sy = button.sy;
 
   if (data && data.type) {
-    if (data.type === "an") {
-      console.log(data.slug)
-      open("https://d1p5zy7ykyy2fz.cloudfront.net/blog/" + data.slug)
+    if (data.type === "featured-mod") {
+      loadFeaturedMod(data);
+    }
+  }
+
+  if (id && id.startsWith("gui-close-")) {
+    const rocket = flyingRocket();
+    const entry = rocket && rocket.stack.parts[Number(id.slice("gui-close-".length))];
+    if (entry) {
+      entry.guiOpen = false;
+    }
+  } else if (id && id.startsWith("gui-btn-")) {
+    const [idxStr, elId] = id.slice("gui-btn-".length).split("::");
+    const rocket = flyingRocket();
+    const entry = rocket && rocket.stack.parts[Number(idxStr)];
+    const gui = entry && (entry.part.modules || {})["GUI Module"];
+    const action = gui && (gui.Actions || []).find(a => a.ID === elId);
+    if (action && action.func === "Run Function" && action["Function Name"]) {
+      runClockFunction(entry, action["Function Name"]);
+    }
+  } else if (id && id.startsWith("gui-input-")) {
+    const [idxStr, elId] = id.slice("gui-input-".length).split("::");
+    const rocket = flyingRocket();
+    const entry = rocket && rocket.stack.parts[Number(idxStr)];
+    if (entry) {
+      const val = prompt("Set " + elId);
+      if (val !== null) {
+        partVars(entry)[elId] = parseLogicValue(val);
+      }
     }
   }
 }
@@ -6293,8 +7038,9 @@ async function mousePressed() {
       if (answer) {
         try {
           const pack = JSON.parse(answer);
-          loaded.push(pack);
-          await loadPartTextures();
+          if (await loadPack(pack)) {
+            await loadPartTextures();
+          }
         } catch (err) {
           alert(`Couldn't parse that part pack: ${err.message}`);
         }
@@ -6302,8 +7048,8 @@ async function mousePressed() {
       console.log(loaded);
       return;
     }
-    if (GUIAPI.clicked("announcements-close")) {
-      inAnnouncementsMenu = false;
+    if (GUIAPI.clicked("featured-mods-close")) {
+      inFeaturedModsMenu = false;
       return;
     }
     if (GUIAPI.clicked("keybinds-close")) {
@@ -6342,8 +7088,8 @@ async function mousePressed() {
       inModLoaderMenu = true;
       return;
     }
-    if (GUIAPI.clicked("menu-announcements")) {
-      inAnnouncementsMenu = true;
+    if (GUIAPI.clicked("menu-featured-mods")) {
+      inFeaturedModsMenu = true;
       return;
     }
     if (GUIAPI.clicked("menu-keybinds")) {
@@ -6411,6 +7157,13 @@ async function mousePressed() {
     const rocket = rockets.find(rocket => rocket.id === target);
     const entry = flightPartAt(rocket, mouseX, mouseY);
     const modules = entry ? (entry.part.modules || {}) : {};
+    const gui = modules["GUI Module"];
+    if (gui && (gui.Trigger === "On Click" || (gui.Trigger === "On Right Click" && mouseButton === RIGHT))) {
+      entry.guiOpen = gui.Popup ? !entry.guiOpen : true;
+    }
+    if (modules["Disable Action on Click"]) {
+      return;
+    }
     if (modules["Decoupler Module"]) {
       decouple(rocket, entry);
     } else if (modules["Parachute Module"]) {
