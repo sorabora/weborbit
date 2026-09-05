@@ -660,6 +660,85 @@ if (page == "forum") {
   else showCategoryGrid();
 }
 
+if (page == "hangar") {
+  const { data: files, error } = await supabase
+    .from("post_mod_files")
+    .select("*, posts(id, title, tags, author, deleted)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    $("hangar-rows").append(`<tr><td colspan="7" class="text-danger">Failed to load mods: ${escapeHtml(error.message)}</td></tr>`);
+  }
+
+  const rows = (files ?? []).filter((f) => f.posts && !f.posts.deleted);
+
+  let sortKey = "created_at";
+  let sortDir = -1;
+
+  function rowValue(row, key) {
+    switch (key) {
+      case "mod_name": return (row.mod_name ?? row.filename ?? "").toLowerCase();
+      case "author": return (usersById[row.posts.author]?.username ?? "").toLowerCase();
+      case "thread": return (row.posts.title ?? "").toLowerCase();
+      case "format_version": return row.format_version ?? -Infinity;
+      case "part_count": return row.part_count ?? -Infinity;
+      case "created_at": return new Date(row.created_at).getTime();
+      default: return "";
+    }
+  }
+
+  function renderHangar() {
+    const search = $("hangar-search").value.trim().toLowerCase();
+    let shown = rows.filter((row) => {
+      if (!search) return true;
+      const author = usersById[row.posts.author]?.username ?? "";
+      return (row.mod_name ?? row.filename ?? "").toLowerCase().includes(search)
+        || (row.posts.title ?? "").toLowerCase().includes(search)
+        || author.toLowerCase().includes(search);
+    });
+    shown = [...shown].sort((a, b) => {
+      const av = rowValue(a, sortKey);
+      const bv = rowValue(b, sortKey);
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return 1 * sortDir;
+      return 0;
+    });
+
+    $("hangar-rows").el.innerHTML = "";
+    $("hangar-empty").el.classList.toggle("d-none", shown.length > 0);
+    for (const row of shown) {
+      $("hangar-rows").append(`
+        <tr>
+          <td>${escapeHtml(row.mod_name ?? row.filename)}</td>
+          <td>${userLink(row.posts.author, null)}</td>
+          <td><a href="thread.html?id=${row.posts.id}">${escapeHtml(row.posts.title)}</a></td>
+          <td>${row.format_version ?? "?"}</td>
+          <td>${row.part_count ?? "?"}</td>
+          <td class="text-secondary" title="${new Date(row.created_at).toLocaleString()}">${timeAgo(row.created_at)}</td>
+          <td><a href="${escapeHtml(row.url)}" class="btn btn-sm btn-outline-primary" download>Download</a></td>
+        </tr>
+      `);
+    }
+  }
+
+  for (const th of document.querySelectorAll("[data-sort]")) {
+    th.addEventListener("click", () => {
+      if (sortKey === th.dataset.sort) {
+        sortDir *= -1;
+      } else {
+        sortKey = th.dataset.sort;
+        sortDir = 1;
+      }
+      for (const other of document.querySelectorAll("[data-sort] .sort-arrow")) other.textContent = "";
+      th.querySelector(".sort-arrow").textContent = sortDir === 1 ? "▲" : "▼";
+      renderHangar();
+    });
+  }
+
+  $("hangar-search").el.addEventListener("input", renderHangar);
+  renderHangar();
+}
+
 if (page == "leaderboard") {
   const ranked = (allUsers ?? [])
     .map(u => ({ ...u, points: userPoints(u) }))
