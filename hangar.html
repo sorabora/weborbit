@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hangar - Weborbit</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="forum-op.css">
+    <script src="commons.js"></script>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-body-secondary py-3">
+      <div class="container">
+        <a class="navbar-brand fw-semibold" href="index.html">Web<span class="text-primary">orbit</span></a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+          <ul id="navbar-items" class="navbar-nav ms-auto">
+            <li class="nav-item d-flex align-items-center">
+              <span id="role-text" class="badge bg-danger me-2"></span>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="game.html">Game</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="forum.html">Forums</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="hangar.html">Hangar</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="https://discord.gg/zv34r6aR3">Discord</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container pt-5">
+      <h1 class="mb-1">Hangar</h1>
+      <p class="text-secondary">Every mod file ever uploaded to the forums.</p>
+      <div class="input-group mb-3" style="max-width: 320px;">
+        <span class="input-group-text">🔍</span>
+        <input id="hangar-search" type="text" class="form-control" placeholder="Search mod or author">
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th role="button" data-sort="mod_name">Mod <span class="sort-arrow"></span></th>
+              <th role="button" data-sort="author">Author <span class="sort-arrow"></span></th>
+              <th role="button" data-sort="thread">Thread <span class="sort-arrow"></span></th>
+              <th role="button" data-sort="format_version">Format <span class="sort-arrow"></span></th>
+              <th role="button" data-sort="part_count">Parts <span class="sort-arrow"></span></th>
+              <th role="button" data-sort="created_at">Uploaded <span class="sort-arrow"></span></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hangar-rows"></tbody>
+        </table>
+      </div>
+      <p id="hangar-empty" class="text-secondary d-none">No mods uploaded yet.</p>
+    </div>
+    <script src="supabase.umd.js"></script>
+    <script type="module" src="forum/forum.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
