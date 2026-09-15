@@ -10,6 +10,7 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
+    <link rel="stylesheet" href="forum-op.css">
     <script src="commons.js"></script>
   </head>
   <body>
@@ -46,7 +47,7 @@
       </div>
     </nav>
 
-    <div class="container pt-5">
+    <div class="container-xxl pt-5 px-4 px-xl-5">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h1 class="mb-0">Forums</h1>
       </div>
@@ -55,11 +56,23 @@
       <button id="moderation-btn" class="d-none btn btn-lg btn-warning px-4">Moderation</button>
       <hr>
       <div id="mod-tools" class="d-none">
-        <button id="delete-thread" class="btn btn-lg btn-danger px-4">Delete Thread</button>        
+        <button id="delete-thread" class="btn btn-lg btn-danger px-4">Delete Thread</button>
       </div>
-      <div id="thread"></div>
-      <h1>Comments</h1>
-      <div id="comments"></div>
+      <div class="row">
+        <div class="col-12 col-lg-2 order-2 order-lg-1">
+          <p class="text-secondary small mb-2">Participants</p>
+          <div id="thread-participants" class="d-flex flex-column"></div>
+        </div>
+        <div class="col-12 col-lg-8 order-1 order-lg-2">
+          <div id="thread"></div>
+          <h1>Comments</h1>
+          <div id="comments"></div>
+        </div>
+        <div class="col-12 col-lg-2 order-3">
+          <p class="text-secondary small mb-2">Thread Stats</p>
+          <div id="thread-stats" class="p-3 border bg-body-secondary rounded small"></div>
+        </div>
+      </div>
     </div>
     <script src="supabase.umd.js"></script>
     <script type="module" src="forum/forum.js"></script>
