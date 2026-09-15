@@ -72,18 +72,16 @@ try {
 }
 
 // points are worked out on the page, nothing is stored
-const pointValues = { thread: 1000, comment: 300, hourBonus: 0.0002 };
+const pointValues = { thread: 1000, comment: 300, hourBonus: 0.0002, perLevel: 2500 };
 
-// one gem for everyone, then stars, a crown, a sparkle and a halo pile on
-const gemTiers = [
-  { min: 0, name: "Stone", color: "#78716c", flat: true },
-  { min: 1500, name: "Quartz", color: "#d4d4d8" },
-  { min: 6000, name: "Topaz", color: "#f59e0b" },
-  { min: 20000, name: "Emerald", color: "#10b981", stars: 1 },
-  { min: 50000, name: "Sapphire", color: "#3b82f6", stars: 2 },
-  { min: 120000, name: "Amethyst", color: "#a855f7", crown: true },
-  { min: 300000, name: "Ruby", color: "#f43f5e", crown: true, sparkle: true },
-  { min: 600000, name: "Diamond", color: "#22d3ee", crown: true, sparkle: true, halo: true }
+// flat color bands, no icons, just what bracket a level falls into
+const levelColorBands = [
+  { min: 1, color: "#78716c" },
+  { min: 5, color: "#22c55e" },
+  { min: 10, color: "#3b82f6" },
+  { min: 15, color: "#a855f7" },
+  { min: 20, color: "#f97316" },
+  { min: 25, color: "#f43f5e" },
 ];
 
 const { data: allUsers } = await supabase.from("users").select("id, username, role, posts, replies, created_at");
@@ -176,7 +174,7 @@ if (user) {
       <a class="nav-link" href="inbox.html">Inbox${count ? ` <span class="badge rounded-pill bg-danger">${count}</span>` : ""}</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link">${escapeHtml(username ?? "")}</a>
+      <a class="nav-link">${avatarImg(username)} ${escapeHtml(username ?? "")}</a>
     </li>
   `);
   if (page == "forum"){
@@ -240,50 +238,40 @@ function userPoints(u) {
   return base ? Math.round(base * ageMultiplier(u)) : 0;
 }
 
-function gemTier(points) {
-  return [...gemTiers].reverse().find(t => points >= t.min) ?? gemTiers[0];
+function userLevel(points) {
+  return 1 + Math.floor(points / pointValues.perLevel);
 }
 
-// the gem sits in the middle, everything else is pinned around it
-function gem(points, size = 14) {
-  const tier = gemTier(points);
-  const box = Math.round(size * 1.8);
-  const at = (x, y, px, extra = "") =>
-    `position: absolute; left: ${x}%; top: ${y}%; transform: translate(-50%, -50%); font-size: ${px}px; ${extra}`;
-
-  let parts = "";
-  if (tier.halo) {
-    parts += `<span style="${at(50, 58, 0)} width: ${size * 1.5}px; height: ${size * 1.5}px; border: 1px solid currentColor; border-radius: 50%; opacity: 0.4"></span>`;
-  }
-  parts += `<i class="fa-solid fa-gem" style="${at(50, 58, size)}${tier.flat ? " opacity: 0.65" : ""}"></i>`;
-  if (tier.crown) {
-    parts += `<i class="fa-solid fa-crown" style="${at(50, 12, size * 0.55)}"></i>`;
-  }
-  for (const [i, x] of [22, 78].slice(0, tier.stars ?? 0).entries()) {
-    parts += `<i class="fa-solid fa-star" style="${at(x, 18 + i * 0, size * 0.4, "opacity: 0.9")}"></i>`;
-  }
-  if (tier.sparkle) {
-    parts += `<i class="fa-solid fa-burst" style="${at(88, 82, size * 0.45, "opacity: 0.85")}"></i>`;
-  }
-
-  return `<span title="${tier.name}" style="position: relative; display: inline-block; width: ${box}px; height: ${box}px; color: ${tier.color}; vertical-align: -0.45em">${parts}</span>`;
+function levelColor(level) {
+  return [...levelColorBands].reverse().find(b => level >= b.min).color;
 }
 
-function gemBadge(points) {
-  const tier = gemTier(points);
+function levelBadge(level) {
+  const color = levelColor(level);
   return `
-    <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
-      style="color: ${tier.color}; background-color: ${tier.color}22; border: 1px solid ${tier.color}66">
-      ${gem(points)}
-      ${tier.name}
+    <span class="badge rounded-pill"
+      style="color: ${color}; background-color: ${color}22; border: 1px solid ${color}66">
+      Lv. ${level}
     </span>`;
 }
 
-function userLink(id, name, cls = "") {
+function avatarUrl(seed, size = 24) {
+  return `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(seed ?? "unknown")}&size=${size}`;
+}
+
+function avatarImg(seed, size = 24, fullWidth = false) {
+  const dims = fullWidth
+    ? `width="100%" style="aspect-ratio: 1 / 1; background: #fff; border-radius: 4px"`
+    : `width="${size}" height="${size}" style="vertical-align: -0.3em; background: #fff; border-radius: 4px"`;
+  return `<img src="${avatarUrl(seed, size)}" ${dims} alt="">`;
+}
+
+function userLink(id, name, cls = "", showAvatar = true) {
   const u = usersById[id];
   const color = usernameColor(id);
-  return `${u ? gem(userPoints(u)) : ""}
-    <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}"${color ? ` style="color: ${color}"` : ""}>${escapeHtml(u?.username ?? name ?? "unknown")}</a> ${roleBadge(id)}`;
+  const displayName = u?.username ?? name ?? "unknown";
+  return `${showAvatar ? avatarImg(displayName) : ""} ${u ? levelBadge(userLevel(userPoints(u))) : ""}
+    <a class="${cls}" href="u.html?id=${encodeURIComponent(id)}"${color ? ` style="color: ${color}"` : ""}>${escapeHtml(displayName)}</a> ${roleBadge(id)}`;
 }
 
 const emoticonCdn = "https://cdn.jsdelivr.net/gh/bernzrdo/msn-emoticons@main/original/";
@@ -543,13 +531,13 @@ if (page == "forum") {
     $("category-grid").el.innerHTML = "";
     const newCount = (posts.data ?? []).filter((post) => !post.deleted && isRecent(post)).length;
     $("category-grid").append(`
-      <button class="category-box w-100 text-start border rounded mb-3 bg-body-secondary" data-filter="new" style="border-left: 4px solid var(--bs-dark) !important;">
-        <div class="category-box-grid p-3">
+      <button class="category-box jbbs-row w-100 mb-0" data-filter="new" style="border-left: 4px solid var(--bs-dark) !important;">
+        <div class="category-box-grid flex-grow-1">
           <div class="category-box-info">
-            <div class="fw-semibold">New Posts</div>
-            <p class="text-secondary mb-0 small">Everything posted in the last 2 days.</p>
+            <div class="jbbs-title">New Posts</div>
+            <p class="mb-0 small">Everything posted in the last 2 days.</p>
           </div>
-          <div class="category-box-count text-secondary text-center small">
+          <div class="category-box-count text-center small">
             ${newCount}<br>thread${newCount == 1 ? "" : "s"}
           </div>
           <div class="category-box-latest"></div>
@@ -562,24 +550,24 @@ if (page == "forum") {
       for (const cat of group.categories) {
         const { count, latest } = statsFor(cat.name);
         const box = $("category-grid").append(`
-          <button class="category-box w-100 text-start border rounded mb-3 bg-body-secondary" data-filter="${escapeHtml(cat.name)}" style="border-left: 4px solid var(--bs-${cat.color}) !important;">
-            <div class="category-box-grid p-3">
+          <button class="category-box jbbs-row w-100 mb-0" data-filter="${escapeHtml(cat.name)}" style="border-left: 4px solid var(--bs-${cat.color}) !important;">
+            <div class="category-box-grid flex-grow-1">
               <div class="category-box-info">
-                <div class="fw-semibold">${escapeHtml(cat.name)}</div>
-                <p class="text-secondary mb-0 small">${escapeHtml(cat.description)}</p>
+                <div class="jbbs-title">${escapeHtml(cat.name)}</div>
+                <p class="mb-0 small">${escapeHtml(cat.description)}</p>
               </div>
-              <div class="category-box-count text-secondary text-center small">
+              <div class="category-box-count text-center small">
                 ${count}<br>thread${count == 1 ? "" : "s"}
               </div>
               <div class="category-box-latest text-end">
                 ${latest ? `
                   <div class="text-truncate">${escapeHtml(latest.title)}</div>
-                  <div class="text-secondary small text-nowrap">
-                    ${userLink(latest.author, latest.username)}
+                  <div class="small text-nowrap">
+                    ${userLink(latest.author, latest.username, "", false)}
                     &middot;
                     <span title="${new Date(latest.created_at).toLocaleString()}">${timeAgo(latest.created_at)}</span>
                   </div>
-                ` : `<span class="text-secondary small">No threads yet</span>`}
+                ` : `<span class="small">No threads yet</span>`}
               </div>
             </div>
           </button>
@@ -600,21 +588,28 @@ if (page == "forum") {
     if (!shown.length) {
       $("threads-list").append(`<p class="text-secondary">Nothing here yet.</p>`);
     }
+    let rowNum = 0;
     for (let post of shown) {
+      rowNum++;
       // If the post is less then two days old show a badge that says "new" though the badge is light blue
       // if its a day or less old then its a normal blue badge
       const btn = $("threads-list").append(`
-        <button class="row bg-body-secondary p-3 mb-3 rounded border text-start">
-          <div class="col-12 d-flex align-items-center gap-2">
-            ${
-              // sorry if this line is shitty but I love trinaries
-              isVeryRecent(post) ? `<span class="badge rounded-pill bg-primary">New</span>` : isRecent(post) ? `<span class="badge rounded-pill bg-primary bg-opacity-75">New</span>` : ""
-            }
-            ${post.tags ? `<span class="badge rounded-pill bg-secondary">${escapeHtml(post.tags)}</span>` : ""}
-            <span class="fs-4">${escapeHtml(post.title)}</span>
-            <span class="fs-5 text-secondary">by</span>
-            ${userLink(post.author, post.username, "fs-5")}
-            <span class="text-secondary ms-auto" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
+        <button class="jbbs-row">
+          <div class="jbbs-side">
+            ${avatarImg(usersById[post.author]?.username ?? post.username, 36)}
+          </div>
+          <div class="flex-grow-1">
+            <div class="jbbs-meta mb-1">
+              <span class="jbbs-num">${rowNum}</span>
+              ${
+                // sorry if this line is shitty but I love trinaries
+                isVeryRecent(post) ? `<span class="badge rounded-pill bg-primary">New</span>` : isRecent(post) ? `<span class="badge rounded-pill bg-primary bg-opacity-75">New</span>` : ""
+              }
+              ${post.tags ? `<span class="badge rounded-pill bg-secondary">${escapeHtml(post.tags)}</span>` : ""}
+              <span class="jbbs-name">${userLink(post.author, post.username, "", false)}</span>
+              <span title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
+            </div>
+            <div class="jbbs-title">${escapeHtml(post.title)}</div>
           </div>
         </button>
       `);
@@ -749,10 +744,9 @@ if (page == "leaderboard") {
 
   $("leaderboard").append(`
     <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-4 border rounded">
-      ${gemTiers.map(t => `
+      ${levelColorBands.map(b => `
         <span class="d-inline-flex align-items-center gap-1">
-          ${gemBadge(t.min)}
-          <small class="text-secondary">${t.min.toLocaleString()}+</small>
+          ${levelBadge(b.min)}
         </span>
       `).join("")}
     </div>
@@ -766,11 +760,11 @@ if (page == "leaderboard") {
     $("leaderboard").append(`
       <div class="p-3 mb-2 border bg-body-secondary rounded d-flex align-items-center gap-3 ${u.id == user?.id ? "border-primary" : ""}">
         <span class="fs-4 fw-semibold" style="min-width: 2.5rem; ${medals[i] ? `color: ${medals[i]}` : ""}">#${i + 1}</span>
+        ${avatarImg(u.username)}
         <a href="u.html?id=${encodeURIComponent(u.id)}">${escapeHtml(u.username)}</a>
         ${roleBadge(u.id)}
-        ${gemBadge(u.points)}
         <span class="ms-auto text-end">
-          <span class="fs-5">${u.points.toLocaleString()}</span>
+          <span class="fs-5 fw-semibold" style="color: ${levelColor(userLevel(u.points))}">Lv. ${userLevel(u.points)}</span>
           <span class="text-secondary d-block small">${u.posts ?? 0} threads &middot; ${u.replies ?? 0} comments</span>
         </span>
       </div>
@@ -798,12 +792,13 @@ if (page == "u") {
       .order("created_at", { ascending: false });
 
     const points = userPoints(profile);
-    const next = gemTiers.find(t => t.min > points);
+    const level = userLevel(points);
+    const toNextLevel = level * pointValues.perLevel - points;
 
     $("profile").append(`
-      <h1><span${usernameColor(id) ? ` style="color: ${usernameColor(id)}"` : ""}>${escapeHtml(profile.username)}</span> ${roleBadge(id)} ${gemBadge(points)}</h1>
+      <h1>${avatarImg(profile.username, 48)} <span${usernameColor(id) ? ` style="color: ${usernameColor(id)}"` : ""}>${escapeHtml(profile.username)}</span> ${roleBadge(id)} ${levelBadge(level)}</h1>
       <p class="text-secondary mb-0">${profile.posts ?? 0} threads, ${profile.replies ?? 0} comments, joined ${timeAgo(profile.created_at)}</p>
-      <p class="text-secondary">${points.toLocaleString()} points &middot; &times;${ageMultiplier(profile).toFixed(3)} for account age${next ? ` &middot; ${(next.min - points).toLocaleString()} to ${next.name}` : " &middot; max rank"}</p>
+      <p class="text-secondary">${points.toLocaleString()} points &middot; &times;${ageMultiplier(profile).toFixed(3)} for account age &middot; ${toNextLevel.toLocaleString()} to Level ${level + 1}</p>
     `);
 
     // only admins get to see what a mod has been up to
@@ -902,6 +897,7 @@ if (page == "thread") {
     .rpc('get_thread', { p_thread_id: id });
   console.log(data, error);
   let halt = false;
+  let thread;
 
   if (error) {
     $("thread").append(`<p class="text-danger">Failed to load thread: ${escapeHtml(error.message)}</p>`);
@@ -910,7 +906,7 @@ if (page == "thread") {
     $("thread").append(`<h1>Thread Not Found</h1><p class="text-secondary">id: ${escapeHtml(id ?? "(missing)")}</p>`);
     halt = true;
   } else {
-    const thread = data[0];
+    thread = data[0];
     let d = new Date(thread.created_at);
     const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
     const formatted = d.toLocaleString('en-US', options);
@@ -919,15 +915,22 @@ if (page == "thread") {
 
     $("thread").append(`
       <h1 id="thread-title">${escapeHtml(thread.title)}</h1>
-      <p class="secondary">
-        <span title="${formatted}">${timeAgo(thread.created_at)}</span> by ${userLink(thread.author, thread.username)}
-        ${thread.edited_at ? `<span class="text-secondary fst-italic" title="${new Date(thread.edited_at).toLocaleString()}">(edited)</span>` : ""}
-        ${canEdit ? `<button id="edit-thread-btn" class="btn btn-sm btn-link p-0 ms-2">Edit</button>` : ""}
-      </p>
-      <div id="thread-body" class="p-4 border bg-body-secondary rounded">
-        <div id="thread-content">${contentHTML}</div>
-        ${thread.mod_url ? `<a href="${escapeHtml(thread.mod_url)}" class="btn btn-primary mt-3" download>Download Mod</a>` : ""}
-        <div id="mod-versions"></div>
+      <div class="jbbs-post" id="thread-body">
+        <div class="jbbs-side">
+          <a href="u.html?id=${encodeURIComponent(thread.author)}">${avatarImg(usersById[thread.author]?.username ?? thread.username, 48)}</a>
+        </div>
+        <div class="flex-grow-1">
+          <p class="jbbs-meta mb-1">
+            <span class="jbbs-num">1</span>
+            <span class="jbbs-name">${userLink(thread.author, thread.username, "", false)}</span>
+            <span title="${formatted}">${timeAgo(thread.created_at)}</span>
+            ${thread.edited_at ? `<span class="fst-italic" title="${new Date(thread.edited_at).toLocaleString()}">(edited)</span>` : ""}
+            ${canEdit ? `<button id="edit-thread-btn" class="btn btn-sm btn-link p-0 ms-2">Edit</button>` : ""}
+          </p>
+          <div id="thread-content" class="jbbs-body">${contentHTML}</div>
+          ${thread.mod_url ? `<a href="${escapeHtml(thread.mod_url)}" class="btn btn-primary btn-sm mt-3" download>Download Mod</a>` : ""}
+          <div id="mod-versions"></div>
+        </div>
       </div>
     `);
 
@@ -961,6 +964,35 @@ if (page == "thread") {
       .eq('post_id', urlParams.get("id"))
       .order('created_at', { ascending: false })
 
+    const liveReplies = (data ?? []).filter(post => !post.deleted);
+    const participants = new Map();
+    participants.set(thread.author, thread.username);
+    for (const post of liveReplies) {
+      if (!participants.has(post.author)) participants.set(post.author, post.users?.username);
+    }
+    const repliers = [...participants].filter(([pid]) => pid != thread.author);
+    const participantLink = (pid, pname, size, fullWidth = false) => `
+      <a href="u.html?id=${encodeURIComponent(pid)}" title="${escapeHtml(usersById[pid]?.username ?? pname ?? "unknown")}">
+        ${avatarImg(usersById[pid]?.username ?? pname, size, fullWidth)}
+      </a>
+    `;
+    $("thread-participants").el.innerHTML = `
+      <div style="width: 75%">${participantLink(thread.author, thread.username, 96, true)}</div>
+      ${repliers.length ? `
+        <hr class="w-100 my-2">
+        <div class="w-100 d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(36px, 1fr))">
+          ${repliers.map(([pid, pname]) => participantLink(pid, pname, 36)).join("")}
+        </div>
+      ` : ""}
+    `;
+
+    const lastActivity = liveReplies[0]?.created_at ?? thread.created_at;
+    $("thread-stats").el.innerHTML = `
+      <p class="mb-1"><strong>${liveReplies.length}</strong> ${liveReplies.length == 1 ? "reply" : "replies"}</p>
+      <p class="mb-1"><strong>${participants.size}</strong> ${participants.size == 1 ? "participant" : "participants"}</p>
+      <p class="mb-0 text-secondary">Last activity <span title="${new Date(lastActivity).toLocaleString()}">${timeAgo(lastActivity)}</span></p>
+    `;
+
     $("comments").append(`
       <textarea id="comments-textarea" class="form-control" placeholder="I agree!!!!!!"></textarea>
       <button type="button" id="comments-image-btn" class="btn btn-sm btn-outline-secondary mt-2">🖼️ Insert Image Link</button>
@@ -975,22 +1007,36 @@ if (page == "thread") {
       (byParent[post.parentReply ?? "root"] ??= []).push(post);
     }
 
+    let postNum = 1;
     function renderReplies(parent, container) {
       for (let post of byParent[parent] ?? []) {
+        postNum++;
         container.insertAdjacentHTML("beforeend", post.deleted ? `
-          <div class="p-4 mt-3 border bg-body-secondary rounded">
-            <p class="mb-0 text-secondary fst-italic">[deleted]</p>
-            <div class="children ms-4"></div>
+          <div class="jbbs-post">
+            <div class="jbbs-side"></div>
+            <div class="flex-grow-1">
+              <p class="jbbs-meta mb-1"><span class="jbbs-num">${postNum}</span></p>
+              <p class="mb-0 fst-italic">[deleted]</p>
+              <div class="children ms-4"></div>
+            </div>
           </div>
         ` : `
-          <div class="p-4 mt-3 border bg-body-secondary rounded">
-            ${userLink(post.author, post.users?.username)}
-            <span class="text-secondary" title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
-            <p class="mb-0">${renderContent(post.content)}</p>
-            <button class="btn btn-sm btn-link p-0 reply-btn">Reply</button>
-            ${isModerator ? `<button class="btn btn-sm btn-link p-0 ms-2 text-danger delete-reply-btn">Delete</button>` : ""}
-            <div class="reply-box"></div>
-            <div class="children ms-4"></div>
+          <div class="jbbs-post">
+            <div class="jbbs-side">
+              <a href="u.html?id=${encodeURIComponent(post.author)}">${avatarImg(usersById[post.author]?.username ?? post.users?.username, 48)}</a>
+            </div>
+            <div class="flex-grow-1">
+              <p class="jbbs-meta mb-1">
+                <span class="jbbs-num">${postNum}</span>
+                <span class="jbbs-name">${userLink(post.author, post.users?.username, "", false)}</span>
+                <span title="${new Date(post.created_at).toLocaleString()}">${timeAgo(post.created_at)}</span>
+              </p>
+              <div class="jbbs-body">${renderContent(post.content)}</div>
+              <button class="btn btn-sm btn-link p-0 reply-btn">Reply</button>
+              ${isModerator ? `<button class="btn btn-sm btn-link p-0 ms-2 text-danger delete-reply-btn">Delete</button>` : ""}
+              <div class="reply-box"></div>
+              <div class="children ms-4"></div>
+            </div>
           </div>
         `);
         const div = container.lastElementChild;
