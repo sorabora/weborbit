@@ -1,5 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap");
+
+body {
+  font-family: "Noto Sans JP", sans-serif;
+}
+
 [href^="u.html"] {
   text-decoration: none;
+}
+
+.category-box {
+  border-radius: 0;
+}
+
+.btn-primary {
+  background-color: #2596be;
+  border-color: #0b516a;
+}
+
+.btn-success {
+  background-color: #2ba84a;
+  border-color: #0b4a1c;
+}
+
+.btn-danger {
+  background-color: #c23b3b;
+  border-color: #5a1414;
+}
+
+.btn-warning {
+  background-color: #c9982c;
+  border-color: #5c430e;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  border-color: #2c2f36;
+}
+
+.btn-outline-secondary {
+  color: #6b7280;
+  border-color: #2c2f36;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6b7280;
+  border-color: #2c2f36;
+}
+
+.btn {
+  border-width: 3px;
+}
+
+.badge {
+  border-width: 2px;
+  border-style: solid;
+  border-color: transparent;
+}
+
+.badge.bg-primary {
+  background-color: #2596be !important;
+  border-color: #0b516a;
+}
+
+.badge.bg-success {
+  background-color: #2ba84a !important;
+  border-color: #0b4a1c;
+}
+
+.badge.bg-danger {
+  background-color: #c23b3b !important;
+  border-color: #5a1414;
+}
+
+.badge.bg-warning {
+  background-color: #c9982c !important;
+  border-color: #5c430e;
+}
+
+.badge.bg-secondary {
+  background-color: #6b7280 !important;
+  border-color: #2c2f36;
 }
 
 .category-box:hover {
@@ -26,3 +106,129 @@
     text-align: left !important;
   }
 }
+
+.jbbs-post {
+  display: flex;
+  gap: 10px;
+  background: #f7f7f0;
+  border: 1px solid #999;
+  border-top: 1px solid #ccc;
+  padding: 8px 10px;
+  margin-top: -1px;
+  color: #222;
+  font-family: "Noto Sans JP", "MS PGothic", "Hiragino Kaku Gothic ProN", Osaka, monospace, sans-serif;
+  font-size: 0.9rem;
+}
+
+.jbbs-post .jbbs-side {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.jbbs-post .jbbs-side img {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.jbbs-post .jbbs-num {
+  color: #767676;
+}
+
+.jbbs-post .jbbs-name a {
+  color: #117743;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.jbbs-post .jbbs-meta {
+  color: #666;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.jbbs-post .jbbs-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.jbbs-post .jbbs-body a {
+  color: #0000ee;
+}
+
+[data-bs-theme="dark"] .jbbs-post {
+  background: #232025;
+  border-color: #46414c;
+  color: #e4e0e8;
+}
+
+[data-bs-theme="dark"] .jbbs-post .jbbs-num {
+  color: #948f9c;
+}
+
+[data-bs-theme="dark"] .jbbs-post .jbbs-name a {
+  color: #6fd493;
+}
+
+[data-bs-theme="dark"] .jbbs-post .jbbs-meta {
+  color: #a29caa;
+}
+
+[data-bs-theme="dark"] .jbbs-post .jbbs-body a {
+  color: #7fb0ff;
+}
+
+.jbbs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: #f7f7f0;
+  border: 1px solid #999;
+  border-top: 1px solid #ccc;
+  padding: 8px 10px;
+  margin-top: -1px;
+  color: #222;
+  font-family: "Noto Sans JP", "MS PGothic", "Hiragino Kaku Gothic ProN", Osaka, monospace, sans-serif;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.jbbs-row .jbbs-side {
+  width: 44px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.jbbs-row .jbbs-side img {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.jbbs-row .jbbs-title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+[data-bs-theme="dark"] .jbbs-row {
+  background: #232025;
+  border-color: #46414c;
+  color: #e4e0e8;
+}
+
+[data-bs-theme="dark"] .jbbs-row .jbbs-num {
+  color: #948f9c;
+}
+
+[data-bs-theme="dark"] .jbbs-row .jbbs-name a {
+  color: #6fd493;
+}
+
+[data-bs-theme="dark"] .jbbs-row .jbbs-meta {
+  color: #a29caa;
+}
+
+button {
+  border-radius: 5px !important; 
+}
+
