@@ -339,6 +339,8 @@ function renderContent(str) {
   return escapeHtml(str)
     .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi, (match, alt, url) =>
       `<img src="${url}" alt="${alt}" class="forum-image" style="max-width:100%;max-height:400px;display:block;margin:0.5em 0;" loading="lazy">`)
+    .replace(/(?<!\]\()(https?:\/\/[^\s<]+)/gi, (url) =>
+      `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a><img src="${url}" alt="link preview" class="forum-image" style="max-width:100%;max-height:200px;display:block;margin:0.35em 0;" loading="lazy" onerror="this.remove()">`)
     .replace(/@(\w+)/g, (match, name) =>
       usersByName[name] ? `<a href="u.html?id=${encodeURIComponent(usersByName[name].id)}">${match}</a>` : match)
     .replace(emoticonPattern, (match) => {
