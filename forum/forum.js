@@ -256,7 +256,7 @@ function levelBadge(level) {
 }
 
 function avatarUrl(seed, size = 24) {
-  return `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(seed ?? "unknown")}&size=${size}`;
+  return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(seed ?? "unknown")}&size=${size}`;
 }
 
 function avatarImg(seed, size = 24, fullWidth = false) {
@@ -547,15 +547,26 @@ if (page == "forum") {
       </button>
     `).addEventListener("click", () => openFilter("new"));
 
+    const allCategories = categoryGroups.flatMap(g => g.categories);
+    const topCategories = new Set(
+      [...allCategories]
+        .map(cat => ({ name: cat.name, count: statsFor(cat.name).count }))
+        .filter(c => c.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map(c => c.name)
+    );
+
     for (const group of categoryGroups) {
       $("category-grid").append(`<h5 class="mt-4 mb-2 text-secondary">${escapeHtml(group.name)}</h5>`);
       for (const cat of group.categories) {
         const { count, latest } = statsFor(cat.name);
+        const isTop = topCategories.has(cat.name);
         const box = $("category-grid").append(`
-          <button class="category-box jbbs-row w-100 mb-0" data-filter="${escapeHtml(cat.name)}" style="border-left: 4px solid var(--bs-${cat.color}) !important;">
+          <button class="category-box jbbs-row w-100 mb-0${isTop ? " jbbs-row-hot" : ""}" data-filter="${escapeHtml(cat.name)}" style="border-left: 4px solid var(--bs-${cat.color}) !important;">
             <div class="category-box-grid flex-grow-1">
               <div class="category-box-info">
-                <div class="jbbs-title">${escapeHtml(cat.name)}</div>
+                <div class="jbbs-title">${escapeHtml(cat.name)} ${isTop ? `<span class="badge rounded-pill bg-warning text-dark">🔥 Active</span>` : ""}</div>
                 <p class="mb-0 small">${escapeHtml(cat.description)}</p>
               </div>
               <div class="category-box-count text-center small">
