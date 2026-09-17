@@ -4763,6 +4763,8 @@ function drawPartHover(rocket) {
     action = chuteState(rocket, entry, modules["Parachute Module"]);
   } else if (modules["Engine Module"]) {
     action = entry.on ? "  click to shut down" : "  click to light";
+  } else if (modules["Togglable Module"]) {
+    action = entry.on ? "  click to disable" : "  click to enable";
   } else if (modules["Docking Module"] && rocket.dockedWith) {
     action = "  click to undock";
   }
@@ -7168,7 +7170,7 @@ async function mousePressed() {
       decouple(rocket, entry);
     } else if (modules["Parachute Module"]) {
       deployChute(rocket, entry);
-    } else if (modules["Engine Module"]) {
+    } else if (modules["Engine Module"] || modules["Togglable Module"]) {
       entry.on = !entry.on;
     } else if (modules["Docking Module"] && rocket.dockedWith) {
       undock(rocket);
