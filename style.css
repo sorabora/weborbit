@@ -2,8 +2,36 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #000;
+  background: #ddd;
+  font-family: Arial, Helvetica, sans-serif
 }
 canvas {
   display: block;
+}
+[hidden] {
+  display: none;
+}
+h1 {
+  color: red;
+}
+.flex {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center; 
+}
+.container {
+  padding: 16px;
+  border: 1px solid red;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+img {
+  margin-left: 1rem;
+}
+.forum-emoticon {
+  height: 1.3em;
+  width: auto;
+  margin: 0 0.05em;
+  vertical-align: middle;
 }

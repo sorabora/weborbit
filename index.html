@@ -11,29 +11,8 @@
       crossorigin="anonymous"
     />
     <link rel="icon" type="image/x-icon" href="Favicon.ico">
+    <link rel="stylesheet" href="mod.css">
     <script src="commons.js"></script>
-    <style>
-      .btn-xl {
-        padding: 0.75rem 1.5rem;
-        font-size: 1.5rem;
-        border-radius: 0.4rem;
-      }
-      .btn-gradient-purple {
-        background: linear-gradient(135deg, #ffffff, #a78bfa 55%, #7c3aed);
-        border: none;
-        color: white;
-        transition: transform 0.15s;
-        transform-style: preserve-3d;
-        perspective: 500px;
-      }
-      [data-bs-theme="dark"] .btn-gradient-purple {
-        background: linear-gradient(135deg, #312e81, #7c3aed 55%, #c084fc);
-      }
-      .btn-gradient-purple:hover {
-        color: white;
-        transform: perspective(500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-      }
-    </style>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg bg-body-secondary py-3">
@@ -71,16 +50,25 @@
         <div class="col-lg-6 text-center text-lg-start">
           <h1 class="display-4 fw-bold">Simple rockets.<br />Built in your browser.</h1>
           <p class="lead">Weborbit is a small open source web game about launching rockets.</p>
-          <div class="col"><a href="game.html" class="btn-gradient-purple btn btn-xl w-100 mb-2">Play The Game</a></div>
-          <div class="row row-cols-3 g-2">
-            <div class="col"><a href="forum.html" class="btn btn-warning btn-lg w-100">Community</a></div>
-            <div class="col"><a href="https://github.com/sorabora/weborbit/archive/refs/heads/main.zip" class="btn btn-secondary btn-lg w-100">Download</a></div>
-            <div title="Try out our modding toolkit for the game!" class="col"><a href="https://sorabora.github.io/Xopernicus" class="btn btn-success btn-lg w-100">Xopernicus</a></div>
-          </div>
-          <div class="row row-cols-3 g-2 mt-1">
-            <div class="col"><a href="https://weborbit.vexapplications.deno.net/" class="btn btn-sm btn-primary btn-lg w-100">Game Mirror</a></div>
-            <div class="col"><a href="https://xopernicus.vexapplications.deno.net/" class="btn btn-sm btn-primary btn-lg w-100">Xopernicus Mirror</a></div>
-            <div class="col"><a href="https://github.com/sorabora/Xopernicus/archive/refs/heads/main.zip" class="btn btn-sm btn-primary btn-lg w-100">Xopernicus Download</a></div>
+          <div class="home-buttons">
+            <div class="col"><a href="game.html" class="btn-gradient-purple btn btn-xl w-100 mb-2">Play The Game</a></div>
+            <div class="row row-cols-3 g-2">
+              <div class="col"><a href="forum.html" class="btn btn-warning btn-lg w-100">Community</a></div>
+              <div class="col"><a href="https://github.com/sorabora/weborbit/archive/refs/heads/main.zip" class="btn btn-secondary btn-lg w-100">Download</a></div>
+              <div title="Try out our modding toolkit for the game!" class="col xopernicus-group">
+                <a href="https://sorabora.github.io/Xopernicus" class="btn btn-success btn-lg xopernicus-btn">Xopernicus</a><a href="docs/index.html" class="btn btn-success btn-lg docs-tab" title="Modding documentation">Docs</a>
+              </div>
+            </div>
+            <div class="mt-1">
+              <button class="btn btn-info w-100" type="button" data-bs-toggle="collapse" data-bs-target="#moreLinks" aria-expanded="false" aria-controls="moreLinks">More</button>
+              <div class="collapse mt-2" id="moreLinks">
+                <div class="d-grid gap-2">
+                  <a href="https://weborbit.vexapplications.deno.net/" class="btn btn-primary w-100">Game Mirror</a>
+                  <a href="https://xopernicus.vexapplications.deno.net/" class="btn btn-primary w-100">Xopernicus Mirror</a>
+                  <a href="https://github.com/sorabora/Xopernicus/archive/refs/heads/main.zip" class="btn btn-primary w-100">Xopernicus Download</a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="col-lg-6">

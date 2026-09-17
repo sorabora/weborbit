@@ -1,54 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap");
-
-body {
-  font-family: "Noto Sans JP", sans-serif;
-}
-
 [href^="u.html"] {
   text-decoration: none;
 }
 
 .category-box {
   border-radius: 0;
-}
-
-.btn-primary {
-  background-color: #2596be;
-  border-color: #0b516a;
-}
-
-.btn-success {
-  background-color: #2ba84a;
-  border-color: #0b4a1c;
-}
-
-.btn-danger {
-  background-color: #c23b3b;
-  border-color: #5a1414;
-}
-
-.btn-warning {
-  background-color: #c9982c;
-  border-color: #5c430e;
-}
-
-.btn-secondary {
-  background-color: #6b7280;
-  border-color: #2c2f36;
-}
-
-.btn-outline-secondary {
-  color: #6b7280;
-  border-color: #2c2f36;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #6b7280;
-  border-color: #2c2f36;
-}
-
-.btn {
-  border-width: 3px;
 }
 
 .badge {
@@ -198,6 +153,16 @@ body {
   width: 44px;
   flex-shrink: 0;
   text-align: center;
+}
+
+.jbbs-row-hot {
+  background: #f7ecd0;
+  border-color: #c9982c;
+}
+
+[data-bs-theme="dark"] .jbbs-row-hot {
+  background: #332c1c;
+  border-color: #c9982c;
 }
 
 .jbbs-row .jbbs-side img {
