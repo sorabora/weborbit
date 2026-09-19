@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weborbit</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="icon" type="image/x-icon" href="Favicon.ico">
+    <script src="../commons.js"></script>
+    <style>
+      .btn-xl {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.5rem;
+        border-radius: 0.4rem;
+      }
+      .btn-gradient-purple {
+        background: linear-gradient(135deg, #ffffff, #a78bfa 55%, #7c3aed);
+        border: none;
+        color: white;
+        transition: transform 0.15s;
+        transform-style: preserve-3d;
+        perspective: 500px;
+      }
+      [data-bs-theme="dark"] .btn-gradient-purple {
+        background: linear-gradient(135deg, #312e81, #7c3aed 55%, #c084fc);
+      }
+      .btn-gradient-purple:hover {
+        color: white;
+        transform: perspective(500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-body-secondary py-3">
+      <div class="container">
+        <a class="navbar-brand fw-semibold" href="../index.html">Web<span id="role-text" class="text-primary">orbit <span class="text-danger">Modders</span></span></a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="../index.html">Back</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6 text-center text-lg-start">
+          <h1 class="display-4 fw-bold">Simple rockets.<br />Built in your browser.</h1>
+          <p class="lead">Weborbit is a small open source web game about launching rockets.</p>
+          <div class="col"><a href="game.html" class="btn-gradient-purple btn btn-xl w-100 mb-2">Play The Game</a></div>
+
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      document.querySelectorAll(".btn-gradient-purple").forEach(btn => {
+        btn.addEventListener("mousemove", e => {
+          const rect = btn.getBoundingClientRect();
+          const px = (e.clientX - rect.left) / rect.width - 0.5;
+          const py = (e.clientY - rect.top) / rect.height - 0.5;
+          btn.style.setProperty("--tilt-x", `${py * -20}deg`);
+          btn.style.setProperty("--tilt-y", `${px * 20}deg`);
+        });
+        btn.addEventListener("mouseleave", () => {
+          btn.style.setProperty("--tilt-x", "0deg");
+          btn.style.setProperty("--tilt-y", "0deg");
+        });
+      });
+    </script>
+  </body>
+</html>

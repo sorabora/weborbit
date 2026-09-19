@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.2";
-const modVersionSystemSince = "1.5.2";
+const gameVersion = "1.5.3";
+const modVersionSystemSince = "1.5.3";
 
 let scale = 5;
 let mapScale = 5e-5;
@@ -17,8 +17,10 @@ let inMap = false;
 let careerMode = false;
 let inMainMenu = true;
 let exampleRocketsOpen = false;
+let stagingOpen = false;
 let gameFont;
 let eProgress = 0;
+let rawTextSize;
 let inCreditsMenu = false;
 let inModLoaderMenu = false;
 let inFeaturedModsMenu = false;
@@ -383,15 +385,17 @@ button(x, y, sx, sy, extras = {}, label) {
     swatch = extras.activeColor || shift(-0.12);
   }
 
+  const radius = extras.radius === undefined ? 8 : extras.radius;
+
   push();
   noStroke();
   fill(swatch);
-  rect(x, y, sx, sy);
+  rect(x, y, sx, sy, radius);
 
-  stroke(hover ? "#fff" : extras.borderColor || "rgba(0,0,0,0.4)");
+  stroke(hover ? "#fff" : extras.borderColor || "rgba(255,255,255,0.15)");
   strokeWeight(hover ? 2 : extras.borderColor ? 2 : 1.5);
   noFill();
-  rect(x, y, sx, sy);
+  rect(x, y, sx, sy, radius);
 
   if (label) {
     noStroke();
@@ -410,7 +414,7 @@ button(x, y, sx, sy, extras = {}, label) {
     const lineH = 18;
 
     push();
-    textSize(13);
+    rawTextSize(13);
     textAlign(LEFT, TOP);
     let boxW = 0;
     for (const line of lines) {
@@ -475,7 +479,7 @@ function craftCentre(exclude) {
 }
 
 function paletteTop() {
-  return vab.buttonSize * 2 + tabHeight() * 2;
+  return vab.buttonSize * 3 + tabHeight() * 2;
 }
 
 function tabHeight() {
@@ -499,7 +503,7 @@ function categoryTabs() {
     id: "category-" + cat,
     cat,
     x: (i % 3) * w,
-    y: vab.buttonSize * 2 + Math.floor(i / 3) * tabHeight(),
+    y: vab.buttonSize * 3 + Math.floor(i / 3) * tabHeight(),
     w,
     h: tabHeight()
   }));
@@ -567,8 +571,8 @@ function zoomButtons() {
 function craftButtons() {
   const size = vab.buttonSize;
   return [
-    { id: "craft-save", x: 0, y: size, size, label: "S", action: craftSave },
-    { id: "craft-open", x: size, y: size, size, label: "O", action: craftPick },
+    { id: "craft-save", x: 0, y: size, w: size * 2, h: size, label: "S", action: craftSave },
+    { id: "craft-open", x: size * 2, y: size, w: size * 2, h: size, label: "O", action: craftPick },
   ];
 }
 
@@ -1188,10 +1192,6 @@ function heldNodeTaken(inst, side) {
   return vab.parts.some((p) => p.attachedTo === inst && p.parentNode === side);
 }
 
-// a side is an edge rather than a point: a part can sit anywhere along it,
-// and several can share it so long as they don't overlap. these work in the
-// parent's own frame, where "along" runs the length of the edge and "out"
-// points away from it
 function toLocal(inst, x, y) {
   const a = (inst.rot || 0) * HALF_PI;
   const cos = Math.cos(a);
@@ -1249,10 +1249,6 @@ function edgeFree(parent, side, child, at) {
   });
 }
 
-// the point on parent's edge that child would meet it at, if child were left
-// where it is: its own point slid along the edge, kept within the ends of it,
-// and pulled to the middle when it's near enough that the middle is what was
-// meant
 function edgePoint(parent, side, child) {
   const mine = attachPoint(child, opposite(side));
   const local = toLocal(parent, mine.x, mine.y);
@@ -1281,10 +1277,6 @@ function edgeTaken(inst, side) {
   return !!(inst.attachedTo && inst.childNode === side);
 }
 
-// every place inst could join something else: for each other part and each
-// of its sides, the spot on that edge inst would land, if there's room there.
-// meeting another part's top with inst's bottom puts that part under inst
-// instead, so inst has to have room along its bottom for it
 function jointOptions(inst) {
   const blocked = new Set(subtree(inst));
   const out = [];
@@ -1392,6 +1384,11 @@ function pointInPart(inst, mx, my) {
   return false;
 }
 
+function partIsToggleable(part) {
+  const m = part.modules || {};
+  return !!(m["Togglable Module"] || m["Engine Module"] || m["Decoupler Module"] || m["Parachute Module"]);
+}
+
 function partAt(mx, my) {
   for (let i = vab.parts.length - 1; i >= 0; i--) {
     if (pointInPart(vab.parts[i], mx, my)) {
@@ -1438,72 +1435,35 @@ const menuStyleDisabled = { baseColor: "#525e6d", borderColor: "#83a0c0" }
 
 function drawMainMenu() {
   textSize(30);
-  const bg = textures.CoolScreen;
-  if (bg) {
-    const s = Math.max(width / bg.width, height / bg.height);
-    image(bg, (width - bg.width * s) / 2 + mouseX / 64, (height - bg.height * s) / 2 + mouseY / 64, bg.width * s, bg.height * s);
-  } else {
-    background("#2b2b2b");
-  }
-  GUIAPI.button(
-    width / 2 - 250,
-    225,
-    250,
-    125,
-    { id: "menu-build", ...menuStyle },
-    "Build a Rocket"
-  );
-  if (prototypeCareerModeEnabled) {
-    GUIAPI.button(
-      width / 2,
-      225,
-      250,
-      125,
-      { id: "menu-career", ...menuStyle },
-      "Career Mode"
-    );
-  } else {
-    GUIAPI.button(
-      width / 2,
-      225,
-      250,
-      125,
-      { id: "menu-disabled-career", ...menuStyleDisabled },
-      "Career Mode"
-    );
-  }
-  GUIAPI.button(
-    width / 2 - 250,
-    400,
-    250,
-    125,
-    { id: "menu-credits", ...menuStyle },
-    "Credits"
-  );
-  GUIAPI.button(
-    width / 2,
-    400,
-    250,
-    125,
-    { id: "menu-modloader", ...menuStyle },
-    "Modloader"
-  );
-  GUIAPI.button(
-    width / 2 - 250,
-    575,
-    250,
-    125,
-    { id: "menu-featured-mods", ...menuStyle },
-    featuredMods ? `Featured Mods (${featuredMods.length})` : "Featured Mods"
-  );
-  GUIAPI.button(
-    width / 2,
-    575,
-    250,
-    125,
-    { id: "menu-keybinds", ...menuStyle },
-    "Keybinds"
-  );
+  background("#05070a");
+  const geom = introEarth || menuEarthGeom();
+  drawIntroEarth({ x: geom.x + mouseX / 64, y: geom.y + mouseY / 64, r: geom.r });
+
+  const buttons = [
+    { id: "menu-build", label: "Build a Rocket", style: menuStyle },
+    prototypeCareerModeEnabled
+      ? { id: "menu-career", label: "Career Mode", style: menuStyle }
+      : { id: "menu-disabled-career", label: "Career Mode", style: menuStyleDisabled },
+    { id: "menu-credits", label: "Credits", style: menuStyle },
+    { id: "menu-modloader", label: "Modloader", style: menuStyle },
+    {
+      id: "menu-featured-mods",
+      label: featuredMods ? `Featured Mods (${featuredMods.length})` : "Featured Mods",
+      style: menuStyle
+    },
+    { id: "menu-keybinds", label: "Keybinds", style: menuStyle }
+  ];
+
+  // one column, stacked, over on the earth-free side of the screen
+  const btnW = Math.min(320, width * 0.32);
+  const btnH = 62;
+  const gap = 14;
+  const stackH = buttons.length * btnH + (buttons.length - 1) * gap;
+  const bx = width * 0.72 - btnW / 2;
+  const startY = height / 2 - stackH / 2;
+  buttons.forEach((b, i) => {
+    GUIAPI.button(bx, startY + i * (btnH + gap), btnW, btnH, { id: b.id, ...b.style }, b.label);
+  });
 }
 
 function drawKeyBindsMenu() {
@@ -1786,9 +1746,6 @@ function pendingBurnWait(ship) {
   return null;
 }
 
-// the ISP + propellant feed the automated burn should draw from: whichever
-// active, fuelled Engine Module comes first, falling back to a fuelled RCS
-// Module if the rocket has no working engine at all
 function autoBurnSource(rocket) {
   if (!rocket.stack) {
     return null;
@@ -1875,9 +1832,6 @@ function downloadBurnLog() {
   launchToast(`Downloaded ${burnLog.length} burn log entries.`);
 }
 
-// instantly applies a Δv along the ship's current prograde (positive) or
-// retrograde (negative) direction, spending real propellant for it via the
-// rocket equation. an engine if the rocket has a fuelled one, RCS otherwise
 function executeAutomatedBurn(rocket, dv) {
   const cooldown = 5;
   if (t - lastAutomatedBurnT < cooldown) {
@@ -1898,11 +1852,6 @@ function executeAutomatedBurn(rocket, dv) {
   const wetMass = rocket.mass;
   const wantMass = wetMass - wetMass * Math.exp(-Math.abs(dv) / (source.isp * G0));
 
-  // this has to be all-or-nothing: a phasing/transfer burn only works if you
-  // hit the exact Δv it was planned around. stopping partway doesn't get you
-  // "most of the way there" — it strands you on some other, unplanned orbit,
-  // and the next recomputed plan can end up needing MORE Δv than before, not
-  // less. so if there isn't enough fuel to finish it, don't start it
   let available = Infinity;
   for (const p of source.propellants) {
     let have = 0;
@@ -2069,12 +2018,6 @@ function orbitalElements(pos, vel, parent) {
   return { r, a, period, w, angle: Math.atan2(ry, rx), closed, speed: Math.sqrt(v2) };
 }
 
-// real Kepler mean-anomaly math: eccentricity, both apsis radii, and time
-// from right now to each apsis passage, for whatever orbit (pos, vel) is
-// currently on. unlike orbitalElements' angle (a snapshot), these times are
-// stable and correctly counting down as the orbit is coasted — nothing here
-// depends on any other vessel, so it can't go unstable partway through a
-// maneuver the way re-solving against a moving target every frame does
 function orbitPhase(pos, vel, parent) {
   const mu = gravParam(parent);
   const rx = pos.x - parent.pos.x;
@@ -2114,18 +2057,10 @@ function orbitPhase(pos, vel, parent) {
   return { closed: true, a, e, period, periapsis, apoapsis, timeToPeriapsis, timeToApoapsis };
 }
 
-// a maneuver is COMMITTED: planned once, stored on the rocket with an absolute
-// burn time, and left alone until the orbit actually changes. re-deriving it
-// every frame against a moving target is what made the old plan flicker, and
-// made "wait" drift instead of counting down one second per second
 function nodeOrbitChanged(ph, node) {
   return Math.abs(ph.a - node.a) / node.a > 2e-3 || Math.abs(ph.e - node.e) > 2e-3;
 }
 
-// which stage of a rendezvous the ship's own orbit says it's in:
-//   both apsides at the target's radius -> co-orbital, only the phase is wrong
-//   exactly one apsis there             -> mid-transfer, coast to it and capture
-//   neither                             -> different orbit size, Hohmann across
 function planManeuver(ship, other, ph, el1, el2, parent, mu) {
   const r2 = el2.r;
   const tol = 0.02;
@@ -2140,9 +2075,6 @@ function planManeuver(ship, other, ph, el1, el2, parent, mu) {
     if (!Number.isFinite(coast)) {
       return null;
     }
-    // sitting on the apsis right now means the next pass is a full lap away,
-    // not zero: without this the capture fires instantly and cancels the burn
-    // that was just made, which loops forever
     if (coast < 1) {
       coast += ph.period;
     }
@@ -2161,9 +2093,6 @@ function planManeuver(ship, other, ph, el1, el2, parent, mu) {
     if (gap < 0) {
       gap += TWO_PI;
     }
-    // closing the gap over more laps means an orbit closer to the one already
-    // flown, which is drastically cheaper: a 20 degree gap costs ~12 m/s over
-    // 12 laps against ~350 m/s trying to force it in one
     let best = null;
     for (let laps = 1; laps <= 12; laps++) {
       for (let k = 0; k <= laps + 1; k++) {
@@ -2272,10 +2201,6 @@ function activeNode(ship) {
   return fresh;
 }
 
-// the game's leapfrog integrator only resolves an orbit correctly if each
-// caps c.timewarp so a frame's substeps can't cover a large fraction of
-// whatever orbit the ship is on right now — generalizes the atmosphere
-// clamp to run every frame, in any view, for any body
 function clampTimewarpForOrbit(rocket) {
   if (!rocket || !rocket.parentBody || rocket.landed) {
     return;
@@ -2296,11 +2221,6 @@ function clampTimewarpForOrbit(rocket) {
   timeWarpCounter = Math.min(timeWarpCounter, idx);
 }
 
-// a real plan for reaching another vessel, not just "how far / how fast
-// relative to it right now": a Hohmann-style transfer when its orbit is a
-// different size, a phasing-orbit maneuver when it's the same size but out
-// of phase (the common "launched, now catch up" case), or the old raw
-// close/match readout once you're already nearby on a converging approach.
 function dockPlan(ship, other) {
   if (!ship || !other || ship === other) {
     return null;
@@ -2598,6 +2518,19 @@ function drawVab() {
     drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha, rot: inst.rot, layer: "front" });
   }
 
+  if (stagingOpen) {
+    textSize(13);
+    vab.parts.forEach((inst, i) => {
+      if (!partIsToggleable(inst.part)) {
+        return;
+      }
+      GUIAPI.button(inst.x - 11, inst.y - 11, 22, 22, {
+        id: "stage-cycle-" + i,
+        ...menuStyle
+      }, String(inst.stage ?? 0));
+    });
+  }
+
   if (!vab.drag && mouseX >= panelW) {
     const hovered = partAt(mouseX, mouseY);
     if (hovered) {
@@ -2646,7 +2579,7 @@ function drawVab() {
     }, zb.label);
   }
   for (const cb of craftButtons()) {
-    GUIAPI.button(cb.x, cb.y, cb.size, cb.size, {
+    GUIAPI.button(cb.x, cb.y, cb.w, cb.h, {
       id: cb.id,
       baseColor: "#4a4a5a",
       hoverColor: "#5b5b6e",
@@ -2656,11 +2589,16 @@ function drawVab() {
     }, cb.label);
   }
   textSize(14);
-  GUIAPI.button(vab.buttonSize * 2, vab.buttonSize, vab.buttonSize * 2, vab.buttonSize, {
+  GUIAPI.button(0, vab.buttonSize * 2, vab.buttonSize * 2, vab.buttonSize, {
     id: "example-rockets",
     baseColor: "#4a4a5a",
     hoverColor: "#5b5b6e"
   }, "Example Rockets");
+  GUIAPI.button(vab.buttonSize * 2, vab.buttonSize * 2, vab.buttonSize * 2, vab.buttonSize, {
+    id: "vab-staging",
+    baseColor: "#4a4a5a",
+    hoverColor: "#5b5b6e"
+  }, "Stage");
   textSize(12);
   for (const tab of categoryTabs()) {
     GUIAPI.button(tab.x, tab.y, tab.w, tab.h, {
@@ -2755,14 +2693,13 @@ function engineResources(engine) {
   return rows.map(p => ({ resource: p.resource, ratio: p.ratio / total }));
 }
 
-// More Resources: [{ Resource, Amount }, ...] is an optional multi-tank list; when
-// absent, tanks fall back to the legacy single Resource/Amount fields for backwards compat.
 function tankResources(tank) {
+  const startFraction = tank["Starting Fuel %"] ?? 1;
   const list = tank["More Resources"];
   if (Array.isArray(list) && list.length) {
-    return list.map(p => ({ resource: p.Resource || defaultResource, amount: p.Amount || 0 }));
+    return list.map(p => ({ resource: p.Resource || defaultResource, amount: p.Amount || 0, startFraction }));
   }
-  return [{ resource: tank.Resource || defaultResource, amount: tank.Amount || 0 }];
+  return [{ resource: tank.Resource || defaultResource, amount: tank.Amount || 0, startFraction }];
 }
 
 function stackFuel() {
@@ -3039,6 +2976,88 @@ function runExtraDataModule(rocket, entry) {
 
 const worldData = {};
 
+const externalVariableReaders = {
+  "Velocity": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
+  "Speed": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
+  "Altitude": (rocket) => distanceTo(rocket, getBody(rocket.parentBody)) - getBody(rocket.parentBody).size,
+  "Planet": (rocket) => rocket.parentBody,
+  "Distance From Star": (rocket) => distanceTo(rocket, rootBody(getBody(rocket.parentBody))),
+  "Rotation": (rocket) => ((rocket.angle * 180 / Math.PI) % 360 + 360) % 360,
+  "Angular Velocity": (rocket) => rocket._angVel || 0,
+  "X Position": (rocket) => rocket.pos.x,
+  "Y Position": (rocket) => rocket.pos.y,
+  "Heading": (rocket) => {
+    const vel = relativeVelocity(rocket, getBody(rocket.parentBody));
+    return ((Math.atan2(vel.x, -vel.y) * 180 / Math.PI) % 360 + 360) % 360;
+  },
+  "Throttle": () => throttle,
+  "Time": () => t,
+  "Mass": (rocket) => rocket.mass,
+  "Apoapsis": (rocket) => rocketOrbit(rocket).apoapsis,
+  "Periapsis": (rocket) => rocketOrbit(rocket).periapsis,
+  "Orbital Velocity": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
+  "Surface Velocity": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
+  "Air Density": (rocket) => {
+    const body = getBody(rocket.parentBody);
+    return densityAt(body, Math.max(distanceTo(rocket, body) - body.size, 0));
+  },
+  "Stage Number": (rocket) => rocket.stack.parts.filter(e => (e.part.modules || {})["Decoupler Module"]).length + 1,
+  "Part Count": (rocket) => rocket.stack.parts.length
+};
+
+function rootBody(body) {
+  return body.parentBody ? rootBody(getBody(body.parentBody)) : body;
+}
+
+// same math as getOrbit(), just taking the rocket instead of reading the
+// globally targeted one
+function rocketOrbit(rocket) {
+  const body = getBody(rocket.parentBody);
+  const mu = gravParam(body);
+  const rx = rocket.pos.x - body.pos.x;
+  const ry = rocket.pos.y - body.pos.y;
+  const r = Math.sqrt(rx ** 2 + ry ** 2);
+  const vel = relativeVelocity(rocket, body);
+  const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2);
+  const h = rx * vel.y - ry * vel.x;
+  const energy = (speed * speed) / 2 - mu / r;
+  const a = -mu / (2 * energy);
+  const e = Math.sqrt(Math.max(1 + (2 * energy * h * h) / (mu * mu), 0));
+  return {
+    apoapsis: e < 1 ? a * (1 + e) - body.size : Infinity,
+    periapsis: a * (1 - e) - body.size
+  };
+}
+
+function runExternalVariableModule(rocket, entry) {
+  const mod = (entry.part.modules || {})["External Variable Module"];
+  if (!mod) {
+    return;
+  }
+  for (const row of mod.Variables || []) {
+    const read = externalVariableReaders[row.Variable];
+    if (read) {
+      partVars(entry)[row.Variable] = read(rocket);
+    }
+  }
+}
+
+// fills Resource up to the tank's own capacity at Rate/sec while Condition
+// reads true, drawing from nowhere: it's a source, not a pipe
+function runResourceFillerModule(entry, dt) {
+  const mod = (entry.part.modules || {})["Resource Filler Module"];
+  if (!mod || !resolveField(entry, mod.Condition)) {
+    return;
+  }
+  const resource = mod.Resource;
+  const capacity = (entry.tanksMax || {})[resource];
+  if (!resource || !capacity) {
+    return;
+  }
+  const held = (entry.tanks || (entry.tanks = {}))[resource] || 0;
+  entry.tanks[resource] = Math.min(held + (mod.Rate || 0) * dt, capacity);
+}
+
 function applyClockAction(entry, action) {
   const vars = partVars(entry);
   const name = isBinding(action.Variable) ? action.Variable.$var : undefined;
@@ -3156,10 +3175,16 @@ function runPartLogic(dt) {
     if (!rocket.stack) {
       continue;
     }
+    if (dt > 0) {
+      rocket._angVel = ((rocket.angle - (rocket._prevAngle ?? rocket.angle)) * 180 / Math.PI) / dt;
+      rocket._prevAngle = rocket.angle;
+    }
     for (const entry of rocket.stack.parts) {
+      runExternalVariableModule(rocket, entry);
       runMathModule(entry);
       runBooleanModule(entry);
       runExtraDataModule(rocket, entry);
+      runResourceFillerModule(entry, dt);
       tickClocks(entry, dt);
       runSelfDestruct(rocket, entry);
     }
@@ -3280,7 +3305,8 @@ function craftSave() {
       y: snap.parts[i].oy,
       rot: inst.rot || 0,
       attachedTo: inst.attachedTo ? vab.parts.indexOf(inst.attachedTo) : null,
-      parentNode: inst.parentNode || null
+      parentNode: inst.parentNode || null,
+      stage: inst.stage || 0
     }))
   };
   const url = URL.createObjectURL(
@@ -3311,7 +3337,8 @@ function craftLoad(craft) {
       x: bayCentre() + entry.x * vab.scale,
       y: height / 2 + entry.y * vab.scale,
       rot: entry.rot || 0,
-      attachedTo: null
+      attachedTo: null,
+      stage: entry.stage || 0
     });
   }
   craft.parts.forEach((entry, i) => {
@@ -3485,9 +3512,6 @@ function craftPick() {
   craftInput.click();
 }
 
-// the whole game state, downloaded as a json file the same way craftSave works.
-// parts are shared objects, so they go out as names and come back by lookup,
-// and fx/anim state is left out because runAnimations rebuilds it next frame
 function gameSave() {
   const save = {
     format: "xopernicus-save",
@@ -3945,12 +3969,74 @@ async function runSplash() {
   }
 }
 
+// off the right edge, only half showing, while assets are still loading
+function loadingEarthGeom() {
+  const r = Math.min(width, height) * 0.58;
+  return { x: width - r * 0.35, y: height / 2, r };
+}
+
+// bigger and off the left edge instead, once Play has been pressed
+function menuEarthGeom() {
+  const r = Math.min(width, height) * 0.75;
+  return { x: -r * 0.1, y: height / 2, r };
+}
+
+let introEarth = null;
+
+function drawIntroEarth(geom) {
+  const img = textures.Earth;
+  if (!img) {
+    return;
+  }
+  push();
+
+  const atmoR = geom.r * 1.1;
+  const glow = drawingContext.createRadialGradient(
+    geom.x, geom.y, geom.r * 0.9,
+    geom.x, geom.y, atmoR
+  );
+  glow.addColorStop(0, "rgba(125,180,255,0.55)");
+  glow.addColorStop(1, "rgba(125,180,255,0)");
+  drawingContext.save();
+  drawingContext.fillStyle = glow;
+  drawingContext.beginPath();
+  drawingContext.arc(geom.x, geom.y, atmoR, 0, TWO_PI);
+  drawingContext.fill();
+  drawingContext.restore();
+
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.arc(geom.x, geom.y, geom.r, 0, TWO_PI);
+  drawingContext.clip();
+  imageMode(CENTER);
+  image(img, geom.x, geom.y, geom.r * 2, geom.r * 2);
+  const clouds = textures.EarthClouds;
+  if (clouds) {
+    blendMode(SCREEN);
+    drawingContext.globalAlpha = c.cloudMax;
+    push();
+    translate(geom.x, geom.y);
+    rotate(millis() / 8000);
+    image(clouds, 0, 0, geom.r * 2 * c.cloudScale, geom.r * 2 * c.cloudScale);
+    pop();
+    drawingContext.globalAlpha = 1;
+    blendMode(BLEND);
+  }
+  drawingContext.fillStyle = "rgba(0, 225, 255, 0.56)";
+  drawingContext.beginPath();
+  drawingContext.arc(geom.x, geom.y, geom.r, 0, TWO_PI);
+  drawingContext.fill();
+  drawingContext.restore();
+  pop();
+}
+
 function drawBootScreen(progress) {
   const barW = min(width * 0.4, 420);
   const barH = 10;
   const x = (width - barW) / 2;
-  const y = height / 2;
+  const y = height * 0.82;
   background(0);
+  drawIntroEarth(loadingEarthGeom());
   noStroke();
   textAlign(CENTER, CENTER);
   fill(170);
@@ -3966,10 +4052,73 @@ function drawBootScreen(progress) {
   text(credits, width / 2, height - 44);
 }
 
+function playButtonRect() {
+  const sx = 200;
+  const sy = 60;
+  return { x: width * 0.08, y: height * 0.55, sx, sy };
+}
+
+async function waitForPlay() {
+  let wasPressed = mouseIsPressed;
+  for (;;) {
+    background(0);
+    drawIntroEarth(loadingEarthGeom());
+    noStroke();
+    textAlign(LEFT, CENTER);
+    fill("White");
+    textSize(90);
+    text("WebOrbit", width * 0.08, height * 0.32);
+    GUIAPI.buttons = [];
+    GUIAPI.blockers = [];
+    GUIAPI.order = 0;
+    const btn = playButtonRect();
+    textSize(22);
+    GUIAPI.button(btn.x, btn.y, btn.sx, btn.sy, { id: "intro-play", ...menuStyle }, "Play");
+    fill(85);
+    textSize(13);
+    textAlign(CENTER, CENTER);
+    text(credits, width / 2, height - 44);
+    if (mouseIsPressed && !wasPressed && GUIAPI.clicked("intro-play")) {
+      break;
+    }
+    wasPressed = mouseIsPressed;
+    await nextFrame();
+  }
+}
+
+// a plain lerp from where it was loading to where the menu keeps it, no easing
+async function runEarthTransition() {
+  const from = loadingEarthGeom();
+  const to = menuEarthGeom();
+  const duration = 900;
+  const start = performance.now();
+  for (;;) {
+    const p = constrain((performance.now() - start) / duration, 0, 1);
+    introEarth = {
+      x: lerp(from.x, to.x, p),
+      y: lerp(from.y, to.y, p),
+      r: lerp(from.r, to.r, p)
+    };
+    background(0);
+    drawIntroEarth(introEarth);
+    if (p >= 1) {
+      break;
+    }
+    await nextFrame();
+  }
+}
+
 async function setup() {
   frameRate(60);
   createCanvas(windowWidth, windowHeight);
   GUIAPI.onButton = buttonOnClick;
+
+  rawTextSize = textSize;
+  Object.defineProperty(window, "textSize", {
+    configurable: true,
+    enumerable: true,
+    value: (size) => rawTextSize(size / 1.2)
+  });
   skyTip = color("#000000");
   skySurface = color("#3a7bd5");
   hazeColor = color(c.hazeColor);
@@ -3979,7 +4128,7 @@ async function setup() {
   let bootDone = 0;
   let loaded = false;
 
-  gameFont = await loadFont('assets/Font.ttf'); // open sans
+  gameFont = await loadFont('assets/Font.ttf'); // DM Mono
   textFont(gameFont);
 
   const loadAll = (async () => {
@@ -3991,13 +4140,13 @@ async function setup() {
     bootDone++;
   })().finally(() => (loaded = true));
 
-  await runSplash();
   while (!loaded) {
     drawBootScreen(bootDone / bootSteps);
     await nextFrame();
   }
   await loadAll;
-  drawBootScreen(1);
+  await waitForPlay();
+  await runEarthTransition();
   booting = false;
 
   updateBodies();
@@ -4413,7 +4562,7 @@ function fillTanks(stack, trim) {
     entry.tanksMax = {};
     for (const p of tankResources(tank)) {
       const held = p.amount * c.kgPerTon * trim;
-      entry.tanks[p.resource] = (entry.tanks[p.resource] || 0) + held;
+      entry.tanks[p.resource] = (entry.tanks[p.resource] || 0) + held * p.startFraction;
       entry.tanksMax[p.resource] = (entry.tanksMax[p.resource] || 0) + held;
     }
   }
@@ -4682,9 +4831,6 @@ function drawPitchGuide(rocket) {
   pop();
 }
 
-// points an arrow along prograde/retrograde (whichever the next planned burn
-// needs) with the burn's Δv underneath, for whatever transfer/dock/phasing
-// plan is currently active — same numbers as the map view's burn/capture text
 function drawBurnGuide(rocket) {
   if (!rocket.parentBody) {
     return;
@@ -5363,9 +5509,6 @@ function drawBody(body, rocket) {
   }
 
   if (atmosphereHeight > 0) {
-    // one radial gradient rather than a stack of stroked rings. zoomed in, each
-    // ring was wider than the screen, so the old loop cost 200 full-screen
-    // fills a frame per planet and that was the lag
     const sky = drawingContext.createRadialGradient(
       screenX, screenY, Math.max(surfaceRadius, 0),
       screenX, screenY, Math.max(atmoRadius, 1)
@@ -5619,9 +5762,6 @@ function driveAnimation(rocket, holder, anim, host) {
   } else if (!held) {
     holder.animOn = false;
   }
-  // a loop starts again the moment its last thread runs out, carrying on from
-  // where the last pass finished. re-applying the start frame here would snap
-  // the value back and show as a flicker every time round
   if (anim.Loop && holder.animOn && !threadsFor(holder, "main").length) {
     playRows(holder, anim["To Animate"], "main");
   }
@@ -6423,6 +6563,7 @@ function draw() {
     }, "Close");
   }
 
+
   drawPartGUIs();
 
   runHook("draw:absolute", { rocket: curRocket, camera });
@@ -6988,6 +7129,16 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("example-rockets")) {
       exampleRocketsOpen = !exampleRocketsOpen;
+    }
+    if (GUIAPI.clicked("vab-staging")) {
+      stagingOpen = !stagingOpen;
+    }
+    if (stagingOpen) {
+      vab.parts.forEach((inst, i) => {
+        if (GUIAPI.clicked("stage-cycle-" + i)) {
+          inst.stage = ((inst.stage ?? 0) + 1) % 10;
+        }
+      });
     }
     if (GUIAPI.clicked("example-little-bob")) {
       craftLoad(exampleCrafts["little-bob"]);
