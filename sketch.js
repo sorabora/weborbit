@@ -1,7 +1,7 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.3c";
+const gameVersion = "1.5.3d";
 const modVersionSystemSince = "1.5.3";
 
 let scale = 5;
@@ -4090,16 +4090,20 @@ function drawIntroEarth(geom) {
   push();
 
   let glowRGB = "125,180,255";
-  let tintRGB = "0,225,255";
+  let tintRGB = "125,180,255";
+  let tintA = 0.8;
   if (img == textures.Mars) {
     glowRGB = "255,140,90";
     tintRGB = "255,100,60";
+    tintA = 0.56;
   } else if (img == textures.Jupiter) {
     glowRGB = "235,200,150";
     tintRGB = "230,180,120";
+    tintA = 0.56;
   } else if (img == textures.Sun) {
     glowRGB = "255,210,90";
     tintRGB = "255,190,60";
+    tintA = 0.56;
   }
 
   const atmoR = geom.r * 1.1;
@@ -4141,7 +4145,17 @@ function drawIntroEarth(geom) {
     drawingContext.globalAlpha = 1;
     blendMode(BLEND);
   }
-  drawingContext.fillStyle = `rgba(${tintRGB},0.56)`;
+  if (img == textures.Earth) {
+    const haze = drawingContext.createRadialGradient(
+      geom.x, geom.y, 0,
+      geom.x, geom.y, geom.r
+    );
+    haze.addColorStop(0, `rgba(${tintRGB},0.05)`);
+    haze.addColorStop(1, `rgba(${tintRGB},${tintA})`);
+    drawingContext.fillStyle = haze;
+  } else {
+    drawingContext.fillStyle = `rgba(${tintRGB},${tintA})`;
+  }
   drawingContext.beginPath();
   drawingContext.arc(geom.x, geom.y, geom.r, 0, TWO_PI);
   drawingContext.fill();
