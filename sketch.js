@@ -1,7 +1,7 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.3b";
+const gameVersion = "1.5.3c";
 const modVersionSystemSince = "1.5.3";
 
 let scale = 5;
@@ -27,6 +27,7 @@ let inFeaturedModsMenu = false;
 let inKeyBindsMenu = false;
 let careerMissionsOpen = false;
 let techTreeOpen = true;
+const rng = Math.floor(Math.random() * 100) + 1;
 const controls = { 
   invertVabZoom: false, 
   invertFlightZoom: false 
@@ -56,8 +57,7 @@ let devConsole = {
   input: "",
   lines: [],
   history: [],
-  historyIndex: -1,
-  scroll: 0
+  historyIndex: -1
 };
 
 let skillIssue = null;
@@ -232,6 +232,7 @@ const GUIAPI = {
   blockers: [],
   scrolls: {},
   scrollAreas: [],
+  autoBottom: {},
   order: 0,
   onButton: null,
   beginFrame() {
@@ -325,15 +326,23 @@ const GUIAPI = {
       textSize(extras.titleSize || 16);
       textAlign(CENTER, CENTER);
       text(title, x + sx / 2, y + pad + titleHeight / 2);
+      if (extras.hint) {
+        fill(extras.hintColor || "#999");
+        textSize(12);
+        textAlign(RIGHT, CENTER);
+        text(extras.hint, x + sx - pad, y + pad + titleHeight / 2);
+      }
     }
     pop();
 
+    const footerHeight = extras.footer || 0;
     const content = {
       x: x + pad,
       y: y + pad + titleHeight,
       sx: sx - pad * 2,
-      sy: sy - pad * 2 - titleHeight
+      sy: sy - pad * 2 - titleHeight - footerHeight
     };
+    const footer = { x: content.x, y: content.y + content.sy, sx: content.sx, sy: footerHeight };
 
     const id = extras.id || title || "panel";
     if (this.scrolls[id] === undefined) {
@@ -350,10 +359,15 @@ const GUIAPI = {
     drawingContext.restore();
 
     const maxScroll = Math.max(0, (lui.cursor.y + this.scrolls[id]) - content.y - content.sy);
-    this.scrolls[id] = constrain(this.scrolls[id], 0, maxScroll);
-    this.scrollAreas.push({ id, x: content.x, y: content.y, sx: content.sx, sy: content.sy, max: maxScroll, order, frame: frameCount });
+    if (this.autoBottom[id]) {
+      this.scrolls[id] = maxScroll;
+      this.autoBottom[id] = false;
+    } else {
+      this.scrolls[id] = constrain(this.scrolls[id], 0, maxScroll);
+    }
+    this.scrollAreas.push({ id, x: content.x, y: content.y, sx: content.sx, sy: content.sy, max: maxScroll, order: this.order - 1, frame: frameCount });
 
-    return { x, y, sx, sy, content };
+    return { x, y, sx, sy, content, footer };
   },
   scroll(delta) {
     let best = null;
@@ -4059,19 +4073,42 @@ function menuEarthGeom() {
 let introEarth = null;
 
 function drawIntroEarth(geom) {
-  const img = textures.Earth;
+  let img;
+
+  if (rng >= 30) {
+    img = textures.Earth;
+  } else if (rng >= 5) {
+    img = textures.Mars;
+  } else if (rng >= 2) {
+    img = textures.Jupiter;
+  } else if (rng == 1) {
+    img = textures.Sun
+  }
   if (!img) {
     return;
   }
   push();
+
+  let glowRGB = "125,180,255";
+  let tintRGB = "0,225,255";
+  if (img == textures.Mars) {
+    glowRGB = "255,140,90";
+    tintRGB = "255,100,60";
+  } else if (img == textures.Jupiter) {
+    glowRGB = "235,200,150";
+    tintRGB = "230,180,120";
+  } else if (img == textures.Sun) {
+    glowRGB = "255,210,90";
+    tintRGB = "255,190,60";
+  }
 
   const atmoR = geom.r * 1.1;
   const glow = drawingContext.createRadialGradient(
     geom.x, geom.y, geom.r * 0.9,
     geom.x, geom.y, atmoR
   );
-  glow.addColorStop(0, "rgba(125,180,255,0.55)");
-  glow.addColorStop(1, "rgba(125,180,255,0)");
+  glow.addColorStop(0, `rgba(${glowRGB},0.55)`);
+  glow.addColorStop(1, `rgba(${glowRGB},0)`);
   drawingContext.save();
   drawingContext.fillStyle = glow;
   drawingContext.beginPath();
@@ -4085,7 +4122,14 @@ function drawIntroEarth(geom) {
   drawingContext.clip();
   imageMode(CENTER);
   image(img, geom.x, geom.y, geom.r * 2, geom.r * 2);
-  const clouds = textures.EarthClouds;
+  let clouds = textures.EarthClouds;
+  if (img == textures.Mars) {
+    clouds = textures.Jupiter;
+    // overlayed jupiter looks like faint clouds
+    // pretty neat right?
+  } else if (img != textures.Earth) {
+    clouds = null;
+  }
   if (clouds) {
     blendMode(SCREEN);
     drawingContext.globalAlpha = c.cloudMax;
@@ -4097,7 +4141,7 @@ function drawIntroEarth(geom) {
     drawingContext.globalAlpha = 1;
     blendMode(BLEND);
   }
-  drawingContext.fillStyle = "rgba(0, 225, 255, 0.56)";
+  drawingContext.fillStyle = `rgba(${tintRGB},0.56)`;
   drawingContext.beginPath();
   drawingContext.arc(geom.x, geom.y, geom.r, 0, TWO_PI);
   drawingContext.fill();
@@ -6704,8 +6748,6 @@ function hudBox(label, offset, textColor) {
 }
 
 const consoleTheme = {
-  pad: 12,
-  titleHeight: 28,
   lineHeight: 18,
   inputHeight: 30,
   gap: 6,
@@ -6722,12 +6764,6 @@ function consoleBox() {
     sx,
     sy
   };
-}
-
-function consoleRows() {
-  const box = consoleBox();
-  const room = box.sy - consoleTheme.pad * 2 - consoleTheme.titleHeight - consoleTheme.inputHeight - consoleTheme.gap;
-  return Math.max(1, Math.floor(room / consoleTheme.lineHeight));
 }
 
 function devLog(...parts) {
@@ -6748,7 +6784,7 @@ function devLog(...parts) {
   while (devConsole.lines.length > consoleTheme.maxLines) {
     devConsole.lines.shift();
   }
-  devConsole.scroll = 0;
+  GUIAPI.autoBottom["console"] = true;
 }
 
 function runCommand(raw) {
@@ -6759,6 +6795,11 @@ function runCommand(raw) {
   devConsole.history.unshift(cmd);
   while (devConsole.history.length > consoleTheme.maxHistory) {
     devConsole.history.pop();
+  }
+
+  if (cmd === "js" || cmd.startsWith("js ")) {
+    commandJs(cmd.slice(3));
+    return;
   }
 
   const param = [];
@@ -6782,9 +6823,6 @@ function runCommand(raw) {
       break;
     case "togglehidden":
       commandToggleHidden();
-      break;
-    case "js":
-      commandJs(param.slice(1).join(" "));
       break;
     default:
       devLog(`Unknown command ${cmd}`)
@@ -6914,46 +6952,24 @@ function consoleInputTail(str, room) {
 
 function drawDevConsole() {
   const box = consoleBox();
-  const { pad, titleHeight, lineHeight, inputHeight } = consoleTheme;
-  const order = GUIAPI.order++;
-  GUIAPI.block(box.x, box.y, box.sx, box.sy, order);
+  const { lineHeight, inputHeight, gap } = consoleTheme;
+
+  const panel = GUIAPI.panel(box.sx, box.sy, {
+    id: "console",
+    borderColor: "#555",
+    gap: 0,
+    footer: inputHeight + gap,
+    hint: "ctrl+4 to hide"
+  }, "Console", ui => {
+    for (const line of devConsole.lines) {
+      ui.label(line, { size: 13, color: "#ddd", height: lineHeight });
+    }
+  });
+
+  const field = { x: panel.footer.x, y: panel.footer.y + gap, sx: panel.footer.sx, sy: inputHeight };
 
   push();
   noStroke();
-  fill("#2a2a2aee");
-  stroke("#555");
-  strokeWeight(1);
-  rect(box.x, box.y, box.sx, box.sy, 6);
-
-  noStroke();
-  fill("#fff");
-  textSize(16);
-  textAlign(LEFT, CENTER);
-  text("Console", box.x + pad, box.y + pad + titleHeight / 2);
-
-  textAlign(RIGHT, CENTER);
-  textSize(12);
-  fill("#999");
-  text("ctrl+4 to hide", box.x + box.sx - pad, box.y + pad + titleHeight / 2);
-
-  const rows = consoleRows();
-  const start = Math.max(0, devConsole.lines.length - rows - devConsole.scroll);
-  const shown = devConsole.lines.slice(start, start + rows);
-  const logY = box.y + pad + titleHeight;
-
-  textAlign(LEFT, CENTER);
-  textSize(13);
-  fill("#ddd");
-  for (let i = 0; i < shown.length; i++) {
-    text(shown[i], box.x + pad, logY + i * lineHeight + lineHeight / 2);
-  }
-
-  const field = {
-    x: box.x + pad,
-    y: box.y + box.sy - pad - inputHeight,
-    sx: box.sx - pad * 2,
-    sy: inputHeight
-  };
   fill("#1e1e1e");
   stroke(devConsole.focused ? "#2a6ac0" : "#555");
   strokeWeight(1);
@@ -6961,6 +6977,7 @@ function drawDevConsole() {
 
   noStroke();
   textSize(13);
+  textAlign(LEFT, CENTER);
   fill("#7fb2ff");
   text(">", field.x + 8, field.y + field.sy / 2);
 
@@ -7528,14 +7545,6 @@ function mouseReleased() {
 function mouseWheel(event) {
   if (GUIAPI.scroll(event.delta)) {
     return false;
-  }
-  if (consoleOpen) {
-    const box = consoleBox();
-    if (GUIAPI.contains(box.x, box.y, box.sx, box.sy)) {
-      const top = Math.max(0, devConsole.lines.length - consoleRows());
-      devConsole.scroll = constrain(devConsole.scroll + (event.delta > 0 ? -1 : 1), 0, top);
-      return false;
-    }
   }
   if (inVab) {
     if (mouseX < panelWidth() && mouseY >= paletteTop()) {
