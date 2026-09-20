@@ -1,7 +1,7 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.3";
+const gameVersion = "1.5.3b";
 const modVersionSystemSince = "1.5.3";
 
 let scale = 5;
@@ -230,12 +230,15 @@ const GUIAPI = {
   pendingTooltip: null,
   buttons: [],
   blockers: [],
+  scrolls: {},
+  scrollAreas: [],
   order: 0,
   onButton: null,
   beginFrame() {
     this.order = 0;
     this.blockers = this.blockers.filter(b => b.frame >= frameCount - 1);
     this.buttons = this.buttons.filter(b => b.frame >= frameCount - 1);
+    this.scrollAreas = this.scrollAreas.filter(a => a.frame >= frameCount - 1);
   },
   block(x, y, sx, sy, order) {
     this.blockers.push({ x, y, sx, sy, order, frame: frameCount });
@@ -293,7 +296,7 @@ const GUIAPI = {
     const hit = this.buttonAt();
     return !!hit && hit.id === id;
   },
-  panel(sx, sy, extras = {}, title) {
+  panel(sx, sy, extras = {}, title, children) {
     const x = Math.round((width - sx) / 2 + (extras.offsetX || 0));
     const y = Math.round((height - sy) / 2 + (extras.offsetY || 0));
     const pad = extras.pad === undefined ? 12 : extras.pad;
@@ -331,36 +334,45 @@ const GUIAPI = {
       sx: sx - pad * 2,
       sy: sy - pad * 2 - titleHeight
     };
-    this.into(content);
+
+    const id = extras.id || title || "panel";
+    if (this.scrolls[id] === undefined) {
+      this.scrolls[id] = 0;
+    }
+    const gap = extras.gap === undefined ? 6 : extras.gap;
+    const lui = LUIAPI.begin(content, this.scrolls[id], gap);
+
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(content.x, content.y, content.sx, content.sy);
+    drawingContext.clip();
+    children(lui);
+    drawingContext.restore();
+
+    const maxScroll = Math.max(0, (lui.cursor.y + this.scrolls[id]) - content.y - content.sy);
+    this.scrolls[id] = constrain(this.scrolls[id], 0, maxScroll);
+    this.scrollAreas.push({ id, x: content.x, y: content.y, sx: content.sx, sy: content.sy, max: maxScroll, order, frame: frameCount });
+
     return { x, y, sx, sy, content };
   },
-  flow: null,
-  into(rect, gap = 6, rowHeight = 22) {
-    this.flow = { x: rect.x, y: rect.y, sx: rect.sx, gap, rowHeight };
-  },
-  row(height) {
-    const f = this.flow;
-    const out = { x: f.x, y: f.y, sx: f.sx, sy: height === undefined ? f.rowHeight : height };
-    f.y += out.sy + f.gap;
-    return out;
-  },
-  label(str, extras = {}) {
-    const r = this.row(extras.height);
-    const align = extras.align || LEFT;
-    push();
-    noStroke();
-    fill(extras.color || "#fff");
-    textSize(extras.size || 14);
-    textAlign(align, CENTER);
-    let tx = r.x;
-    if (align === CENTER) {
-      tx = r.x + r.sx / 2;
-    } else if (align === RIGHT) {
-      tx = r.x + r.sx;
+  scroll(delta) {
+    let best = null;
+    for (const a of this.scrollAreas) {
+      if (a.frame < frameCount - 1 || !this.contains(a.x, a.y, a.sx, a.sy)) {
+        continue;
+      }
+      if (this.covered(a.order, a.frame)) {
+        continue;
+      }
+      if (!best || a.order > best.order) {
+        best = a;
+      }
     }
-    text(str, tx, r.y + r.sy / 2);
-    pop();
-    return r;
+    if (!best) {
+      return false;
+    }
+    this.scrolls[best.id] = constrain(this.scrolls[best.id] + delta, 0, best.max);
+    return true;
   },
 button(x, y, sx, sy, extras = {}, label) {
   const order = this.order++;
@@ -441,6 +453,46 @@ button(x, y, sx, sy, extras = {}, label) {
     this.pendingTooltip = null;
   }
 }
+
+const LUIAPI = {
+  begin(content, scroll, gap) {
+    const cursor = { y: content.y - scroll };
+    return {
+      content,
+      cursor,
+      label(str, extras = {}) {
+        const h = extras.height === undefined ? 22 : extras.height;
+        const align = extras.align || LEFT;
+        push();
+        noStroke();
+        fill(extras.color || "#fff");
+        textSize(extras.size || 14);
+        textAlign(align, CENTER);
+        let tx = content.x + (extras.offsetX || 0);
+        if (align === CENTER) {
+          tx = content.x + content.sx / 2 + (extras.offsetX || 0);
+        } else if (align === RIGHT) {
+          tx = content.x + content.sx + (extras.offsetX || 0);
+        }
+        text(str, tx, cursor.y + h / 2 + (extras.offsetY || 0));
+        pop();
+        cursor.y += h + gap;
+      },
+      button(offX, offY, bsx, bsy, extras = {}, label) {
+        const w = bsx === undefined ? content.sx : bsx;
+        const bx = content.x + (content.sx - w) / 2 + offX;
+        const by = cursor.y + offY;
+        GUIAPI.button(bx, by, w, bsy, extras, label);
+        cursor.y += bsy + gap;
+      },
+      row(h) {
+        const out = { x: content.x, y: cursor.y, sx: content.sx, sy: h === undefined ? 22 : h };
+        cursor.y += out.sy + gap;
+        return out;
+      }
+    };
+  }
+};
 
 const vab = {
   parts: [],
@@ -1492,68 +1544,68 @@ function drawMainMenu() {
 }
 
 function drawKeyBindsMenu() {
-  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-  GUIAPI.label("Keybinds", { size: 28, align: CENTER, height: 40 });
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "keybinds" }, undefined, ui => {
+    ui.label("Keybinds", { size: 28, align: CENTER, height: 40 });
 
-  const vabRow = GUIAPI.row(85);
-  GUIAPI.button(width/2 - 175, vabRow.y, 350, 85, {
-    id: "keybind-invert-vab-zoom",
-    ...menuStyle
-  }, `Invert VAB Zoom: ${controls.invertVabZoom ? "On" : "Off"}`);
+    ui.button(0, 0, 350, 85, {
+      id: "keybind-invert-vab-zoom",
+      ...menuStyle
+    }, `Invert VAB Zoom: ${controls.invertVabZoom ? "On" : "Off"}`);
 
-  const flightRow = GUIAPI.row(85);
-  GUIAPI.button(width/2 - 175, flightRow.y, 350, 85, {
-    id: "keybind-invert-flight-zoom",
-    ...menuStyle
-  }, `Invert Flight Zoom: ${controls.invertFlightZoom ? "On" : "Off"}`);
+    ui.button(0, 0, 350, 85, {
+      id: "keybind-invert-flight-zoom",
+      ...menuStyle
+    }, `Invert Flight Zoom: ${controls.invertFlightZoom ? "On" : "Off"}`);
 
-  const close = GUIAPI.row(85);
-  GUIAPI.button(width/2 - 175, close.y, 350, 85, {
-    id: "keybinds-close",
-    ...menuStyle
-  }, "Close");
+    ui.button(0, 0, 350, 85, {
+      id: "keybinds-close",
+      ...menuStyle
+    }, "Close");
+  });
 }
 
 function drawCreditsMenu() {
-  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-  GUIAPI.label("Credits", { size: 28, align: CENTER, height: 40 });
-  GUIAPI.label("@sorabora - Developer", { size: 28, align: CENTER, height: 80 });
-  GUIAPI.label("Planet textures are modified versions of graphics by Solar System Scope (solarsystemscope.com), used under CC BY 4.0.", { size: 15, align: CENTER, height: 20 });
-  GUIAPI.label("Open Sans font by Steve Matteson, used under the Apache License 2.0.", { size: 15, align: CENTER, height: 40 });
-  GUIAPI.label("VAB, launchtower and launchpad textures by @Croissant on SFS forums", { size: 15, align: CENTER, height: 20 });
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "credits" }, undefined, ui => {
+    ui.label("Credits", { size: 28, align: CENTER, height: 40 });
+    ui.label("@sorabora - Developer", { size: 28, align: CENTER, height: 80 });
+    ui.label("Planet textures are modified versions of graphics by Solar System Scope (solarsystemscope.com), used under CC BY 4.0.", { size: 15, align: CENTER, height: 20 });
+    ui.label("Open Sans font by Steve Matteson, used under the Apache License 2.0.", { size: 15, align: CENTER, height: 40 });
+    ui.label("VAB, launchtower and launchpad textures by @Croissant on SFS forums", { size: 15, align: CENTER, height: 20 });
 
-  GUIAPI.button(width/2 - 175, 380, 350, 130, {
-    id: "credits-close",
-    baseColor: "#1f398f",
-    hoverColor: "#2a32c0",
-    activeColor: "#1a1770"
-  }, "Close");
+    ui.button(0, 0, 350, 130, {
+      id: "credits-close",
+      baseColor: "#1f398f",
+      hoverColor: "#2a32c0",
+      activeColor: "#1a1770"
+    }, "Close");
+  });
 }
 
 function drawModLoaderMenu() {
-  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-  GUIAPI.label("Modloader", { size: 28, align: CENTER, height: 40 });
-  
-  for (let i = 0; i < loaded.length; i++) {
-    const pack = loaded[i];
-    GUIAPI.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
-    GUIAPI.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
-  }
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "modloader" }, undefined, ui => {
+    ui.label("Modloader", { size: 28, align: CENTER, height: 40 });
 
-  const close = GUIAPI.row(85);
-  GUIAPI.button(width/2 - 350, close.y, 350, 85, {
-    id: "modloader-close",
-    baseColor: "#1f398f",
-    hoverColor: "#2a32c0",
-    activeColor: "#1a1770"
-  }, "Close");
+    for (let i = 0; i < loaded.length; i++) {
+      const pack = loaded[i];
+      ui.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
+      ui.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
+    }
 
-  GUIAPI.button(width/2, close.y, 350, 85, {
-    id: "modloader-new",
-    baseColor: "#1f8f1f",
-    hoverColor: "#2ac050",
-    activeColor: "#177023"
-  }, "Load New");
+    const close = ui.row(85);
+    GUIAPI.button(close.x + close.sx / 2 - 350, close.y, 350, 85, {
+      id: "modloader-close",
+      baseColor: "#1f398f",
+      hoverColor: "#2a32c0",
+      activeColor: "#1a1770"
+    }, "Close");
+
+    GUIAPI.button(close.x + close.sx / 2, close.y, 350, 85, {
+      id: "modloader-new",
+      baseColor: "#1f8f1f",
+      hoverColor: "#2ac050",
+      activeColor: "#177023"
+    }, "Load New");
+  });
 }
 
 async function getData() {
@@ -1580,13 +1632,12 @@ const featuredTierLabels = {
 };
 
 function drawFeaturedModsMenu() {
-  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-  GUIAPI.label("Featured Mods", { size: 28, align: CENTER, height: 40 });
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "featured-mods" }, undefined, ui => {
+    ui.label("Featured Mods", { size: 28, align: CENTER, height: 40 });
 
-  let i = 0;
-  for (const mod of featuredMods ?? []) {
-    if (i <= 10) {
-      GUIAPI.button(width / 2 - 275 , 225 + i * 90, 550, 80, {
+    for (let i = 0; i < (featuredMods ?? []).length; i++) {
+      const mod = featuredMods[i];
+      ui.button(0, 0, 550, 80, {
         id: "featured-mod-" + i,
         data: {
           threadUrl: mod.threadUrl,
@@ -1597,15 +1648,15 @@ function drawFeaturedModsMenu() {
         hoverColor: "#2a6ac0",
         activeColor: "#173d70"
       }, `${mod.title}  ${featuredTierLabels[mod.tier] ?? ""}`);
-      i++;
     }
-  };
-  GUIAPI.button(width / 2 - 275 , 225 + i * 90, 550, 80, {
-    id: "featured-mods-close",
-    baseColor: "#1f398f",
-    hoverColor: "#2a32c0",
-    activeColor: "#1a1770"
-  }, "Close");
+
+    ui.button(0, 0, 550, 80, {
+      id: "featured-mods-close",
+      baseColor: "#1f398f",
+      hoverColor: "#2a32c0",
+      activeColor: "#1a1770"
+    }, "Close");
+  });
 }
 
 function drawMissions() {
@@ -1614,8 +1665,7 @@ function drawMissions() {
   textSize(80);
   text("Missions", width / 2, 80);
   
-  const mission1 = GUIAPI.row(50);
-  GUIAPI.button(width/2 - 175, mission1.y, 350, 85, {
+  GUIAPI.button(width/2 - 175, 150, 350, 85, {
     id: "mission-1",
     ...menuStyle
   }, "Little Bob - Atmospheric");
@@ -5855,22 +5905,20 @@ function renderGuiWindow(entry, gui, idx) {
   }
   const offsetX = gui.Popup ? 0 : entry.guiPos.x - (width - sx) / 2;
   const offsetY = gui.Popup ? 0 : entry.guiPos.y - (height - sy) / 2;
-  const panel = GUIAPI.panel(sx, sy, { borderColor: "#555", offsetX, offsetY }, entry.part.name);
-  GUIAPI.button(panel.x + sx - 26, panel.y + 6, 20, 20, { id: "gui-close-" + idx, baseColor: "#733" }, "x");
-
   const scope = moduleScope(entry);
-  for (const el of gui.Elements || []) {
-    if (el.Type === "Label") {
-      GUIAPI.label(interpolate(el.Label, scope));
-    } else if (el.Type === "Button") {
-      const r = GUIAPI.row(26);
-      GUIAPI.button(r.x, r.y, r.sx, r.sy, { id: "gui-btn-" + idx + "::" + el.ID }, el.Label || el.ID);
-    } else if (el.Type === "String Input" || el.Type === "Number Input") {
-      const r = GUIAPI.row(26);
-      GUIAPI.button(r.x, r.y, r.sx, r.sy, { id: "gui-input-" + idx + "::" + el.ID },
-        (el.Label || el.ID) + ": " + (partVars(entry)[el.ID] ?? ""));
+  const panel = GUIAPI.panel(sx, sy, { borderColor: "#555", offsetX, offsetY, id: "gui-window-" + idx }, entry.part.name, ui => {
+    for (const el of gui.Elements || []) {
+      if (el.Type === "Label") {
+        ui.label(interpolate(el.Label, scope));
+      } else if (el.Type === "Button") {
+        ui.button(0, 0, undefined, 26, { id: "gui-btn-" + idx + "::" + el.ID }, el.Label || el.ID);
+      } else if (el.Type === "String Input" || el.Type === "Number Input") {
+        ui.button(0, 0, undefined, 26, { id: "gui-input-" + idx + "::" + el.ID },
+          (el.Label || el.ID) + ": " + (partVars(entry)[el.ID] ?? ""));
+      }
     }
-  }
+  });
+  GUIAPI.button(panel.x + sx - 26, panel.y + 6, 20, 20, { id: "gui-close-" + idx, baseColor: "#733" }, "x");
 
   if (!gui.Popup && GUIAPI.contains(panel.x, panel.y, sx, 28)) {
     if (mouseIsPressed) {
@@ -6513,10 +6561,11 @@ function draw() {
   }
 
   if (!curRocket && !inVab) {
-    skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-    GUIAPI.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
-    GUIAPI.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
-    GUIAPI.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
+    skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "skill-issue" }, undefined, ui => {
+      ui.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
+      ui.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
+      ui.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
+    });
   } else {
     skillIssue = null;
   }
@@ -6560,33 +6609,29 @@ function draw() {
   }
 
   if (exampleRocketsOpen) {
-    GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555" });
-    GUIAPI.label("Example Rockets", { size: 28, align: CENTER, height: 40 });
+    GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "example-rockets" }, undefined, ui => {
+      ui.label("Example Rockets", { size: 28, align: CENTER, height: 40 });
 
-    textSize(25);
-    const bob = GUIAPI.row(85);
-    GUIAPI.button(width/2 - 175, bob.y, 350, 85, {
-      id: "example-little-bob",
-      ...menuStyle
-    }, "Little Bob - Atmospheric");
+      ui.button(0, 0, 350, 85, {
+        id: "example-little-bob",
+        ...menuStyle
+      }, "Little Bob - Atmospheric");
 
-    const bertha = GUIAPI.row(85);
-    GUIAPI.button(width/2 - 175, bertha.y, 350, 85, {
-      id: "example-big-bertha",
-      ...menuStyle
-    }, "Big Bertha - Suborbital");
+      ui.button(0, 0, 350, 85, {
+        id: "example-big-bertha",
+        ...menuStyle
+      }, "Big Bertha - Suborbital");
 
-    const unknown = GUIAPI.row(85);
-    GUIAPI.button(width/2 - 175, unknown.y, 350, 85, {
-      id: "example-unknown-527",
-      ...menuStyle
-    }, "Simple Orbiter - Orbital");
+      ui.button(0, 0, 350, 85, {
+        id: "example-unknown-527",
+        ...menuStyle
+      }, "Simple Orbiter - Orbital");
 
-    const close = GUIAPI.row(85);
-    GUIAPI.button(width/2 - 175, close.y, 350, 85, {
-      id: "example-close",
-      ...menuStyle
-    }, "Close");
+      ui.button(0, 0, 350, 85, {
+        id: "example-close",
+        ...menuStyle
+      }, "Close");
+    });
   }
 
 
@@ -7481,6 +7526,9 @@ function mouseReleased() {
 }
 
 function mouseWheel(event) {
+  if (GUIAPI.scroll(event.delta)) {
+    return false;
+  }
   if (consoleOpen) {
     const box = consoleBox();
     if (GUIAPI.contains(box.x, box.y, box.sx, box.sy)) {
