@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.3d";
-const modVersionSystemSince = "1.5.3";
+const gameVersion = "1.5.4";
+const modVersionSystemSince = "1.5.4";
 
 let scale = 5;
 let mapScale = 5e-5;
@@ -42,6 +42,7 @@ let toasts = [];
 let t = 0;
 let elapsed = 0;
 let tt = 0;
+let physicsHooks = [];
 let cd = {};
 let featuredMods = null;
 
@@ -91,6 +92,9 @@ let c = {
   partUnits: 100,
   newtonsPerThrust: 1000,
   turnPower: 1.5,
+  landedTipDamping: 0.6,
+  sasStiffness: 6,
+  sasDamping: 3,
   throttleStep: 2,
   crashSpeed: 55,
   waterCrashSpeed: 90,
@@ -5408,17 +5412,123 @@ function surfaceCollide(rocket, body) {
   rocket.landed = { x: dx / r, y: dy / r };
 }
 
+// the landed contact point is the pivot, not the rocket's center - otherwise
+// tipping over swings the (fixed) center through the ground on the way down
+// how far the stack's hull actually sticks out past its center, straight
+// down toward the ground - a box's support distance in that direction, which
+// is the half-height when standing up and blends toward the half-width as it
+// leans over onto its side. rocketRadius() alone (half-height only) is only
+// correct at tip = 0, so anything short and wide sank into the ground once tipped
+function restRadius(rocket) {
+  const halfWidth = Math.max(rocket.stack.w / 2 / c.partUnits, 0);
+  const halfHeight = rocketRadius(rocket);
+  const tip = tipAngle(rocket);
+  return halfHeight * Math.abs(Math.cos(tip)) + halfWidth * Math.abs(Math.sin(tip));
+}
+
 function restOnSurface(rocket, h) {
   const body = getBody(rocket.parentBody);
-  const floor = surfaceRadiusAt(body, rocket.landed.x, rocket.landed.y) + rocketRadius(rocket);
+  const floor = surfaceRadiusAt(body, rocket.landed.x, rocket.landed.y) + restRadius(rocket);
   rocket.pos.x = body.pos.x + rocket.landed.x * floor;
   rocket.pos.y = body.pos.y + rocket.landed.y * floor;
   rocket.vel.x = body.vel.x;
   rocket.vel.y = body.vel.y;
-  rocket.spin = 0;
   burnFuel(rocket, h);
   if (liftsOff(rocket)) {
     rocket.landed = null;
+  }
+}
+
+function controllerTorque(rocket) {
+  if (!rocket.stack) {
+    return 0;
+  }
+  let torque = 0;
+  for (const entry of rocket.stack.parts) {
+    const controller = (entry.part.modules || {})["Controller Module"];
+    if (controller) {
+      torque += controller.Torque || 0;
+    }
+  }
+  return torque;
+}
+
+// reaction-wheel command, reusing the old rate formula as an acceleration so
+// held turn input ramps spin up instead of snapping the angle straight there
+function wheelMaxAccel(rocket) {
+  const torque = controllerTorque(rocket);
+  if (!torque) {
+    return 0;
+  }
+  return (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
+}
+
+// reaction-wheel command, reusing the old rate formula as an acceleration so
+// held turn input ramps spin up instead of snapping the angle straight there.
+// with no input, SAS (if armed) leans on the same wheels to hold heading
+// against the pull from gravityTipAccel below
+function wheelSpinAccel(rocket) {
+  if (rocket.id !== target) {
+    return 0;
+  }
+  const maxAccel = wheelMaxAccel(rocket);
+  if (!maxAccel) {
+    return 0;
+  }
+  if (rocket.turnInput) {
+    return maxAccel * rocket.turnInput;
+  }
+  if (!rocket.sas) {
+    return 0;
+  }
+  let error = rocket.sasAngle - rocket.angle;
+  error = ((error + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+  const command = c.sasStiffness * error - c.sasDamping * (rocket.spin || 0);
+  return constrain(command, -maxAccel, maxAccel);
+}
+
+// the "up" direction (radially away from the body) at this rocket's landing spot
+function landedUpAngle(rocket) {
+  const out = rocket.landed;
+  return Math.atan2(out.x, -out.y);
+}
+
+// angle this rocket's stack is pointing away from local "up" at its landing spot
+function tipAngle(rocket) {
+  const a = rocket.angle - landedUpAngle(rocket);
+  return ((a + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+}
+
+// standing on its base, a rocket is an inverted pendulum: gravity pulls it
+// further off balance the more it leans, same as thrust has to out-push
+// gravity in liftsOff() above
+function gravityTipAccel(rocket) {
+  if (!rocket.stack) {
+    return 0;
+  }
+  const acc = totalGravity(rocket.pos.x, rocket.pos.y);
+  const g = Math.hypot(acc.x, acc.y);
+  const len = Math.max(rocket.stack.h / c.partUnits, 1);
+  return ((1.5 * g) / len) * Math.sin(tipAngle(rocket));
+}
+
+// past +-90 deg (lying flat) the stack would have to dig through the ground
+// to keep turning, so the ground stops it there like a real fallen rocket
+function landedSpinStep(rocket, h) {
+  if (!rocket.stack) {
+    return;
+  }
+  const alpha = gravityTipAccel(rocket) + wheelSpinAccel(rocket);
+  rocket.spin = (rocket.spin || 0) + alpha * h;
+  rocket.spin *= Math.max(1 - c.landedTipDamping * h, 0);
+  rocket.angle += rocket.spin * h;
+  const tip = tipAngle(rocket);
+  if (tip > HALF_PI) {
+    rocket.angle = landedUpAngle(rocket) + HALF_PI;
+    rocket.spin = Math.min(rocket.spin, 0);
+  } else if (tip < -HALF_PI) {
+    rocket.angle = landedUpAngle(rocket) - HALF_PI;
+    rocket.spin = Math.max(rocket.spin, 0);
   }
 }
 
@@ -5435,11 +5545,9 @@ function spinAccel(rocket) {
     return 0;
   }
   const out = engineOutput(rocket);
-  if (!out.torque) {
-    return 0;
-  }
   const len = Math.max(rocket.stack.h / c.partUnits, 1);
-  return out.torque / ((rocket.mass * len * len) / 12);
+  const gimbal = out.torque ? out.torque / ((rocket.mass * len * len) / 12) : 0;
+  return gimbal + wheelSpinAccel(rocket);
 }
 
 // leapfrog: the two half-kicks sample gravity at each end of the step
@@ -5706,9 +5814,24 @@ function drawBody(body, rocket) {
     if (haze > 0) {
       noStroke();
       const hazeMax = body.hazeMax !== undefined ? body.hazeMax : c.hazeMax;
-      discTint.setAlpha(255 * hazeMax * haze);
-      fill(discTint);
-      circle(screenX, screenY, surfaceRadius * 2);
+      const peakAlpha = hazeMax * haze;
+      if (body.id === "Earth") {
+        const rgb = `${red(discTint)},${green(discTint)},${blue(discTint)}`;
+        const grad = drawingContext.createRadialGradient(
+          screenX, screenY, 0,
+          screenX, screenY, surfaceRadius
+        );
+        grad.addColorStop(0, `rgba(${rgb},${peakAlpha * 0.1})`);
+        grad.addColorStop(1, `rgba(${rgb},${peakAlpha})`);
+        drawingContext.fillStyle = grad;
+        drawingContext.beginPath();
+        drawingContext.arc(screenX, screenY, surfaceRadius, 0, TWO_PI);
+        drawingContext.fill();
+      } else {
+        discTint.setAlpha(255 * peakAlpha);
+        fill(discTint);
+        circle(screenX, screenY, surfaceRadius * 2);
+      }
       stroke(0);
     }
   }
@@ -6464,13 +6587,20 @@ function draw() {
   updateDocking(dt);
   for (let step = 0; step < substeps; step++) {
     for (const rocket of rockets) {
-      if (rocket.destroyed || rocket.landed) {
+      if (rocket.destroyed) {
         continue;
       }
-      kickDrift(rocket, h);
+      if (rocket.landed) {
+        landedSpinStep(rocket, h);
+      } else {
+        kickDrift(rocket, h);
+      }
     }
     t += h;
     updateBodies();
+    for (const hook of physicsHooks) {
+      hook(h);
+    }
     for (const rocket of rockets) {
       if (rocket.destroyed) {
         continue;
@@ -6579,6 +6709,12 @@ function draw() {
     GUIAPI.button(vb.x - 75, vb.y, vb.size, vb.size, { id: "map", ...menuStyle }, "Map");
     GUIAPI.button(vb.x - 150, vb.y, vb.size, vb.size, { id: "save", ...menuStyle }, "Save");
     GUIAPI.button(vb.x - 225, vb.y, vb.size, vb.size, { id: "load", ...menuStyle }, "Load");
+    if (curRocket) {
+      GUIAPI.button(vb.x - 225, vb.y + vb.size + 10, vb.size, vb.size, curRocket.sas
+        ? { id: "sas-toggle", baseColor: "#1f6b2f", hoverColor: "#2f8f45", activeColor: "#164f23", tooltip: ["Stability assist [T]", "  holds current heading"] }
+        : { id: "sas-toggle", ...menuStyle, tooltip: ["Stability assist [T]", "  holds current heading"] }
+      , "SAS");
+    }
     const dueBurn = curRocket && pendingBurnWait(curRocket);
     if (dueBurn && dueBurn.due) {
       GUIAPI.button(vb.x - 550, vb.y, vb.size * 3, vb.size, {
@@ -7071,6 +7207,11 @@ function keyPressed(event) {
     return false;
   }
 
+  if (event.code === "KeyT" && !inVab) {
+    toggleSAS();
+    return false;
+  }
+
   if (inVab) {
     if (event.code === "KeyR" && vab.drag) {
       vab.drag.inst.rot = ((vab.drag.inst.rot || 0) + 1) % 4;
@@ -7130,7 +7271,6 @@ function flightControls() {
   if (inVab || !rocket || !rocket.stack) {
     return;
   }
-  const step = 1 / frameRate();
   const touched = touchHeldCodes();
   const down = code => held.has(code) || touched.has(code);
 
@@ -7147,23 +7287,27 @@ function flightControls() {
     throttle = 100;
   }
 
-  let torque = 0;
-  for (const entry of rocket.stack.parts) {
-    const controller = (entry.part.modules || {})["Controller Module"];
-    if (controller) {
-      torque += controller.Torque || 0;
-    }
-  }
-  if (torque === 0) {
-    return;
-  }
-  const rate = (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
-  rocket.spin = (rocket.spin || 0) - constrain(rocket.spin || 0, -rate * step, rate * step);
+  let input = 0;
   if (down("KeyQ") || down("ArrowLeft")) {
-    rocket.angle -= rate * step * c.timewarp;
+    input -= 1;
   }
   if (down("KeyE") || down("ArrowRight")) {
-    rocket.angle += rate * step * c.timewarp;
+    input += 1;
+  }
+  rocket.turnInput = input;
+  if (input) {
+    rocket.sasAngle = rocket.angle;
+  }
+}
+
+function toggleSAS() {
+  const rocket = rockets.find(rocket => rocket.id === target);
+  if (!rocket) {
+    return;
+  }
+  rocket.sas = !rocket.sas;
+  if (rocket.sas) {
+    rocket.sasAngle = rocket.angle;
   }
 }
 
@@ -7360,6 +7504,10 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("load")) {
       gamePick();
+      return;
+    }
+    if (GUIAPI.clicked("sas-toggle")) {
+      toggleSAS();
       return;
     }
     if (GUIAPI.clicked("automate-burn")) {
