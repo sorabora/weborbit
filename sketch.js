@@ -5463,10 +5463,6 @@ function wheelMaxAccel(rocket) {
   return (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
 }
 
-// reaction-wheel command, reusing the old rate formula as an acceleration so
-// held turn input ramps spin up instead of snapping the angle straight there.
-// with no input, SAS (if armed) leans on the same wheels to hold heading
-// against the pull from gravityTipAccel below
 function wheelSpinAccel(rocket) {
   if (rocket.id !== target) {
     return 0;
