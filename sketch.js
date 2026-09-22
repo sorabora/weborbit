@@ -39,6 +39,7 @@ let burnLogging = false;
 let burnLog = [];
 let lastAutomatedBurnT = -Infinity;
 let toasts = [];
+let tutorial = null;
 let t = 0;
 let elapsed = 0;
 let tt = 0;
@@ -1672,6 +1673,58 @@ function drawFeaturedModsMenu() {
   });
 }
 
+function drawTutorial(curRocket) {
+  if (!tutorial || inVab || inMap || inMainMenu) {
+    return;
+  }
+  const steps = tutorialSteps[tutorial.goal];
+  if (tutorial.waiting) {
+    const last = tutorial.step >= steps.length - 1;
+    GUIAPI.panel(320, 180, { dim: true, borderColor: "#555", id: "tutorial" }, "Nice", ui => {
+      ui.label(last ? "Tutorial complete." : steps[tutorial.step + 1].text, { size: 14, height: 80 });
+      ui.button(0, 10, undefined, 40, { id: "tutorial-continue", ...menuStyle }, last ? "Finish" : "Continue");
+    });
+    return;
+  }
+  if (!curRocket || !steps[tutorial.step]) {
+    return;
+  }
+  if (steps[tutorial.step].done(curRocket)) {
+    tutorial.waiting = true;
+    return;
+  }
+  push();
+  noStroke();
+  fill("#fff");
+  textSize(14);
+  textAlign(LEFT, TOP);
+  text(steps[tutorial.step].text, 25, height - 40);
+  pop();
+
+  const holdingPitch = !curRocket.landed && !curRocket.turnInput && (tutorial.goal !== "orbit" || tutorial.step < 2);
+  if (holdingPitch) {
+    const body = getBody(curRocket.parentBody);
+    const aim = recommendedPitch(curRocket, body);
+    const up = localUp(curRocket, body);
+    const tilt = radians(90 - aim) * turnSide(curRocket, body);
+    const dirX = up.x * Math.cos(tilt) - up.y * Math.sin(tilt);
+    const dirY = up.x * Math.sin(tilt) + up.y * Math.cos(tilt);
+    const targetAngle = Math.atan2(dirX, -dirY);
+    let diff = targetAngle - curRocket.angle;
+    diff = ((diff + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+    curRocket.angle += diff * 0.08;
+    curRocket.spin = 0;
+
+    push();
+    noStroke();
+    fill("#8be08b");
+    textSize(14);
+    textAlign(LEFT, TOP);
+    text("Autopilot is holding your ascent angle.", 25, height - 65);
+    pop();
+  }
+}
+
 function drawMissions() {
   background("#111111")
   fill("#205fff");
@@ -2708,6 +2761,22 @@ function drawVab() {
   }
   drawingContext.restore();
   drawStageReadout(panelW);
+
+  const introW = 260;
+  const introX = width - introW - 20;
+  GUIAPI.button(introX, 20, introW, 40, { id: "vab-mainmenu", ...menuStyle }, "Main Menu");
+  GUIAPI.panel(introW, 260, {
+    offsetX: introX - (width - introW) / 2,
+    offsetY: 90 - (height - 260) / 2,
+    borderColor: "#555",
+    id: "vab-intro"
+  }, "Welcome", ui => {
+    ui.label("Welcome to the VAB! some parts or,", { size: 13, height: 22 });
+    ui.label("try the example rockets", { size: 13, height: 20 });
+    ui.button(0, 0, undefined, 40, { id: "practice-space", ...menuStyle }, "Practice: Space");
+    ui.button(0, 0, undefined, 40, { id: "practice-orbit", ...menuStyle }, "Practice: Orbit");
+  });
+
   GUIAPI.drawTooltip();
 
   noStroke();
@@ -3577,6 +3646,34 @@ const exampleCrafts = {
     ]
   }
 };
+
+const tutorialSteps = {
+  space: [
+    { text: "SAS is on. Throttle up and lift off the pad.", done: r => !r.landed },
+    { text: "Keep climbing until you clear the atmosphere and reach space.", done: r => r.escapedAtmosphere }
+  ],
+  orbit: [
+    { text: "SAS is on. Throttle up and lift off the pad.", done: r => !r.landed },
+    { text: "Pitch over and build speed until your apoapsis clears the atmosphere.", done: r => r.escapedAtmosphere && getOrbit().apoapsis > getBody(r.parentBody).atmosphereHeight },
+    { text: "Coast to apoapsis, then burn prograde until your periapsis clears the atmosphere too. You're in orbit.", done: r => getOrbit().periapsis > getBody(r.parentBody).atmosphereHeight }
+  ]
+};
+
+function startTutorial(goal) {
+  craftLoad(exampleCrafts[goal === "orbit" ? "Unknown_527's Rocket" : "little-bob"]);
+  const wasCareer = careerMode;
+  careerMode = false;
+  launch();
+  careerMode = wasCareer;
+  const rocket = flyingRocket();
+  if (!rocket) {
+    launchToast("Tutorial couldn't launch the craft.");
+    return;
+  }
+  rocket.sas = true;
+  rocket.sasAngle = rocket.angle;
+  tutorial = { goal, step: 0, waiting: false };
+}
 
 let craftInput = null;
 
@@ -5345,6 +5442,7 @@ function surfaceCollide(rocket, body) {
   if (!hasSurface(body)) {
     return;
   }
+  const invincible = tutorial && rocket.id === target;
   const dx = rocket.pos.x - body.pos.x;
   const dy = rocket.pos.y - body.pos.y;
   const r = Math.hypot(dx, dy);
@@ -5357,7 +5455,7 @@ function surfaceCollide(rocket, body) {
     if (r < body.size + rocketRadius(rocket)) {
       const splash = relativeVelocity(rocket, body);
       const speed = Math.hypot(splash.x, splash.y);
-      if (speed >= c.waterCrashSpeed) {
+      if (speed >= c.waterCrashSpeed && !invincible) {
         cd.speed = speed;
         cd.limit = c.waterCrashSpeed;
         cd.body = body.id;
@@ -5370,7 +5468,7 @@ function surfaceCollide(rocket, body) {
   const floor = (contact ? contact.top : body.size) + rocketRadius(rocket);
   if (contact && contact.mode === "side") {
     const hit = relativeVelocity(rocket, body);
-    if (Math.hypot(hit.x, hit.y) >= c.crashSpeed) {
+    if (Math.hypot(hit.x, hit.y) >= c.crashSpeed && !invincible) {
       cd.speed = Math.hypot(hit.x, hit.y);
       cd.limit = c.crashSpeed;
       cd.body = body.id;
@@ -5392,7 +5490,7 @@ function surfaceCollide(rocket, body) {
   }
 
   const impact = relativeVelocity(rocket, body);
-  if (Math.hypot(impact.x, impact.y) >= c.crashSpeed) {
+  if (Math.hypot(impact.x, impact.y) >= c.crashSpeed && !invincible) {
     cd.speed = Math.hypot(impact.x, impact.y);
     cd.limit = c.crashSpeed;
     cd.body = body.id;
@@ -6567,7 +6665,7 @@ function draw() {
     }
   }
 
-  const dt = Math.min(
+  const dt = tutorial && tutorial.waiting ? 0 : Math.min(
     (1 / frameRate()) * c.timewarp,
     warpUntil !== null ? Math.max(warpUntil - t, 1 / frameRate()) : Infinity
   );
@@ -6745,11 +6843,14 @@ function draw() {
     drawMissions();
   }
 
+  drawTutorial(curRocket);
+
   if (!curRocket && !inVab) {
     skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "skill-issue" }, undefined, ui => {
       ui.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
       ui.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
       ui.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
+      ui.button(0, 10, undefined, 40, { id: "skillissue-vab", ...menuStyle }, "Go to VAB");
     });
   } else {
     skillIssue = null;
@@ -7357,6 +7458,17 @@ async function mousePressed() {
 
   GUIAPI.dispatch();
 
+  if (GUIAPI.clicked("tutorial-continue")) {
+    const steps = tutorialSteps[tutorial.goal];
+    if (tutorial.step >= steps.length - 1) {
+      tutorial = null;
+    } else {
+      tutorial.step++;
+      tutorial.waiting = false;
+    }
+    return;
+  }
+
   if (inVab) {
     if (careerMode) {
       if (GUIAPI.clicked("career-missions")) {
@@ -7388,6 +7500,16 @@ async function mousePressed() {
     if (GUIAPI.clicked("example-unknown-527")) {
       craftLoad(exampleCrafts["Unknown_527's Rocket"]);
       exampleRocketsOpen = false;
+    }
+    if (GUIAPI.clicked("vab-mainmenu")) {
+      inVab = false;
+      inMainMenu = true;
+    }
+    if (GUIAPI.clicked("practice-space")) {
+      startTutorial("space");
+    }
+    if (GUIAPI.clicked("practice-orbit")) {
+      startTutorial("orbit");
     }
   }
   if (inMap && !inVab) {
@@ -7489,6 +7611,10 @@ async function mousePressed() {
     return;
   }
   if (!inVab) {
+    if (GUIAPI.clicked("skillissue-vab")) {
+      inVab = true;
+      return;
+    }
     if (GUIAPI.clicked("save")) {
       gameSave();
       return;
