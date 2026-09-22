@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.4b";
-const modVersionSystemSince = "1.5.4";
+const gameVersion = "1.5.5";
+const modVersionSystemSince = "1.5.5";
 
 let scale = 5;
 let mapScale = 5e-5;
@@ -1603,6 +1603,14 @@ function drawModLoaderMenu() {
       const pack = loaded[i];
       ui.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
       ui.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
+      if (i >= defaultLoadedCount) {
+        ui.button(0, 4, undefined, 30, {
+          id: "mod-delete-" + i,
+          baseColor: "#7a2a2a",
+          hoverColor: "#a03c3c",
+          activeColor: "#5e1f1f"
+        }, "Delete");
+      }
     }
 
     const close = ui.row(85);
@@ -7544,6 +7552,13 @@ async function mousePressed() {
     if (GUIAPI.clicked("modloader-close")) {
       inModLoaderMenu = false;
       return;
+    }
+    for (let i = defaultLoadedCount; i < loaded.length; i++) {
+      if (GUIAPI.clicked("mod-delete-" + i)) {
+        loaded.splice(i, 1);
+        persistLoadedMods();
+        return;
+      }
     }
     if (GUIAPI.clicked("modloader-new")) {
       const answer = prompt("Paste JSON of part pack data here");
