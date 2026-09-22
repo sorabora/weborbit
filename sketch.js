@@ -1,7 +1,7 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.4";
+const gameVersion = "1.5.4b";
 const modVersionSystemSince = "1.5.4";
 
 let scale = 5;
@@ -421,11 +421,6 @@ button(x, y, sx, sy, extras = {}, label) {
   push();
   noStroke();
   fill(swatch);
-  rect(x, y, sx, sy, radius);
-
-  stroke(hover ? "#fff" : extras.borderColor || "rgba(255,255,255,0.15)");
-  strokeWeight(hover ? 2 : extras.borderColor ? 2 : 1.5);
-  noFill();
   rect(x, y, sx, sy, radius);
 
   if (label) {
