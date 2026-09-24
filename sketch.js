@@ -893,12 +893,44 @@ async function loadPartTextures() {
   }
 }
 
+function partSets(part) {
+  if (!part.setInfo) {
+    const spans = new Map();
+    let tagged = false;
+    part.groups.forEach((group, gi) => {
+      if (group.set !== undefined) {
+        tagged = true;
+      }
+      const key = group.set === undefined ? gi : group.set;
+      const span = spans.get(key) || { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+      for (const [px, py] of group.points) {
+        span.minX = Math.min(span.minX, px);
+        span.maxX = Math.max(span.maxX, px);
+        span.minY = Math.min(span.minY, py);
+        span.maxY = Math.max(span.maxY, py);
+      }
+      spans.set(key, span);
+    });
+    const centres = new Map();
+    for (const [key, span] of spans) {
+      centres.set(key, { x: (span.minX + span.maxX) / 2, y: (span.minY + span.maxY) / 2 });
+    }
+    part.setInfo = { tagged, centres };
+  }
+  return part.setInfo;
+}
+
+function setOfGroup(part, gi) {
+  const group = part.groups[gi];
+  return group.set === undefined ? gi : group.set;
+}
+
 function groupPath(points, bb, sx, sy, sw, sh, into, stretch) {
   const path = into || new Path2D();
   if (!points.length) {
     return path;
   }
-  const pivot = stretch ? groupCentre(points) : null;
+  const pivot = stretch ? stretch.pivot || groupCentre(points) : null;
   const at = (i) => {
     let [px, py] = points[(i + points.length) % points.length];
     if (stretch) {
@@ -982,7 +1014,7 @@ function withAlpha(hex, alpha) {
 }
 
 function groupExtent(points, bb, sw, sh, stretch) {
-  const pivot = stretch ? groupCentre(points) : null;
+  const pivot = stretch ? stretch.pivot || groupCentre(points) : null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (let [px, py] of points) {
     if (stretch) {
@@ -1156,13 +1188,15 @@ function drawPart(part, sx, sy, s, opts = {}) {
     if (opts.layer === "front" && !group.foreground) {
       continue;
     }
-    const groupFx = (fx.groups || {})[gi] || {};
+    const setId = setOfGroup(part, gi);
+    const groupFx = (fx.groups || {})[setId] || {};
     const stretch =
       groupFx.Width === undefined && groupFx.Height === undefined
         ? null
         : {
             wide: groupFx.Width === undefined ? 1 : groupFx.Width,
-            tall: groupFx.Height === undefined ? 1 : groupFx.Height
+            tall: groupFx.Height === undefined ? 1 : groupFx.Height,
+            pivot: partSets(part).tagged ? partSets(part).centres.get(setId) : null
           };
     const alpha = baseAlpha * (group.opacity === undefined ? 1 : group.opacity);
     const asked = groupFx.Blur === undefined
@@ -1603,14 +1637,12 @@ function drawModLoaderMenu() {
       const pack = loaded[i];
       ui.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
       ui.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
-      if (i >= defaultLoadedCount) {
-        ui.button(0, 4, undefined, 30, {
-          id: "mod-delete-" + i,
-          baseColor: "#7a2a2a",
-          hoverColor: "#a03c3c",
-          activeColor: "#5e1f1f"
-        }, "Delete");
-      }
+      ui.button(0, 4, undefined, 30, {
+        id: "mod-delete-" + i,
+        baseColor: "#7a2a2a",
+        hoverColor: "#a03c3c",
+        activeColor: "#5e1f1f"
+      }, "Delete");
     }
 
     const close = ui.row(85);
@@ -6460,6 +6492,10 @@ function entityValues(modules) {
 }
 
 function partGroupCenter(part, index) {
+  const sets = partSets(part);
+  if (sets.tagged) {
+    return sets.centres.get(index) || null;
+  }
   const group = (part.groups || [])[index];
   if (!group) {
     return null;
@@ -7553,7 +7589,7 @@ async function mousePressed() {
       inModLoaderMenu = false;
       return;
     }
-    for (let i = defaultLoadedCount; i < loaded.length; i++) {
+    for (let i = 0; i < loaded.length; i++) {
       if (GUIAPI.clicked("mod-delete-" + i)) {
         loaded.splice(i, 1);
         persistLoadedMods();
