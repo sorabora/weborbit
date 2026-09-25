@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.5";
-const modVersionSystemSince = "1.5.5";
+const gameVersion = "1.5.6";
+const modVersionSystemSince = "1.5.6";
 
 let scale = 5;
 let mapScale = 5e-5;
