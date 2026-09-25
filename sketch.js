@@ -3072,6 +3072,9 @@ function resolveField(entry, value, seen) {
     return undefined;
   }
   seen.add(value.$var);
+  if (value.$var.startsWith("::")) {
+    return readOnlyOf(entry)[value.$var.slice(2)];
+  }
   return resolveField(entry, partVars(entry)[value.$var], seen);
 }
 
@@ -3095,6 +3098,9 @@ function partVars(entry) {
 
 function moduleScope(entry) {
   const scope = { ...partVars(entry) };
+  for (const [name, value] of Object.entries(readOnlyOf(entry))) {
+    scope["::" + name] = value;
+  }
   for (const mod of Object.values(entry.part.modules || {})) {
     for (const [key, value] of Object.entries(mod)) {
       if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") {
@@ -3133,7 +3139,7 @@ function runMathModule(entry) {
   }
   const scope = moduleScope(entry);
   firstList(mod).forEach((row, i) => {
-    partVars(entry)["Math " + (i + 1)] = evalFormula(row.Expression, scope);
+    partVars(entry)["Math " + (i + 1)] = evalText(entry, row.Expression, scope);
   });
 }
 
@@ -3150,7 +3156,7 @@ function runBooleanModule(entry) {
   const scope = moduleScope(entry);
   firstList(mod).forEach((row, i) => {
     const test = booleanOps[row.Comparison] || booleanOps.eq;
-    partVars(entry)["Bool " + (i + 1)] = test(evalFormula(row.Left, scope), evalFormula(row.Right, scope));
+    partVars(entry)["Bool " + (i + 1)] = test(evalText(entry, row.Left, scope), evalText(entry, row.Right, scope));
   });
 }
 
@@ -3173,7 +3179,7 @@ function runExtraDataModule(rocket, entry) {
 
 const worldData = {};
 
-const externalVariableReaders = {
+const readOnlyReaders = {
   "Velocity": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
   "Speed": (rocket) => Math.hypot(...Object.values(relativeVelocity(rocket, getBody(rocket.parentBody)))),
   "Altitude": (rocket) => distanceTo(rocket, getBody(rocket.parentBody)) - getBody(rocket.parentBody).size,
@@ -3226,17 +3232,24 @@ function rocketOrbit(rocket) {
   };
 }
 
-function runExternalVariableModule(rocket, entry) {
-  const mod = (entry.part.modules || {})["External Variable Module"];
-  if (!mod) {
-    return;
-  }
-  for (const row of mod.Variables || []) {
-    const read = externalVariableReaders[row.Variable];
-    if (read) {
-      partVars(entry)[row.Variable] = read(rocket);
+function readOnlyValues(rocket) {
+  const values = {};
+  for (const name in readOnlyReaders) {
+    try {
+      values[name] = readOnlyReaders[name](rocket);
+    } catch (e) {
+      values[name] = undefined;
     }
   }
+  return values;
+}
+
+function readOnlyOf(entry) {
+  return (entry._rocket && entry._rocket._readOnly) || {};
+}
+
+function evalText(entry, expr, scope) {
+  return evalFormula(interpolate(expr, scope), scope);
 }
 
 // fills Resource up to the tank's own capacity at Rate/sec while Condition
@@ -3255,13 +3268,19 @@ function runResourceFillerModule(entry, dt) {
   entry.tanks[resource] = Math.min(held + (mod.Rate || 0) * dt, capacity);
 }
 
+function clockValue(entry, value) {
+  return typeof value === "string" && value.includes("{{")
+    ? interpolate(value, moduleScope(entry))
+    : value;
+}
+
 function applyClockAction(entry, action) {
   const vars = partVars(entry);
   const name = isBinding(action.Variable) ? action.Variable.$var : undefined;
   if (action.actionDropdown === "Set Variable" && name) {
-    vars[name] = parseLogicValue(action.Value);
+    vars[name] = parseLogicValue(clockValue(entry, action.Value));
   } else if (action.actionDropdown === "Change Variable" && name) {
-    vars[name] = (Number(vars[name]) || 0) + (Number(parseLogicValue(action.Value)) || 0);
+    vars[name] = (Number(vars[name]) || 0) + (Number(parseLogicValue(clockValue(entry, action.Value))) || 0);
   } else if (action.actionDropdown === "Toggle Part") {
     entry.on = !entry.on;
   }
@@ -3376,8 +3395,9 @@ function runPartLogic(dt) {
       rocket._angVel = ((rocket.angle - (rocket._prevAngle ?? rocket.angle)) * 180 / Math.PI) / dt;
       rocket._prevAngle = rocket.angle;
     }
+    rocket._readOnly = readOnlyValues(rocket);
     for (const entry of rocket.stack.parts) {
-      runExternalVariableModule(rocket, entry);
+      entry._rocket = rocket;
       runMathModule(entry);
       runBooleanModule(entry);
       runExtraDataModule(rocket, entry);
