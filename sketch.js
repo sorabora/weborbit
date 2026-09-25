@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.6";
-const modVersionSystemSince = "1.5.6";//update please
+const gameVersion = "1.5.5b";
+const modVersionSystemSince = "1.5.5";
 
 let scale = 5;
 let mapScale = 5e-5;
@@ -1617,7 +1617,7 @@ function drawCreditsMenu() {
     ui.label("Credits", { size: 28, align: CENTER, height: 40 });
     ui.label("@sorabora - Developer", { size: 28, align: CENTER, height: 80 });
     ui.label("Planet textures are modified versions of graphics by Solar System Scope (solarsystemscope.com), used under CC BY 4.0.", { size: 15, align: CENTER, height: 20 });
-    ui.label("Open Sans font by Steve Matteson, used under the Apache License 2.0.", { size: 15, align: CENTER, height: 40 });
+    ui.label("DM Mono font by Colophon Foundry, used under the SIL Open Font License 1.1.", { size: 15, align: CENTER, height: 40 });
     ui.label("VAB, launchtower and launchpad textures by @Croissant on SFS forums", { size: 15, align: CENTER, height: 20 });
 
     ui.button(0, 0, 350, 130, {
