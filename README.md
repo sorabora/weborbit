@@ -19,8 +19,7 @@ it under the terms of the GNU Affero General Public License as published
 by the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-- This project uses the Open Sans font, licensed under the Apache License 2.0.
-https://www.google.com/fonts/specimen/Open+Sans
+- This project uses the DM Mono font by Colophon Foundry, licensed under the SIL Open Font License 1.1. https://github.com/googlefonts/dm-mono
 
 - The vehicle assembly building (VAB), launchtower, and launchpad assets were made and provided by [@Croissant](https://sfsforum.com/index.php?members/croissant.26308/)
 
