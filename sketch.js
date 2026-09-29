@@ -1,7 +1,7 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.6.0";
+const gameVersion = "1.6.0b";
 const modVersionSystemSince = "1.6.0";
 
 let scale = 16;
@@ -14,7 +14,7 @@ let throttle = 0;
 let target = "untitled-1";
 let inVab = skipPlayScreen;
 let inMap = false; 
-let careerMode = true;
+let careerMode = false;
 let inMainMenu = !skipPlayScreen;
 let exampleRocketsOpen = false;
 let stagingOpen = false;
