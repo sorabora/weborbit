@@ -1,10 +1,10 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.5.6b";
-const modVersionSystemSince = "1.5.6";
+const gameVersion = "1.6.0";
+const modVersionSystemSince = "1.6.0";
 
-let scale = 5;
+let scale = 16;
 let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
 let transferTarget = null;
@@ -12,10 +12,10 @@ let rendezvousTarget = null;
 let mapClick = null;
 let throttle = 0;
 let target = "untitled-1";
-let inVab = false;
+let inVab = skipPlayScreen;
 let inMap = false; 
-let careerMode = false;
-let inMainMenu = true;
+let careerMode = true;
+let inMainMenu = !skipPlayScreen;
 let exampleRocketsOpen = false;
 let stagingOpen = false;
 let gameFont;
@@ -26,7 +26,10 @@ let inModLoaderMenu = false;
 let inFeaturedModsMenu = false;
 let inKeyBindsMenu = false;
 let careerMissionsOpen = false;
-let techTreeOpen = true;
+let milestonesOpen = false;
+let techTreeOpen = false;
+let loansOpen = false;
+let bankrupt = false;
 const rng = Math.floor(Math.random() * 100) + 1;
 const controls = { 
   invertVabZoom: false, 
@@ -38,8 +41,11 @@ let warpUntil = null;
 let burnLogging = false;
 let burnLog = [];
 let lastAutomatedBurnT = -Infinity;
+let rocketTimeline = [];
+let timelineLastSample = -Infinity;
+let timelineLastThrottle = null;
+let timelineLastTurn = null;
 let toasts = [];
-let tutorial = null;
 let t = 0;
 let elapsed = 0;
 let tt = 0;
@@ -90,7 +96,7 @@ let c = {
   maxStep: 10,
   maxSubsteps: 100,
   kgPerTon: 1000,
-  partUnits: 100,
+  partUnits: 320,
   newtonsPerThrust: 1000,
   turnPower: 1.5,
   landedTipDamping: 0.6,
@@ -111,6 +117,15 @@ let c = {
   reentryHeatFactor: 0.02,
   reentryCoolRate: 0.2,
   reentryMinSpeed: 500,
+  partMaxTemp: 1600,
+  ablatorHeat: 1.5e7,
+  aeroStabilityFactor: 8e-3,
+  aeroStabilityDamping: 4e-3,
+  aeroStabilityMaxAccel: 5,
+  attitudeMicroStep: 0.1,
+  timelineSampleInterval: 1,
+  timelineAtmosphereSampleInterval: 0.1,
+  conduction: 0.04,
   chuteWidthPower: 0.5,
   chuteHeightPower: 0.1,
   launchPadRotation: 300,
@@ -118,8 +133,34 @@ let c = {
   dockConnect: 4
 }
 
-const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.002,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.006,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.02,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.04,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"RCS Engine","size":[60,80],"mass":0.03,"groups":[{"fill":"#666","texture":"LightPlate.avif","points":[[0,10],[20,10],[30,40],[-10,40]]},{"fill":"#666","points":[[0,10],[0,-10],[-30,-20],[-30,20]]},{"fill":"#666","points":[[0,-10],[20.03,-10],[30,-40],[-10,-40]]},{"fill":"#e8e8e8","points":[[0,-10],[20,-10],[20,10],[0,10]]}],"modules":{"RCS Module":{"Thruster Directions":["Top","Bottom","Left","Right"],"Thrust":19,"ISP":220,"Resource":"Kerolox"}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Docking Port","size":[640,320],"mass":0.5,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Docking Module":{"Attractive Force":2,"Disconnect Force":4}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]},{"format":"xopernicus-partpack","version":1,"name":"WIP Module Test Pack","parts":[{"name":"Variable Test Block","size":[320,320],"mass":0.5,"groups":[{"fill":"#8888ff","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Fuel","Type":"Number","Value":100},{"Name":"Ready","Type":"Boolean","Value":true},{"Name":"Label","Type":"String","Value":"Hello"}]}}},{"name":"Math Display Pod","size":[320,320],"mass":0.4,"groups":[{"fill":"#ffcc44","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"X","Type":"Number","Value":3},{"Name":"Y","Type":"Number","Value":4}]},"Math Module":{"Rows":[{"Expression":"sqrt(X^2 + Y^2)"},{"Expression":"(X + Y) * 2"}]},"GUI Module":{"Trigger":"On Click","Popup":true,"Elements":[{"Type":"Label","Label":"Hypotenuse: {{Math 1}}"},{"Type":"Label","Label":"Sum times 2: {{Math 2}}"}],"Actions":[]}}},{"name":"Logic Gate Block","size":[320,320],"mass":0.4,"groups":[{"fill":"#44cc88","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"A","Type":"Number","Value":5},{"Name":"B","Type":"Number","Value":5}]},"Boolean Logic Module":{"Rows":[{"Left":"A","Comparison":"eq","Right":"B"},{"Left":"A","Comparison":"gt","Right":"10"}]},"GUI Module":{"Trigger":"On Hover","Popup":true,"Elements":[{"Type":"Label","Label":"A equals B: {{Bool 1}}"},{"Type":"Label","Label":"A greater than 10: {{Bool 2}}"}],"Actions":[]}}},{"name":"Timed Charge","size":[320,320],"mass":0.6,"groups":[{"fill":"#ff4444","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Boom","Type":"Boolean","Value":false}]},"Variables Clock Module":{"Functions":[{"Name":"Fuse","Action":[{"actionDropdown":"Wait","Miliseconds":3000},{"actionDropdown":"Set Variable","Variable":{"$var":"Boom"},"Value":"true"}]}]},"Self Destruct Module":{"Trigger":{"$var":"Boom"}},"GUI Module":{"Trigger":"On Click","Popup":false,"Elements":[{"Type":"Label","Label":"Armed: {{Boom}}"},{"Type":"Button","Label":"Arm (3s fuse)","ID":"arm"}],"Actions":[{"ID":"arm","func":"Run Function","Function Name":"Fuse"}]}}},{"name":"Extra Data Logger","size":[320,320],"mass":0.3,"groups":[{"fill":"#aa66ff","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"Reading","Type":"Number","Value":42}]},"Math Module":{"Rows":[{"Expression":"Reading * 2"}]},"Extra Data Module":{"Scope":"World","Data":[{"Key":"LoggerReading","Value":{"$var":"Reading"}}]},"GUI Module":{"Trigger":"On Switched to Rocket","Popup":true,"Elements":[{"Type":"Label","Label":"Reading: {{Reading}}"},{"Type":"Label","Label":"Doubled: {{Math 1}}"}],"Actions":[]}}},{"name":"Locked Decoupler","size":[320,160],"mass":0.1,"groups":[{"fill":"#888888","points":[[-160,-80],[160,-80],[160,80],[-160,80]]}],"modules":{"Decoupler Module":{"Separation Force":80},"Disable Action on Click":{}}},{"name":"Bipropellant Tank","size":[640,320],"mass":6,"groups":[{"fill":"#22aacc","texture":"LightPlate.avif","points":[[-320,-160],[320,-160],[320,160],[-320,160]]}],"modules":{"Resource Module":{"Amount":0,"Resource":"Kerolox","More Resources":[{"Resource":"Kerolox","Amount":5},{"Resource":"LOX","Amount":7}]}}},{"name":"Bipropellant Engine","size":[640,560],"mass":1.2,"groups":[{"fill":"#cc2222","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1400,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Ratio":1,"More Resources":[{"Resource":"LOX","Ratio":1.5}],"Flame Scale":1}}},{"name":"Fuse Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff9900","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Hydrolox","Rate (Kg/Sec)":50}}},{"name":"Calculator Block","size":[320,320],"mass":0.4,"groups":[{"fill":"#2f3b52","points":[[-160,-160],[160,-160],[160,160],[-160,160]]}],"modules":{"Variables Module":{"Variables":[{"Name":"A","Type":"Number","Value":0},{"Name":"B","Type":"Number","Value":0},{"Name":"Op","Type":"String","Value":"+"}]},"Math Module":{"Rows":[{"Expression":"Op == \"+\" ? A + B : (Op == \"-\" ? A - B : (Op == \"*\" ? A * B : (Op == \"/\" ? A / B : 0)))"}]},"Variables Clock Module":{"Functions":[{"Name":"SetAdd","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"+"}]},{"Name":"SetSub","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"-"}]},{"Name":"SetMul","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"*"}]},{"Name":"SetDiv","Action":[{"actionDropdown":"Set Variable","Variable":{"$var":"Op"},"Value":"/"}]}]},"GUI Module":{"Trigger":"On Click","Popup":false,"Elements":[{"Type":"Number Input","ID":"A","Label":"A"},{"Type":"Number Input","ID":"B","Label":"B"},{"Type":"Button","ID":"add","Label":"+"},{"Type":"Button","ID":"sub","Label":"-"},{"Type":"Button","ID":"mul","Label":"*"},{"Type":"Button","ID":"div","Label":"/"},{"Type":"Label","Label":"Op: {{Op}}"},{"Type":"Label","Label":"Result: {{Math 1}}"}],"Actions":[{"ID":"add","func":"Run Function","Function Name":"SetAdd"},{"ID":"sub","func":"Run Function","Function Name":"SetSub"},{"ID":"mul","func":"Run Function","Function Name":"SetMul"},{"ID":"div","func":"Run Function","Function Name":"SetDiv"}]}}}]}]
+const loaded = [{"format":"xopernicus-partpack","version":1,"parts":[{"name":"_vab","size":[12000,12000],"mass":0,"groups":[{"fill":"#f56565","texture":"VAB.png","untinted":true,"points":[[-6000,-6000],[6000,-6000],[6000,6000],[-6000,6000]]}],"modules":{}},{"name":"_launchtower","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchtower.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_launchpad","size":[14000,12000],"mass":0,"groups":[{"fill":"#63b3ed","texture":"Launchpad.webp","untinted":true,"points":[[-7000,-6000],[7000,-6000],[7000,6000],[-7000,6000]]}],"modules":{}},{"name":"_monolith","size":[84000,144000],"mass":1,"groups":[{"fill":"#787878","texture":"LightPlate.avif","points":[[-42000,72000],[42000,72000],[42000,-36000],[18000,-72000],[-18000,-72000],[-42000,-36000]]}],"modules":{}},{"name":"_flame","size":[1448.54,1603.36],"mass":0,"groups":[{"fill":"#ff8614","gradient":{"to":"#000000","angle":90,"toOpacity":0},"points":[[-315.73,-801.68],[-635.73,478.32],[644.27,478.32],[324.27,-801.68]]},{"fill":"#ffa629","gradient":{"to":"#000000","angle":90,"toOpacity":0.2,"fromOpacity":0.2},"points":[[-475.73,-161.68],[484.27,-161.68],[724.27,798.32],[-724.27,801.68]]},{"fill":"#ffeb0a","gradient":{"to":"#000000","angle":90,"toOpacity":0},"opacity":0.4,"points":[[-155.73,-401.68],[164.27,-401.68],[484.27,478.32],[-475.73,478.32]]}],"modules":{"Animate Module":{"To Animate":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0.7,"Seconds":0.4,"Easing":"Ease In Out"},{"Whole Prefab":true,"Group":0,"Property":"Height","To":1,"Seconds":0.4,"Easing":"Ease In Out"}],"Loop":true,"Trigger":["Part Enabled","Throttle Above 0"],"Stop if condition false":true,"Start Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","Value":0}],"End Animation":[{"Whole Prefab":true,"Group":0,"Property":"Height","To":0,"Seconds":0.6,"Easing":"Linear"}]},"Blur Module":{"Blur":5}}},{"name":"_parachute","size":[3520,2480],"mass":0,"groups":[{"fill":"#ff8614","points":[[-240,-1240],[-1760,-360],[1760,-360],[400,-1240]]},{"fill":"#f56565","cutout":true,"points":[[1440,-360],[-1440,-360],[80,-920]]},{"fill":"#ffffff","points":[[60,-360],[100,-360],[100,1240],[60,1240]]}],"modules":{}},{"name":"Capsule","size":[640,640],"mass":4,"groups":[{"fill":"#bababa","texture":"MetalPlate.avif","points":[[-120,-320],[-320,320],[320,320],[120,-320]]}],"modules":{"Controller Module":{"Torque":5,"Provides Control":true},"Aero Module":{"Stability":3}}},{"name":"Big Capsule","size":[1280,960],"mass":7,"groups":[{"fill":"#8b9199","texture":"MetalPlate.avif","points":[[-110,-480],[110,-480],[110,-400],[-110,-400]]},{"fill":"#d9dce0","texture":"MetalPlate.avif","points":[[-150,-400],[150,-400],[622,380],[-622,380]]},{"fill":"#c9a227","texture":"MetalPlate.avif","points":[[-640,380],[640,380],[640,430],[-640,430]]},{"fill":"#6b7079","texture":"DarkPlate.avif","points":[[-640,430],[640,430],[640,480],[-640,480]]},{"fill":"#1d2b3c","points":[[-200,-190],[-120,-190],[-105,-120],[-215,-120]]},{"fill":"#1d2b3c","points":[[120,-190],[200,-190],[215,-120],[105,-120]]},{"fill":"#8b9199","texture":"MetalPlate.avif","points":[[-60,-80],[60,-80],[60,60],[-60,60]]},{"fill":"#c4c9cf","texture":"MetalPlate.avif","points":[[-45,-65],[45,-65],[45,45],[-45,45]]},{"fill":"#2f343b","points":[[-440,120],[-360,120],[-360,210],[-440,210]]},{"fill":"#2f343b","points":[[360,120],[440,120],[440,210],[360,210]]}],"modules":{"Controller Module":{"Torque":15,"Provides Control":true},"Aero Module":{"Stability":5}}},{"name":"Spider Pod","size":[160,280],"mass":0.04,"groups":[{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,-120],[-80,120],[80,120],[80,-120],[40,-140],[-40,-140]]},{"fill":"#4a5f73","texture":"MetalPlate.avif","points":[[-80,120],[80,120],[40,140],[-40,140]]}],"modules":{"Controller Module":{"Torque":0,"Provides Control":true}}},{"name":"Nano Reactionwheel","size":[240,80],"mass":0.02,"groups":[{"fill":"#828282","texture":"MetalPlate.avif","points":[[-120,40],[120,40],[120,-40],[-120,-40]]}],"modules":{"Controller Module":{"Torque":5,"Provides Control":false}}},{"name":"Turbo Reactionwheel","size":[640,80],"mass":0.06,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-320,-40],[-320,40],[320,40],[320,-40]]}],"modules":{"Controller Module":{"Torque":15,"Provides Control":false}}},{"name":"Large Turbo Reactionwheel","size":[1280,80],"mass":0.2,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-640,-40],[-640,40],[640,40],[640,-40]]}],"modules":{"Controller Module":{"Torque":30,"Provides Control":false}}},{"name":"Extra Large Turbo Reactionwheel","size":[2560,80],"mass":0.4,"groups":[{"fill":"#666666","texture":"MetalPlate.avif","points":[[-1280,-40],[-1280,40],[1280,40],[1280,-40]]}],"modules":{"Controller Module":{"Torque":60,"Provides Control":false}}},{"name":"Mars Chute","size":[89.18,193.12],"mass":0.3,"groups":[{"fill":"#51b2db","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":0.25,"Drag":50,"Max Deploy Speed":2500},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Drogue Chute","size":[89.18,193.12],"mass":0.1,"groups":[{"fill":"#dbc451","points":[[-12.17,96.56],[44.59,-96.56],[-15.34,-71.4],[-44.59,17.99]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":2.5,"Drag":50,"Max Deploy Speed":200},"Connection Disabler Module":{"Connections to Disable":["Left","Right","Top","Bottom"]}}},{"name":"Parachute","size":[240,100],"mass":0.5,"groups":[{"fill":"#cccccc","points":[[-40,-50],[-120,50],[120,50],[40,-50]]}],"modules":{"Parachute Module":{"Minimum Deploy Pressure":5,"Drag":2000,"Max Deploy Speed":70},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Tiny Heat Shield","size":[320,20],"mass":0.069,"groups":[{"fill":"#949494","texture":"MetalPlate.avif","points":[[-160,-10],[160,-10],[160,-7.5],[-160,-7.5]]},{"fill":"#5b4636","texture":"DarkPlate.avif","points":[[-160,-7.5],[160,-7.5],[160,-1.5],[120,3.53],[80,7.13],[40,9.28],[0,10],[-40,9.28],[-80,7.13],[-120,3.53],[-160,-1.5]]}],"modules":{"Heat Shield Module":{"Ablator":0.045,"Ablation Temperature":1000},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Heat Shield","size":[640,40],"mass":0.276,"groups":[{"fill":"#949494","texture":"MetalPlate.avif","points":[[-320,-20],[320,-20],[320,-15.25],[-320,-15.25]]},{"fill":"#5b4636","texture":"DarkPlate.avif","points":[[-320,-15.25],[320,-15.25],[320,-3.25],[240,6.92],[160,14.19],[80,18.55],[0,20],[-80,18.55],[-160,14.19],[-240,6.92],[-320,-3.25]]}],"modules":{"Heat Shield Module":{"Ablator":0.179,"Ablation Temperature":1000},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Big Heat Shield","size":[1280,80],"mass":1.106,"groups":[{"fill":"#949494","texture":"MetalPlate.avif","points":[[-640,-40],[640,-40],[640,-30.5],[-640,-30.5]]},{"fill":"#5b4636","texture":"DarkPlate.avif","points":[[-640,-30.5],[640,-30.5],[640,-6.5],[480,13.85],[320,28.38],[160,37.1],[0,40],[-160,37.1],[-320,28.38],[-480,13.85],[-640,-6.5]]}],"modules":{"Heat Shield Module":{"Ablator":0.717,"Ablation Temperature":1000},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Massive Heat Shield","size":[2560,160],"mass":4.423,"groups":[{"fill":"#949494","texture":"MetalPlate.avif","points":[[-1280,-80],[1280,-80],[1280,-60.75],[-1280,-60.75]]},{"fill":"#5b4636","texture":"DarkPlate.avif","points":[[-1280,-60.75],[1280,-60.75],[1280,-12.75],[960,27.83],[640,56.81],[320,74.2],[0,80],[-320,74.2],[-640,56.81],[-960,27.83],[-1280,-12.75]]}],"modules":{"Heat Shield Module":{"Ablator":2.865,"Ablation Temperature":1000},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Basic Engine","size":[640,560],"mass":0.9,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-280],[-320,-200],[320,-200],[320,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-200],[160,-200],[320,280],[-320,280]]}],"modules":{"Engine Module":{"Thrust":1050,"ISP":320,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"SRB Mode":false,"Ignitions":1}}},{"name":"Upgraded Basic Engine","size":[660,560],"mass":1.1,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-310,-280],[-310,-200],[330,-200],[330,-280]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-150,-200],[170,-200],[330,280],[-310,280]]},{"fill":"#ffffff","texture":"LightPlate.avif","points":[[-210,-200],[-190,-200],[-310,160],[-330,160]]},{"fill":"#fff3a8","texture":"MetalPlate.avif","points":[[-310,160],[-310,140],[290,140],[290,160]]}],"modules":{"Engine Module":{"Thrust":1450,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"Ignitions":2}}},{"name":"Bravo Engine","size":[960,720],"mass":2,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-480,-360],[-480,-280],[480,-280],[480,-360]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-160,-280],[160,-280],[480,360],[-480,360]]},{"fill":"#6b6b6b","texture":"LightPlate.avif","points":[[320,-280],[480,-280],[160,80],[160,-40]]},{"fill":"#6b6b6b","texture":"LightPlate.avif","points":[[160,-40],[-280,-40],[-340,80],[160,80]]}],"modules":{"Engine Module":{"Thrust":2500,"ISP":310,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1.5,"SRB Mode":false,"Ignitions":1}}},{"name":"Alpha Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]}],"modules":{"Engine Module":{"Thrust":5150,"ISP":305,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2,"Ignitions":1}}},{"name":"Falcon-1 Engine","size":[1280,960],"mass":4,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-480],[-640,-320],[640,-320],[640,-480]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-240,-320],[240,-320],[640,480],[-640,480]]},{"fill":"#525252","points":[[-540,-320],[-480,-320],[-480,-160],[-400,100],[-440,140],[-540,-160]]},{"fill":"#858585","texture":"MetalPlate.avif","points":[[-400,100],[-440,140],[471.14,141.16],[451.63,99.67]]}],"modules":{"Engine Module":{"Thrust":6770,"ISP":264,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":2,"Ignitions":1}}},{"name":"Vacuum Engine","size":[480,560],"mass":0.6,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-280],[-160,-200],[160,-200],[240,-280]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-200],[80,-200],[240,280],[-240,280]]}],"modules":{"Engine Module":{"Thrust":235,"ISP":420,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1,"Ignitions":1}}},{"name":"Stoat Engine","size":[480,320],"mass":0.75,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-240,-160],[-160,-80],[160,-80],[240,-160]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-80,-80],[80,-80],[240,160],[-240,160]]}],"modules":{"Engine Module":{"Thrust":250,"ISP":330,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":1,"Ignitions":1}}},{"name":"Pup engine","size":[160,220],"mass":0.03,"groups":[{"fill":"#dfcfb3","texture":"MetalPlate.avif","points":[[-80,-110],[-20,-30],[20,-30],[80,-110]]},{"fill":"#c4c4c4","texture":"LightPlate.avif","points":[[-20,-30],[20,-30],[80,110],[-80,110]]}],"modules":{"Engine Module":{"Thrust":20,"ISP":315,"Fuel Flow":"Positive","Resource":"Kerolox","Flame Scale":0.25,"Ignitions":4}}},{"name":"Upgraded Vacuum Engine","size":[580,560],"mass":0.8,"groups":[{"fill":"#5e5e5e","texture":"MetalPlate.avif","points":[[-290,-280],[-170,-200],[150,-200],[290,-280]]},{"fill":"#5cb8ff","texture":"MetalPlate.avif","points":[[-90,-200],[70,-200],[230,280],[-250,280]]}],"modules":{"Engine Module":{"Thrust":300,"ISP":450,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1,"Ignitions":10}}},{"name":"Heavy Vacuum Engine","size":[880,936.64],"mass":1.6,"groups":[{"fill":"#454545","texture":"MetalPlate.avif","points":[[-440,-468.32],[-255,-328.32],[225,-328.32],[440,-468.32]]},{"fill":"#5cffc9","texture":"MetalPlate.avif","points":[[-131.47,-331.68],[-157.57,-281.68],[-182.64,-231.68],[-206.66,-181.68],[-229.6,-131.68],[-251.41,-81.68],[-272.07,-31.68],[-291.53,18.32],[-309.72,68.32],[-326.6,118.32],[-342.09,168.32],[-356.1,218.32],[-368.52,268.32],[-379.2,318.32],[-387.92,368.32],[-394.32,418.32],[-397.47,468.32],[362.53,468.32],[359.38,418.32],[352.98,368.32],[344.26,318.32],[333.58,268.32],[321.16,218.32],[307.15,168.32],[291.66,118.32],[274.78,68.32],[256.59,18.32],[237.13,-31.68],[216.47,-81.68],[194.66,-131.68],[171.72,-181.68],[147.7,-231.68],[122.63,-281.68],[96.53,-331.68]]}],"modules":{"Engine Module":{"Thrust":880,"ISP":440,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1.5,"Ignitions":6}}},{"name":"Nuclear Thermal Engine","size":[640,900],"mass":4.5,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-320,-450],[320,-450],[320,-370],[-320,-370]]},{"fill":"#9db8a8","texture":"LightPlate.avif","points":[[-250,-370],[250,-370],[250,-140],[-250,-140]]},{"fill":"#f6e05e","points":[[-250,-301],[250,-301],[250,-255],[-250,-255]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-100,-140],[-141.38,-81],[-177.59,-22],[-208.75,37],[-234.99,96],[-256.47,155],[-273.36,214],[-285.85,273],[-294.2,332],[-298.74,391],[-300,450],[300,450],[298.74,391],[294.2,332],[285.85,273],[273.36,214],[256.47,155],[234.99,96],[208.75,37],[177.59,-22],[141.38,-81],[100,-140]]}],"modules":{"Engine Module":{"Thrust":350,"ISP":850,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":1,"Ignitions":2}}},{"name":"Large Nuclear Thermal Engine","size":[1280,1100],"mass":12,"groups":[{"fill":"#949494","texture":"DarkPlate.avif","points":[[-640,-550],[640,-550],[640,-470],[-640,-470]]},{"fill":"#9db8a8","texture":"LightPlate.avif","points":[[-500,-470],[500,-470],[500,-170],[-500,-170]]},{"fill":"#f6e05e","points":[[-500,-380],[500,-380],[500,-320],[-500,-320]]},{"fill":"#c7c7c7","texture":"MetalPlate.avif","points":[[-190,-170],[-278.96,-98],[-356.81,-26],[-423.81,46],[-480.23,118],[-526.42,190],[-562.72,262],[-589.58,334],[-607.53,406],[-617.29,478],[-620,550],[620,550],[617.29,478],[607.53,406],[589.58,334],[562.72,262],[526.42,190],[480.23,118],[423.81,46],[356.81,-26],[278.96,-98],[190,-170]]}],"modules":{"Engine Module":{"Thrust":1400,"ISP":800,"Fuel Flow":"Positive","Resource":"Hydrolox","Flame Scale":2,"Ignitions":2}}},{"name":"Ion Engine","size":[160,100],"mass":0.03,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":3000,"Fuel Flow":"Positive","Resource":"Xenon","Flame Scale":0.1}}},{"name":"RCS Engine","size":[60,80],"mass":0.03,"groups":[{"fill":"#666","texture":"LightPlate.avif","points":[[0,10],[20,10],[30,40],[-10,40]]},{"fill":"#666","points":[[0,10],[0,-10],[-30,-20],[-30,20]]},{"fill":"#666","points":[[0,-10],[20.03,-10],[30,-40],[-10,-40]]},{"fill":"#e8e8e8","points":[[0,-10],[20,-10],[20,10],[0,10]]}],"modules":{"RCS Module":{"Thruster Directions":["Top","Bottom","Left","Right"],"Thrust":19,"ISP":220,"Resource":"Kerolox"}}},{"name":"Hydrolox Tank","size":[640,320],"mass":2.7,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":2.5,"Resource":"Hydrolox"}}},{"name":"SM Hydrolox Tank","size":[640,640],"mass":5.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":5,"Resource":"Hydrolox"}}},{"name":"MD Hydrolox Tank","size":[640,1280],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"LG Hydrolox Tank","size":[640,2560],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"XS Big Hydrolox Tank","size":[1280,640],"mass":10.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":10,"Resource":"Hydrolox"}}},{"name":"SM Big Hydrolox Tank","size":[1280,1280],"mass":21.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":20,"Resource":"Hydrolox"}}},{"name":"MD Big Hydrolox Tank","size":[1280,2560],"mass":42.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":40,"Resource":"Hydrolox"}}},{"name":"LG Big Hydrolox Tank","size":[1280,5120],"mass":85.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":80,"Resource":"Hydrolox"}}},{"name":"XS Massive Hydrolox Tank","size":[2560,1280],"mass":42.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-1280,-640],[1280,-640],[1280,640],[-1280,640]]}],"modules":{"Resource Module":{"Amount":40,"Resource":"Hydrolox"}}},{"name":"SM Massive Hydrolox Tank","size":[2560,2560],"mass":85.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-1280,-1280],[1280,-1280],[1280,1280],[-1280,1280]]}],"modules":{"Resource Module":{"Amount":80,"Resource":"Hydrolox"}}},{"name":"MD Massive Hydrolox Tank","size":[2560,5120],"mass":170.67,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-1280,-2560],[1280,-2560],[1280,2560],[-1280,2560]]}],"modules":{"Resource Module":{"Amount":160,"Resource":"Hydrolox"}}},{"name":"LG Massive Hydrolox Tank","size":[2560,10240],"mass":341.33,"groups":[{"fill":"#009dff","texture":"LightPlate.avif","points":[[-1280,-5120],[1280,-5120],[1280,5120],[-1280,5120]]}],"modules":{"Resource Module":{"Amount":320,"Resource":"Hydrolox"}}},{"name":"Xenon Tank","size":[320,160],"mass":2.4,"groups":[{"fill":"#2b2b31","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":2.2,"Resource":"Xenon"}}},{"name":"Tiny XS Fuel Tank","size":[320,160],"mass":1.1875,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Resource Module":{"Amount":1,"Resource":"Kerolox"}}},{"name":"Tiny SM Fuel Tank","size":[320,320],"mass":2.375,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-160],[-160,160],[160,160],[160,-160]]}],"modules":{"Resource Module":{"Amount":2,"Resource":"Kerolox"}}},{"name":"Tiny MD Fuel Tank","size":[320,640],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-320],[-160,320],[160,320],[160,-320]]}],"modules":{"Resource Module":{"Amount":4,"Resource":"Kerolox"}}},{"name":"Tiny LG Fuel Tank","size":[320,1280],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-160,-640],[-160,640],[160,640],[160,-640]]}],"modules":{"Resource Module":{"Amount":8,"Resource":"Kerolox"}}},{"name":"XS Fuel Tank","size":[640,320],"mass":4.75,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Resource Module":{"Amount":4.5,"Resource":"Kerolox"}}},{"name":"SM Fuel Tank","size":[640,640],"mass":9.5,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-320],[-320,320],[320,320],[320,-320]]}],"modules":{"Resource Module":{"Amount":9,"Resource":"Kerolox"}}},{"name":"MD Fuel Tank","size":[640,1280],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-640],[-320,640],[320,640],[320,-640]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"LG Fuel Tank","size":[640,2560],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,-1280],[-320,1280],[320,1280],[320,-1280]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"XS Big Fuel Tank","size":[1280,640],"mass":19,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Resource Module":{"Amount":18,"Resource":"Kerolox"}}},{"name":"SM Big Fuel Tank","size":[1280,1280],"mass":38,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-640],[-640,640],[640,640],[640,-640]]}],"modules":{"Resource Module":{"Amount":36,"Resource":"Kerolox"}}},{"name":"MD Big Fuel Tank","size":[1280,2560],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-1280],[-640,1280],[640,1280],[640,-1280]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"LG Big Fuel Tank","size":[1280,5120],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-2560],[-640,2560],[640,2560],[640,-2560]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"XS Massive Fuel Tank","size":[2560,1280],"mass":76,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Resource Module":{"Amount":72,"Resource":"Kerolox"}}},{"name":"SM Massive Fuel Tank","size":[2560,2560],"mass":152,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-1280],[-1280,1280],[1280,1280],[1280,-1280]]}],"modules":{"Resource Module":{"Amount":144,"Resource":"Kerolox"}}},{"name":"MD Massive Fuel Tank","size":[2560,5120],"mass":304,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-2560],[-1280,2560],[1280,2560],[1280,-2560]]}],"modules":{"Resource Module":{"Amount":288,"Resource":"Kerolox"}}},{"name":"LG Massive Fuel Tank","size":[2560,10240],"mass":608,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-5120],[-1280,5120],[1280,5120],[1280,-5120]]}],"modules":{"Resource Module":{"Amount":576,"Resource":"Kerolox"}}},{"name":"Large Base","size":[2080,640.5],"mass":10,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-640,-320.25],[-1040,320.25],[1040,320.25],[640,-320.25]]}],"modules":{"Resource Module":{"Amount":7.5,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"Massive Base","size":[4160,1281],"mass":40,"groups":[{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-1280,-640.5],[-2080,640.5],[2080,640.5],[1280,-640.5]]}],"modules":{"Resource Module":{"Amount":30,"Resource":"Kerolox"},"Connection Disabler Module":{"Connections to Disable":["Left","Right"]}}},{"name":"UK8 Booster","size":[320,540],"mass":2.2,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-80,-10],[80,-10],[160,270],[-160,270]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-120,-10],[160,-10],[160,-270],[-160,-270],[-160,-50]]},{"fill":"#68d391","cutout":true,"points":[[120,-10],[160,-50],[160,-10]]},{"fill":"#f6e05e","cutout":true,"points":[[-160,-230],[-120,-270],[-160,-270]]},{"fill":"#b794f4","cutout":true,"points":[[120,-270],[160,-230],[160,-270]]}],"modules":{"Engine Module":{"Thrust":60,"ISP":145,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":0.5,"SRB Mode":true},"Resource Module":{"Amount":1.8,"Resource":"Solid Fuel"}}},{"name":"UK16 Booster","size":[320,800],"mass":4.4,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-80,120],[80,120],[160,400],[-160,400]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-120,120],[160,120],[160,-400],[-160,-400],[-160,80]]},{"fill":"#68d391","cutout":true,"points":[[120,120],[160,80],[160,120]]},{"fill":"#f6e05e","cutout":true,"points":[[-160,-360],[-120,-400],[-160,-400]]},{"fill":"#b794f4","cutout":true,"points":[[120,-400],[160,-360],[160,-400]]}],"modules":{"Engine Module":{"Thrust":120,"ISP":155,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":0.5,"SRB Mode":true},"Resource Module":{"Amount":3.6,"Resource":"Solid Fuel"}}},{"name":"UK32 Booster","size":[320,1320],"mass":8.8,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-80,380],[80,380],[160,660],[-160,660]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-120,380],[160,380],[160,-660],[-160,-660],[-160,340]]},{"fill":"#68d391","cutout":true,"points":[[120,380],[160,340],[160,380]]},{"fill":"#f6e05e","cutout":true,"points":[[-160,-620],[-120,-660],[-160,-660]]},{"fill":"#b794f4","cutout":true,"points":[[120,-660],[160,-620],[160,-660]]}],"modules":{"Engine Module":{"Thrust":240,"ISP":165,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":0.5,"SRB Mode":true},"Resource Module":{"Amount":7.2,"Resource":"Solid Fuel"}}},{"name":"UR30 Booster","size":[640,1520],"mass":18,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,280],[160,280],[320,760],[-320,760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-320,280],[320,280],[320,-760],[-320,-760]]}],"modules":{"Engine Module":{"Thrust":720,"ISP":180,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":15,"Resource":"Solid Fuel"}}},{"name":"UR60 Booster","size":[640,6200],"mass":144,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,2620],[160,2620],[320,3100],[-320,3100]]},{"fill":"#eef1f2","texture":"LightPlate.avif","points":[[-320,2660],[160,2660],[160,-3100],[-320,-3100]]},{"fill":"#525252","texture":"LightPlate.avif","points":[[160,-3100],[320,-3100],[320,2660],[160,2660]]}],"modules":{"Engine Module":{"Thrust":2650,"ISP":215,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":1,"SRB Mode":true},"Resource Module":{"Amount":125,"Resource":"Solid Fuel"}}},{"name":"UR120 Booster","size":[1440,11520],"mass":758,"groups":[{"fill":"#ffffff","texture":"DarkPlate.avif","points":[[-160,4720],[160,4720],[720,5760],[-720,5760]]},{"fill":"#d6d6d6","texture":"LightPlate.avif","points":[[-720,4800],[720,4800],[720,-5760],[-720,-5760]]},{"fill":"#c4c4c4","texture":"MetalPlate.avif","points":[[-720,4800],[720,4800],[400,4960],[-400,4960]]}],"modules":{"Engine Module":{"Thrust":14000,"ISP":220,"Fuel Flow":"Positive","Resource":"Solid Fuel","Flame Scale":3,"SRB Mode":true},"Resource Module":{"Amount":650,"Resource":"Solid Fuel"}}},{"name":"XL Decoupler","size":[2560,1280],"mass":0.4,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-1280,-640],[-1280,640],[1280,640],[1280,-640]]}],"modules":{"Decoupler Module":{"Separation Force":120}}},{"name":"LG Decoupler","size":[1280,640],"mass":0.2,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-640,-320],[-640,320],[640,320],[640,-320]]}],"modules":{"Decoupler Module":{"Separation Force":100}}},{"name":"MD Decoupler","size":[640,320],"mass":0.1,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Decoupler Module":{"Separation Force":80}}},{"name":"SM Decoupler","size":[320,160],"mass":0.05,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-160,-80],[-160,80],[160,80],[160,-80]]}],"modules":{"Decoupler Module":{"Separation Force":60}}},{"name":"Docking Port","size":[640,320],"mass":0.5,"groups":[{"fill":"#949494","texture":"LightPlate.avif","points":[[-320,-160],[-320,160],[320,160],[320,-160]]}],"modules":{"Docking Module":{"Attractive Force":2,"Disconnect Force":4}}},{"name":"Drill","size":[160,100],"mass":0.25,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,10],[80,10],[80,-50]]},{"fill":"#999999","texture":"LightPlate.avif","points":[[-60,10],[60,10],[60,50],[-60,50]]}],"modules":{"Engine Module":{"Thrust":0.0025,"ISP":0.1,"Fuel Flow":"Negative","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Burner","size":[160,60],"mass":0.25,"groups":[{"fill":"#ff0000","texture":"MetalPlate.avif","points":[[-80,-30],[-80,30],[80,30],[80,-30]]}],"modules":{"Engine Module":{"Thrust":0.2,"ISP":0.00001,"Fuel Flow":"Positive","Resource":"Ore","Flame Scale":0},"Prototype Module":{}}},{"name":"Ore Tank","size":[160,100],"mass":4,"groups":[{"fill":"#383838","texture":"MetalPlate.avif","points":[[-80,-50],[-80,50],[80,50],[80,-50]]}],"modules":{"Prototype Module":{},"Resource Module":{"Amount":3.6,"Resource":"Ore"}}},{"name":"Fuel Pipe","size":[80,100],"mass":4,"groups":[{"fill":"#ff2600","texture":"MetalPlate.avif","points":[[-40,-50],[-40,50],[40,50],[40,-50]]}],"modules":{"Prototype Module":{},"Fuelpipe Module":{"Input Fuel":"Ore","Output Fuel":"Kerolox","Rate (Kg/Sec)":100}}}]}]
 const defaultLoadedCount = loaded.length;
+loaded[0].parts.push(
+  { name: "SM Nose Cone", size: [320, 277.13], mass: 0.03,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-160, 138.56], [160, 138.56], [0, -138.56]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Left", "Right", "Top"] } } },
+  { name: "MD Nose Cone", size: [640, 554.26], mass: 0.09,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-320, 277.13], [320, 277.13], [0, -277.13]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Left", "Right", "Top"] } } },
+  { name: "LG Nose Cone", size: [1280, 1108.51], mass: 0.28,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-640, 554.26], [640, 554.26], [0, -554.26]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Left", "Right", "Top"] } } },
+  { name: "XL Nose Cone", size: [2560, 2217.03], mass: 0.9,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-1280, 1108.51], [1280, 1108.51], [0, -1108.51]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Left", "Right", "Top"] } } },
+  { name: "SM Angled Nose Cone", size: [320, 320], mass: 0.03,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-160, -160], [-160, 160], [160, 160]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Top", "Right"] } } },
+  { name: "MD Angled Nose Cone", size: [640, 640], mass: 0.09,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-320, -320], [-320, 320], [320, 320]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Top", "Right"] } } },
+  { name: "LG Angled Nose Cone", size: [1280, 1280], mass: 0.28,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-640, -640], [-640, 640], [640, 640]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Top", "Right"] } } },
+  { name: "XL Angled Nose Cone", size: [2560, 2560], mass: 0.9,
+    groups: [{ fill: "#d6d6d6", texture: "LightPlate.avif", points: [[-1280, -1280], [-1280, 1280], [1280, 1280]] }],
+    modules: { "Connection Disabler Module": { "Connections to Disable": ["Top", "Right"] } } }
+);
 const u = {
   careerMode: {
     "format": "xopernicus-config",
@@ -134,20 +175,6 @@ const u = {
         "Global": [],
         "": [],
         "Starting Cash": 5,
-        "Special": [
-          {
-            "Trigger": "First Launch",
-            "Amount to Give": 3.5
-          },
-          {
-            "Trigger": "Reach Upper Atmosphere",
-            "Amount to Give": 2.5
-          },
-          {
-            "Trigger": "Reach Space",
-            "Amount to Give": 6
-          }
-        ]
       }
     }
   }
@@ -169,9 +196,6 @@ function fatalError(message) {
 }
 
 window.onerror = function(message, source, lineno, colno, error) {
-/*  if (booting) {
-    showFatalErrorScreen(message);
-}*/
   return true;
 };
 
@@ -180,11 +204,6 @@ window.addEventListener("unhandledrejection", function(event) {
   //showFatalErrorScreen(event.reason.message || event.reason);
   event.preventDefault();
 });
-
-/*function showFatalErrorScreen(errorMessage) {
-// thanks google ai overview again
-  alert("FATAL ERROR: " + errorMessage);
-}*/
 
 function addHook(name, fn, priority = 0) {
   (hooks[name] ??= []).push({ fn, priority });
@@ -577,7 +596,7 @@ function categoryTabs() {
 }
 
 function paletteParts() {
-  const parts = partAPI.list();
+  const parts = partAPI.list().filter(partAvailable);
   if (vab.category === "All") {
     return parts;
   }
@@ -637,9 +656,11 @@ function zoomButtons() {
 
 function craftButtons() {
   const size = vab.buttonSize;
+  const w = (size * 4) / 3;
   return [
-    { id: "craft-save", x: 0, y: size, w: size * 2, h: size, label: "S", action: craftSave },
-    { id: "craft-open", x: size * 2, y: size, w: size * 2, h: size, label: "O", action: craftPick },
+    { id: "craft-save", x: 0, y: size, w, h: size, label: "S", action: craftSave },
+    { id: "craft-open", x: w, y: size, w, h: size, label: "O", action: craftPick },
+    { id: "craft-export-context", x: w * 2, y: size, w, h: size, label: "EC", action: craftExportContext },
   ];
 }
 
@@ -770,8 +791,12 @@ async function restoreLoadedMods() {
     console.warn(`couldn't parse stored mods: ${err.message}`);
     return;
   }
-  for (const pack of stored || []) {
+  const mods = (stored || []).filter(pack => !isBasePack(pack));
+  for (const pack of mods) {
     await loadPack(pack, { silent: true });
+  }
+  if (mods.length !== (stored || []).length) {
+    persistLoadedMods();
   }
 }
 
@@ -1637,6 +1662,9 @@ function drawModLoaderMenu() {
       const pack = loaded[i];
       ui.label(i === 0 ? "Base Game" : pack.name ?? "Unnamed Mod", { size: 20, height: 26 });
       ui.label(`v${pack.modVersion ?? pack.version}   ${pack.parts.length} parts`, { size: 14, color: "#aaa", height: 18 });
+      if (i === 0) {
+        continue;
+      }
       ui.button(0, 4, undefined, 30, {
         id: "mod-delete-" + i,
         baseColor: "#7a2a2a",
@@ -1713,68 +1741,1425 @@ function drawFeaturedModsMenu() {
   });
 }
 
-function drawTutorial(curRocket) {
-  if (!tutorial || inVab || inMap || inMainMenu) {
-    return;
-  }
-  const steps = tutorialSteps[tutorial.goal];
-  if (tutorial.waiting) {
-    const last = tutorial.step >= steps.length - 1;
-    GUIAPI.panel(320, 180, { dim: true, borderColor: "#555", id: "tutorial" }, "Nice", ui => {
-      ui.label(last ? "Tutorial complete." : steps[tutorial.step + 1].text, { size: 14, height: 80 });
-      ui.button(0, 10, undefined, 40, { id: "tutorial-continue", ...menuStyle }, last ? "Finish" : "Continue");
-    });
-    return;
-  }
-  if (!curRocket || !steps[tutorial.step]) {
-    return;
-  }
-  if (steps[tutorial.step].done(curRocket)) {
-    tutorial.waiting = true;
-    return;
-  }
-  push();
-  noStroke();
-  fill("#fff");
-  textSize(14);
-  textAlign(LEFT, TOP);
-  text(steps[tutorial.step].text, 25, height - 40);
-  pop();
+const recoveryRate = 0.5;
 
-  const holdingPitch = !curRocket.landed && !curRocket.turnInput && (tutorial.goal !== "orbit" || tutorial.step < 2);
-  if (holdingPitch) {
-    const body = getBody(curRocket.parentBody);
-    const aim = recommendedPitch(curRocket, body);
-    const up = localUp(curRocket, body);
-    const tilt = radians(90 - aim) * turnSide(curRocket, body);
-    const dirX = up.x * Math.cos(tilt) - up.y * Math.sin(tilt);
-    const dirY = up.x * Math.sin(tilt) + up.y * Math.cos(tilt);
-    const targetAngle = Math.atan2(dirX, -dirY);
-    let diff = targetAngle - curRocket.angle;
-    diff = ((diff + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
-    curRocket.angle += diff * 0.08;
-    curRocket.spin = 0;
+const career = {
+  completed: [],
+  techs: ["basicRocketry"],
+  science: 0,
+  offers: [],
+  active: null,
+  milestones: {},
+  launches: 0,
+  loans: {}
+};
 
-    push();
-    noStroke();
-    fill("#8be08b");
-    textSize(14);
-    textAlign(LEFT, TOP);
-    text("Autopilot is holding your ascent angle.", 25, height - 65);
-    pop();
+const loanTypes = {
+  small: {
+    bank: "Pebblestone Trust",
+    amount: 20000000,
+    repay: 1.15,
+    termLaunches: 5,
+    unlocked: () => true
+  },
+  medium: {
+    bank: "Ironclad Credit Union",
+    amount: 75000000,
+    repay: 1.25,
+    termLaunches: 12,
+    unlocked: () => missionDone("orbit:Earth")
+  },
+  big: {
+    bank: "Continental Sovereign Bank",
+    amount: 250000000,
+    repay: 1.35,
+    termLaunches: 25,
+    unlocked: () => missionDone("crewOrbit:Earth")
+  },
+  massive: {
+    bank: "Obelisk Reserve",
+    amount: 750000000,
+    repay: 1.5,
+    termLaunches: 50,
+    unlocked: () => missionDone("crewLand")
+  }
+};
+
+function defaultLoans() {
+  const loans = {};
+  for (const key in loanTypes) {
+    loans[key] = { taken: false, dueAtLaunch: null, owed: 0 };
+  }
+  return loans;
+}
+
+function loanUnlocked(key) {
+  return loanTypes[key].unlocked();
+}
+
+function takeLoan(key) {
+  const type = loanTypes[key];
+  const loan = career.loans[key];
+  if (!loanUnlocked(key) || loan.taken) {
+    return;
+  }
+  loan.taken = true;
+  loan.dueAtLaunch = career.launches + type.termLaunches;
+  loan.owed = Math.round(type.amount * type.repay);
+  balance += type.amount;
+  saveCareer();
+  launchToast(`${type.bank} wired you ${Math.round(type.amount).toLocaleString("en-US")}`);
+}
+
+function payLoan(key) {
+  const type = loanTypes[key];
+  const loan = career.loans[key];
+  if (!loan.taken || balance < loan.owed) {
+    return;
+  }
+  balance -= loan.owed;
+  loan.taken = false;
+  loan.dueAtLaunch = null;
+  loan.owed = 0;
+  saveCareer();
+  launchToast(`Paid off ${type.bank}`);
+}
+
+function settleLoans() {
+  for (const key in loanTypes) {
+    const loan = career.loans[key];
+    if (loan.taken && loan.dueAtLaunch !== null && career.launches >= loan.dueAtLaunch) {
+      balance -= loan.owed;
+      loan.taken = false;
+      loan.dueAtLaunch = null;
+      loan.owed = 0;
+      saveCareer();
+      launchToast(`${loanTypes[key].bank} collected its loan on schedule`);
+    }
   }
 }
 
+function checkBankruptcy() {
+  if (bankrupt || balance >= 0) {
+    return;
+  }
+  const anyAvailable = Object.keys(loanTypes).some(key => loanUnlocked(key) && !career.loans[key].taken);
+  if (!anyAvailable) {
+    bankrupt = true;
+  }
+}
+
+const techTree = {
+  basicRocketry: {
+    name: "Basic Rocketry",
+    cost: 0,
+    needs: [],
+    parts: ["Spider Pod", "UK8 Booster", "UK16 Booster", "Nano Reactionwheel", "SM Decoupler"]
+  },
+  aerodynamics: {
+    name: "Aerodynamics",
+    cost: 1,
+    needs: ["basicRocketry"],
+    parts: ["Parachute", "Drogue Chute", "SM Nose Cone", "SM Angled Nose Cone"]
+  },
+  noseConeDesign: {
+    name: "Nose Cone Design",
+    cost: 8,
+    needs: ["aerodynamics", "liquidRocketry"],
+    parts: ["MD Nose Cone", "MD Angled Nose Cone"]
+  },
+  advancedAerodynamics: {
+    name: "Advanced Aerodynamics",
+    cost: 16,
+    needs: ["noseConeDesign", "bigTanks"],
+    parts: ["LG Nose Cone", "LG Angled Nose Cone"]
+  },
+  massiveAerodynamics: {
+    name: "Massive Aerodynamics",
+    cost: 30,
+    needs: ["advancedAerodynamics", "unreasonablyLargeTanks"],
+    parts: ["XL Nose Cone", "XL Angled Nose Cone"]
+  },
+  mediumSolids: {
+    name: "Medium Solids",
+    cost: 2,
+    needs: ["basicRocketry"],
+    parts: ["UK32 Booster"]
+  },
+  largeSolids: {
+    name: "Large Solids",
+    cost: 5,
+    needs: ["mediumSolids"],
+    parts: ["UR30 Booster"]
+  },
+  heavySolids: {
+    name: "Heavy Solids",
+    cost: 10,
+    needs: ["largeSolids"],
+    parts: ["UR60 Booster"]
+  },
+  colossalSolids: {
+    name: "Colossal Solids",
+    cost: 22,
+    needs: ["heavySolids", "heavyLift"],
+    parts: ["UR120 Booster"]
+  },
+  rudimentaryGuidance: {
+    name: "Rudimentary Guidance",
+    cost: 4,
+    needs: ["basicRocketry"],
+    features: ["sas"],
+    parts: []
+  },
+  orbitalTracking: {
+    name: "Orbital Tracking",
+    cost: 8,
+    needs: ["rudimentaryGuidance"],
+    features: ["map"],
+    parts: []
+  },
+  crewedFlight: {
+    name: "Passenger Accommodation",
+    cost: 8,
+    needs: ["rudimentaryGuidance"],
+    parts: ["Capsule"]
+  },
+  liquidRocketry: {
+    name: "Liquid Rocketry",
+    cost: 6,
+    needs: ["basicRocketry"],
+    parts: ["Basic Engine", "Tiny XS Fuel Tank", "Tiny SM Fuel Tank", "Tiny MD Fuel Tank", "MD Decoupler"]
+  },
+  heavierLifting: {
+    name: "Standard Tankage",
+    cost: 8,
+    needs: ["liquidRocketry"],
+    parts: ["Tiny LG Fuel Tank", "XS Fuel Tank", "SM Fuel Tank", "MD Fuel Tank", "LG Fuel Tank", "LG Decoupler"]
+  },
+  engineRefinements: {
+    name: "Engine Refinements",
+    cost: 10,
+    needs: ["liquidRocketry"],
+    parts: ["Upgraded Basic Engine"]
+  },
+  basicIgnitionSystems: {
+    name: "Basic Reignition Systems",
+    cost: 8,
+    needs: ["engineRefinements"],
+    parts: [],
+    ignitionBonus: { "Basic Engine": 2, "Upgraded Basic Engine": 1 }
+  },
+  mediumEngines: {
+    name: "Medium Engines",
+    cost: 16,
+    needs: ["engineRefinements", "heavierLifting"],
+    parts: ["Bravo Engine"]
+  },
+  mediumIgnitionSystems: {
+    name: "Medium Reignition Systems",
+    cost: 12,
+    needs: ["mediumEngines"],
+    parts: [],
+    ignitionBonus: { "Bravo Engine": 2 }
+  },
+  bigEngines: {
+    name: "Big Engines",
+    cost: 22,
+    needs: ["mediumEngines"],
+    parts: ["Alpha Engine", "Falcon-1 Engine"]
+  },
+  bigTanks: {
+    name: "Big Tankage",
+    cost: 14,
+    needs: ["heavierLifting"],
+    parts: ["XS Big Fuel Tank", "SM Big Fuel Tank", "MD Big Fuel Tank", "LG Big Fuel Tank"]
+  },
+  heavyLift: {
+    name: "Heavy Lift Systems",
+    cost: 18,
+    needs: ["bigEngines", "bigTanks"],
+    parts: ["XL Decoupler", "Large Base"]
+  },
+  unreasonablyLargeTanks: {
+    name: "Unreasonably Large Tanks",
+    cost: 40,
+    needs: ["bigTanks", "heavyLift"],
+    parts: [
+      "XS Massive Fuel Tank", "SM Massive Fuel Tank", "MD Massive Fuel Tank",
+      "LG Massive Fuel Tank", "Massive Base"
+    ]
+  },
+  attitudeAdjustment: {
+    name: "Attitude Adjustment",
+    cost: 6,
+    needs: ["liquidRocketry"],
+    parts: ["Turbo Reactionwheel", "Large Turbo Reactionwheel"]
+  },
+  reactionControl: {
+    name: "Reaction Control",
+    cost: 8,
+    needs: ["attitudeAdjustment"],
+    parts: ["RCS Engine"]
+  },
+  precisionThrusters: {
+    name: "Precision Thrusters",
+    cost: 14,
+    needs: ["reactionControl"],
+    parts: ["Pup engine"]
+  },
+  heavyAttitude: {
+    name: "Heavy Attitude Control",
+    cost: 18,
+    needs: ["attitudeAdjustment", "rudimentaryGuidance"],
+    parts: ["Extra Large Turbo Reactionwheel"]
+  },
+  roomierPassengers: {
+    name: "Roomier Passengers",
+    cost: 28,
+    needs: ["crewedFlight", "heavyThermal"],
+    parts: ["Big Capsule"]
+  },
+  thermalProtection: {
+    name: "Thermal Protection",
+    cost: 12,
+    needs: ["crewedFlight"],
+    parts: ["Tiny Heat Shield", "Heat Shield"]
+  },
+  heavyThermal: {
+    name: "Heavy Thermal Protection",
+    cost: 18,
+    needs: ["thermalProtection", "bigTanks"],
+    parts: ["Big Heat Shield"]
+  },
+  massiveThermal: {
+    name: "Massive Thermal Protection",
+    cost: 30,
+    needs: ["heavyThermal", "unreasonablyLargeTanks"],
+    parts: ["Massive Heat Shield"]
+  },
+  thinAirLandings: {
+    name: "Thin Air Landings",
+    cost: 10,
+    needs: ["heavierLifting"],
+    oneOf: ["orbitalTracking", "crewedFlight"],
+    parts: ["Mars Chute"]
+  },
+  hydroloxTanks: {
+    name: "Cryogenic Storage",
+    cost: 10,
+    needs: ["heavierLifting"],
+    parts: ["Hydrolox Tank", "SM Hydrolox Tank", "MD Hydrolox Tank", "LG Hydrolox Tank"]
+  },
+  vacuumEngineering: {
+    name: "Vacuum Engineering",
+    cost: 12,
+    needs: ["engineRefinements", "hydroloxTanks"],
+    parts: ["Vacuum Engine", "Stoat Engine"]
+  },
+  vacuumIgnitionSystems: {
+    name: "Vacuum Reignition Systems",
+    cost: 14,
+    needs: ["vacuumEngineering"],
+    parts: [],
+    ignitionBonus: { "Vacuum Engine": 2, "Stoat Engine": 2 }
+  },
+  hydroloxRefinements: {
+    name: "Hydrolox Refinements",
+    cost: 18,
+    needs: ["vacuumEngineering"],
+    parts: ["Upgraded Vacuum Engine", "Heavy Vacuum Engine"]
+  },
+  hydroloxIgnitionSystems: {
+    name: "Hydrolox Reignition Systems",
+    cost: 18,
+    needs: ["hydroloxRefinements"],
+    parts: [],
+    ignitionBonus: { "Heavy Vacuum Engine": 4 }
+  },
+  bigHydrolox: {
+    name: "Big Hydrolox",
+    cost: 12,
+    needs: ["bigTanks", "hydroloxTanks"],
+    parts: ["XS Big Hydrolox Tank", "SM Big Hydrolox Tank", "MD Big Hydrolox Tank", "LG Big Hydrolox Tank"]
+  },
+  rendezvous: {
+    name: "Rendezvous And Docking",
+    cost: 16,
+    needs: ["vacuumEngineering", "reactionControl", "orbitalTracking"],
+    parts: ["Docking Port"]
+  },
+  massiveHydrolox: {
+    name: "Massive Hydrolox",
+    cost: 25,
+    needs: ["unreasonablyLargeTanks", "bigHydrolox"],
+    parts: [
+      "XS Massive Hydrolox Tank", "SM Massive Hydrolox Tank", "MD Massive Hydrolox Tank",
+      "LG Massive Hydrolox Tank"
+    ]
+  },
+  ionPropulsion: {
+    name: "Ion Propulsion",
+    cost: 80,
+    needs: ["hydroloxRefinements", "heavyAttitude", "precisionThrusters"],
+    parts: ["Ion Engine", "Xenon Tank"]
+  },
+  nuclearPropulsion: {
+    name: "Nuclear Propulsion",
+    cost: 90,
+    needs: ["hydroloxRefinements", "ionPropulsion"],
+    parts: ["Nuclear Thermal Engine"]
+  },
+  nuclearIgnitionSystems: {
+    name: "Nuclear Reignition Systems",
+    cost: 20,
+    needs: ["nuclearPropulsion"],
+    parts: [],
+    ignitionBonus: { "Nuclear Thermal Engine": 2 }
+  },
+  advancedNuclearIgnitionSystems: {
+    name: "Advanced Nuclear Reignition Systems",
+    cost: 35,
+    needs: ["nuclearIgnitionSystems"],
+    parts: [],
+    ignitionBonus: { "Nuclear Thermal Engine": 2, "Large Nuclear Thermal Engine": 2 }
+  },
+  heavyNuclearPropulsion: {
+    name: "Heavy Nuclear Propulsion",
+    cost: 120,
+    needs: ["nuclearIgnitionSystems"],
+    parts: ["Large Nuclear Thermal Engine"],
+    gapScale: 0.25
+  }
+};
+
+function downrangeOf(rocket) {
+  const earth = getBody("Earth");
+  const angle = radians(c.launchPadRotation);
+  const dx = rocket.pos.x - earth.pos.x;
+  const dy = rocket.pos.y - earth.pos.y;
+  const along = (Math.sin(angle) * dx - Math.cos(angle) * dy) / (Math.hypot(dx, dy) || 1);
+  return Math.acos(constrain(along, -1, 1)) * earth.size;
+}
+
+function kilometres(metres) {
+  return `${Math.round(metres / 1000).toLocaleString("en-US")} km`;
+}
+
+const missionTypes = {
+  altitude: {
+    once: true,
+    pay: 1,
+    bodies: { Earth: 0 },
+    goal: level => 1000 * 1.6 ** level,
+    measure: rocket => readOnlyReaders.Altitude(rocket),
+    title: m => `Ascend to ${format("distance", m.goal)} above ${m.body}`
+  },
+  speed: {
+    once: true,
+    pay: 1,
+    bodies: { Earth: 1 },
+    goal: level => Math.min(200 * 1.3 ** level, 10000),
+    measure: rocket => readOnlyReaders.Speed(rocket),
+    title: m => `Exceed ${format("speed", m.goal)} relative to ${m.body}`
+  },
+  orbit: {
+    pay: 6,
+    bodies: { Earth: 3 },
+    goal: () => 140000 * 1.5 ** career.completed.filter(done => done.type === "orbit").length,
+    measure: rocket => Number.isFinite(readOnlyReaders.Apoapsis(rocket)) ? readOnlyReaders.Periapsis(rocket) : 0,
+    title: m => `Hold a ${kilometres(m.goal)} periapsis around ${m.body}, deliberately`
+  },
+  reach: {
+    pay: 8,
+    bodies: { Moon: 6, Mars: 12, Venus: 12, Mercury: 14, Ceres: 16, Jupiter: 18, Saturn: 20, Uranus: 22, Neptune: 24 },
+    goal: () => 1,
+    measure: () => 1,
+    title: m => `Enter the sphere of influence of ${m.body}`
+  },
+  land: {
+    pay: 12,
+    bodies: { Moon: 8, Mars: 14, Venus: 16, Mercury: 18, Ceres: 20 },
+    goal: () => 1,
+    measure: rocket => (rocket.landed ? 1 : 0),
+    title: m => `Land on ${m.body}, gently if possible`
+  }
+};
+
+Object.assign(missionTypes, {
+  space: {
+    once: true,
+    pay: 2,
+    bodies: { Earth: 2 },
+    goal: () => 100000,
+    measure: rocket => readOnlyReaders.Altitude(rocket),
+    title: m => `Reach space, ${kilometres(m.goal)} above ${m.body}`
+  },
+  apogee: {
+    pay: 3,
+    bodies: { Earth: 3 },
+    goal: level => Math.min(200000 * 1.3 ** (level - 3), 300000000),
+    measure: rocket => readOnlyReaders.Altitude(rocket),
+    title: m => `Climb to ${kilometres(m.goal)} above ${m.body}`
+  },
+  downrangeShort: {
+    once: true,
+    pay: 2,
+    bodies: { Earth: 2 },
+    goal: () => 200000,
+    measure: downrangeOf,
+    title: m => `Fly ${kilometres(m.goal)} downrange of the pad`
+  },
+  downrangeLong: {
+    once: true,
+    pay: 4,
+    bodies: { Earth: 3 },
+    goal: () => 3000000,
+    measure: downrangeOf,
+    title: m => `Fly ${kilometres(m.goal)} downrange of the pad`
+  },
+  downrangeFar: {
+    once: true,
+    pay: 5,
+    bodies: { Earth: 3 },
+    goal: () => 4500000,
+    measure: downrangeOf,
+    title: m => `Fly ${kilometres(m.goal)} downrange of the pad`
+  },
+  crewSpace: {
+    ...missionTypes.altitude,
+    once: false,
+    crewed: true,
+    needs: ["orbit"],
+    pay: 3,
+    firstBonus: 8,
+    bodies: { Earth: 0 },
+    goal: () => 100000,
+    title: m => `Fly a crew to ${format("distance", m.goal)} above ${m.body}`
+  },
+  crewOrbit: {
+    ...missionTypes.orbit,
+    crewed: true,
+    needs: ["crewSpace"],
+    pay: 6,
+    firstBonus: 8,
+    bodies: { Earth: 0 },
+    goal: () => 150000,
+    title: m => `Put a crew in orbit around ${m.body}`
+  },
+  crewFlyby: {
+    ...missionTypes.reach,
+    crewed: true,
+    needs: ["crewOrbit"],
+    pay: 10,
+    firstBonus: 8,
+    bodies: { Moon: 0 },
+    title: m => `Fly a crew through the sphere of influence of ${m.body}`
+  },
+  crewLand: {
+    ...missionTypes.land,
+    crewed: true,
+    needs: {
+      Moon: ["crewFlyby", "land:Moon"],
+      Mars: ["crewLand:Moon", "land:Mars"],
+      Venus: ["crewLand:Mars", "land:Venus"]
+    },
+    pay: { Moon: 16, Mars: 28, Venus: 45 },
+    firstBonus: 8,
+    bodies: { Moon: 0, Mars: 0, Venus: 0 },
+    title: m => `Land a crew on ${m.body}, and get them back`
+  },
+  dip: {
+    needs: {
+      Jupiter: ["reach:Jupiter"],
+      Saturn: ["reach:Saturn"],
+      Uranus: ["reach:Uranus"],
+      Neptune: ["reach:Neptune"]
+    },
+    pay: 10,
+    bodies: { Jupiter: 19, Saturn: 21, Uranus: 23, Neptune: 25 },
+    goal: () => 0.1,
+    measure: rocket => {
+      const body = getBody(rocket.parentBody);
+      return densityAt(body, distanceTo(rocket, body) - body.size);
+    },
+    title: m => `Dip a probe into the atmosphere of ${m.body}`
+  }
+});
+
+const milestoneSteps = { 1: 1, 5: 2, 10: 3, 25: 5, 100: 10 };
+const milestoneBodies = ["Earth", "Speed", "Moon", "Mars", "Venus", "Mercury", "Ceres", "Jupiter", "Saturn", "Uranus", "Neptune"];
+
+const milestoneTests = {
+  hop: rocket => readOnlyReaders.Altitude(rocket) >= 1000,
+  space: rocket => readOnlyReaders.Altitude(rocket) >= 100000,
+  flyby: () => true,
+  speed: (rocket, spec) => readOnlyReaders.Speed(rocket) >= spec.threshold,
+  orbit: rocket => {
+    const body = getBody(rocket.parentBody);
+    const orbit = rocketOrbit(rocket);
+    return !rocket.landed && Number.isFinite(orbit.apoapsis) &&
+      orbit.periapsis >= Math.max(body.atmosphereHeight || 0, 20000) + 5000;
+  },
+  land: rocket => !!rocket.landed && (rocket.parentBody !== "Earth" || !!rocket.achieved["hop:Earth"]),
+  dip: rocket => {
+    const body = getBody(rocket.parentBody);
+    return densityAt(body, distanceTo(rocket, body) - body.size) >= 0.1;
+  }
+};
+
+const milestoneKinds = {
+  hop: { label: "Leave the ground", test: "hop", once: true, science: { Earth: 8 } },
+  space: { label: "Reach space", test: "space", once: true, science: { Earth: 12 } },
+  flyby: {
+    label: "Flyby",
+    test: "flyby",
+    science: { Moon: 20, Mars: 20, Venus: 20, Mercury: 20, Ceres: 20, Jupiter: 20, Saturn: 20, Uranus: 20, Neptune: 20 }
+  },
+  orbit: {
+    label: "Orbit",
+    test: "orbit",
+    science: { Earth: 12, Moon: 24, Mars: 24, Venus: 24, Mercury: 24, Ceres: 24, Jupiter: 24, Saturn: 24, Uranus: 24, Neptune: 24 }
+  },
+  land: { label: "Land", test: "land", science: { Earth: 6, Moon: 30, Mars: 30, Venus: 30, Mercury: 30, Ceres: 30 } },
+  dip: { label: "Atmosphere dip", test: "dip", science: { Jupiter: 25, Saturn: 25, Uranus: 30, Neptune: 30 } },
+  crewSpace: { label: "Crew to space", test: "space", crewed: true, science: { Earth: 12 } },
+  crewOrbit: { label: "Crew in orbit", test: "orbit", crewed: true, science: { Earth: 20, Moon: 35, Mars: 40, Venus: 45 } },
+  crewFlyby: { label: "Crewed flyby", test: "flyby", crewed: true, science: { Moon: 30, Mars: 35, Venus: 40 } },
+  crewLand: { label: "Crewed landing", test: "land", crewed: true, science: { Moon: 45, Mars: 75, Venus: 110 } },
+  crewReturn: { label: "Crew home from", crewed: true, science: { Moon: 40, Mars: 60, Venus: 90 } }
+};
+
+for (const [threshold, science, once] of [
+  [3000, 4, true], [5000, 6, true], [10000, 25], [50000, 40], [250000, 60], [1000000, 90], [10000000, 150]
+]) {
+  milestoneKinds["speed" + threshold] = {
+    label: `Reach ${(threshold / 1000).toLocaleString("en-US")} km/s`,
+    test: "speed",
+    threshold,
+    global: true,
+    once: !!once,
+    science: { Speed: science }
+  };
+}
+
+function milestoneTiers(kind) {
+  return milestoneKinds[kind].once ? { 1: 1 } : milestoneSteps;
+}
+
+function milestoneNext(count, kind) {
+  return Object.keys(milestoneTiers(kind)).map(Number).find(step => step > count);
+}
+
+function milestoneEarned() {
+  let total = 0;
+  for (const key in career.milestones) {
+    const [kind, body] = key.split(":");
+    const base = milestoneKinds[kind]?.science[body] || 0;
+    const tiers = milestoneTiers(kind);
+    for (const step in tiers) {
+      if (Number(step) <= career.milestones[key].count) {
+        total += base * tiers[step];
+      }
+    }
+  }
+  return total;
+}
+
+function milestonePossible() {
+  return Object.keys(milestoneKinds).reduce((sum, kind) => {
+    const tierTotal = Object.values(milestoneTiers(kind)).reduce((a, b) => a + b, 0);
+    return sum + Object.values(milestoneKinds[kind].science).reduce((a, b) => a + b, 0) * tierTotal;
+  }, 0);
+}
+
+function awardMilestone(kind, body, rocket) {
+  const key = kind + ":" + body;
+  rocket.achieved[key] = true;
+  const entry = (career.milestones[key] ||= { count: 0 });
+  entry.count++;
+  const science = (milestoneTiers(kind)[entry.count] || 0) * milestoneKinds[kind].science[body];
+  career.science += science;
+  saveCareer();
+  launchToast(`${milestoneKinds[kind].label}${body === "Speed" ? "" : " " + body} #${entry.count}${science ? " +" + science : ""}`);
+}
+
+function checkMilestones() {
+  const rocket = flyingRocket();
+  if (!rocket || !rocket.stack) {
+    return;
+  }
+  rocket.achieved ||= {};
+  const crewed = hasCrew(rocket);
+  for (const kind in milestoneKinds) {
+    const spec = milestoneKinds[kind];
+    const where = spec.global ? "Speed" : rocket.parentBody;
+    if (!spec.test || !(where in spec.science) || (spec.crewed && !crewed)) {
+      continue;
+    }
+    if (!rocket.achieved[kind + ":" + where] && milestoneTests[spec.test](rocket, spec)) {
+      awardMilestone(kind, where, rocket);
+    }
+  }
+  if (!rocket.landed) {
+    rocket.returnCounted = false;
+  } else if (crewed && rocket.parentBody === "Earth" && !rocket.returnCounted) {
+    rocket.returnCounted = true;
+    for (const body in milestoneKinds.crewReturn.science) {
+      if (["crewFlyby", "crewOrbit", "crewLand"].some(kind => rocket.achieved[kind + ":" + body])) {
+        awardMilestone("crewReturn", body, rocket);
+      }
+    }
+  }
+}
+
+const featureNames = { sas: "Stability assist (SAS)", map: "Map view" };
+
+function hasFeature(feature) {
+  return !careerMode || career.techs.some(id => (techTree[id].features || []).includes(feature));
+}
+
+function partAvailable(part) {
+  if (!careerMode) {
+    return true;
+  }
+  return career.techs.some(id => techTree[id].parts.includes(part.name));
+}
+
+function maxIgnitions(partName) {
+  const def = partAPI.list().find(p => p.name === partName);
+  const engine = def && (def.modules || {})["Engine Module"];
+  if (!engine || engine["SRB Mode"] || !Number.isFinite(engine.Ignitions)) {
+    return Infinity;
+  }
+  if (!careerMode) {
+    return Infinity;
+  }
+  let bonus = 0;
+  for (const id of career.techs) {
+    const tech = techTree[id];
+    if (tech && tech.ignitionBonus && tech.ignitionBonus[partName]) {
+      bonus += tech.ignitionBonus[partName];
+    }
+  }
+  return engine.Ignitions + bonus;
+}
+
+function lockedLook(inst, alpha) {
+  return partAvailable(inst.part) ? { alpha } : { alpha: alpha * 0.4, recolor: "#777" };
+}
+
+function perBody(value, body) {
+  return typeof value === "object" ? value[body] : value;
+}
+
+function missionDone(need) {
+  return career.completed.some(done =>
+    need.includes(":") ? need === `${done.type}:${done.body ?? "Earth"}` : done.type === need
+  );
+}
+
+function missionUnlocked(type, body) {
+  const needs = missionTypes[type].needs;
+  return ((Array.isArray(needs) ? needs : needs?.[body]) || []).every(missionDone);
+}
+
+function makeMission(type, body, level) {
+  const mission = {
+    type,
+    body,
+    goal: missionTypes[type].goal(level),
+    crewed: !!missionTypes[type].crewed,
+    funds: Math.round(2000000 * perBody(missionTypes[type].pay, body) * 1.15 ** level)
+  };
+  mission.title = missionTypes[type].title(mission);
+  return mission;
+}
+
+function generateMissions(count) {
+  const level = new Set(career.completed.map(done => `${done.type}:${done.body ?? "Earth"}`)).size;
+  const pool = [];
+  for (const type in missionTypes) {
+    for (const body in missionTypes[type].bodies) {
+      const spent = missionTypes[type].once && missionDone(type + ":" + body);
+      if (missionTypes[type].bodies[body] <= level && missionUnlocked(type, body) && !spent) {
+        pool.push({ type, body });
+      }
+    }
+  }
+  return shuffle(pool).slice(0, count).map(pick => makeMission(pick.type, pick.body, level));
+}
+
+const crewParts = ["Capsule", "Big Capsule"];
+
+function hasCrew(rocket) {
+  return rocket.stack.parts.some(entry => crewParts.includes(entry.part.name));
+}
+
+function checkMission() {
+  const mission = career.active;
+  if (!mission) {
+    return;
+  }
+  if (mission.rocketId && !rockets.some(rocket => rocket.id === mission.rocketId)) {
+    mission.rocketId = null;
+    saveCareer();
+    launchToast("Vessel lost, mission reset");
+    return;
+  }
+  const rocket = flyingRocket();
+  if (!rocket || !rocket.stack || !(rocket.launchNo > (mission.since ?? 0))) {
+    return;
+  }
+  if (mission.rocketId) {
+    if (rocket.id === mission.rocketId && rocket.landed && rocket.parentBody === "Earth") {
+      completeMission(mission);
+    }
+  } else if (rocket.parentBody === mission.body && missionTypes[mission.type].measure(rocket) >= mission.goal) {
+    if (!mission.crewed) {
+      completeMission(mission);
+    } else if (hasCrew(rocket)) {
+      mission.rocketId = rocket.id;
+      saveCareer();
+      launchToast("Goal reached, come home");
+    }
+  }
+}
+
+function isRepeat(mission) {
+  return career.completed.some(done => done.type === mission.type && (done.body ?? "Earth") === mission.body);
+}
+
+function fundsPay(mission) {
+  const bonus = missionTypes[mission.type].firstBonus || 1;
+  return isRepeat(mission) ? mission.funds : mission.funds * bonus;
+}
+
+function completeMission(mission) {
+  balance += fundsPay(mission);
+  career.completed.push({ type: mission.type, body: mission.body, title: mission.title });
+  career.active = null;
+  career.offers = generateMissions(3);
+  saveCareer();
+  launchToast("Mission complete");
+}
+
+function failMission(mission) {
+  const penalty = Math.round(fundsPay(mission) / 2);
+  balance -= penalty;
+  career.active = null;
+  career.offers = generateMissions(3);
+  saveCareer();
+  launchToast(`Crew lost, mission failed -${penalty.toLocaleString("en-US")}`);
+}
+
+function checkCrewLosses() {
+  const mission = career.active;
+  if (!mission || !mission.crewed) {
+    return;
+  }
+  for (const rocket of rockets) {
+    if (!rocket.destroyed || !rocket.stack) {
+      continue;
+    }
+    const isMissionVessel = mission.rocketId ? rocket.id === mission.rocketId : rocket.id === target;
+    if (isMissionVessel && hasCrew(rocket)) {
+      failMission(mission);
+      return;
+    }
+  }
+}
+
+function recoveryValue(rocket) {
+  const partsWorth = rocket.stack.parts.reduce((sum, entry) => sum + partCost(entry.part), 0);
+  return Math.round(partsWorth * recoveryRate);
+}
+
+function canRecover(rocket) {
+  return !!rocket && !!rocket.stack && !!rocket.flown && !!rocket.landed && rocket.parentBody === "Earth";
+}
+
+function recoverRocket() {
+  const rocket = flyingRocket();
+  if (!canRecover(rocket)) {
+    return;
+  }
+  const unit = u.careerMode.modules["Career Module"].Unit;
+  const value = recoveryValue(rocket);
+  balance += value;
+  rockets = rockets.filter(other => other !== rocket);
+  inVab = true;
+  saveCareer();
+  launchToast(`Recovered ${unit}${value.toLocaleString("en-US")}`);
+}
+
+function updateCareer() {
+  for (const rocket of rockets) {
+    if (!rocket.landed) {
+      rocket.flown = true;
+    }
+  }
+  checkMission();
+  checkMilestones();
+  settleLoans();
+  checkBankruptcy();
+}
+
+function techOpen(tech) {
+  const owns = id => career.techs.includes(id);
+  return tech.needs.every(owns) && (!tech.oneOf || tech.oneOf.some(owns));
+}
+
+function techParents(id) {
+  return [...techTree[id].needs, ...(techTree[id].oneOf || [])];
+}
+
+function researchTech(id) {
+  const tech = techTree[id];
+  const open = techOpen(tech);
+  if (career.techs.includes(id) || !open) {
+    return;
+  }
+  if (career.science < tech.cost) {
+    launchToast("Not enough science.");
+    return;
+  }
+  career.science -= tech.cost;
+  career.techs.push(id);
+  saveCareer();
+}
+
+function saveCareer() {
+  try {
+    localStorage.setItem("weborbit-career", JSON.stringify({ ...career, balance }));
+  } catch (err) {
+    console.warn(`couldn't save career: ${err.message}`);
+  }
+}
+
+function cleanCareer() {
+  const renamed = { biggerSolids: ["largeSolids"], biggerBoosters: ["bigEngines", "bigTanks", "heavyLift"] };
+  career.techs = [...new Set(career.techs.flatMap(id => renamed[id] || [id]).filter(id => techTree[id]))];
+  if (!career.techs.includes("basicRocketry")) {
+    career.techs.push("basicRocketry");
+  }
+  career.milestones ||= {};
+  career.launches ||= 0;
+  career.loans = { ...defaultLoans(), ...career.loans };
+  career.offers = career.offers.filter(offer => !(missionTypes[offer.type]?.once && missionDone(offer.type + ":" + offer.body)));
+  if (!career.offers.length) {
+    career.offers = generateMissions(3);
+  }
+}
+
+function careerHasProgress() {
+  return career.completed.length > 0 || career.science > 0 || career.techs.length > 1 || Object.keys(career.milestones).length > 0;
+}
+
+function restoreCareer(saved) {
+  for (const key in career) {
+    delete career[key];
+  }
+  Object.assign(career, { completed: [], techs: ["basicRocketry"], science: 0, offers: [], active: null, milestones: {}, launches: 0, loans: {} }, saved);
+  cleanCareer();
+  saveCareer();
+}
+
+function loadCareer() {
+  try {
+    const { balance: savedBalance, ...saved } = JSON.parse(localStorage.getItem("weborbit-career")) || {};
+    Object.assign(career, saved);
+    cleanCareer();
+    if (savedBalance !== undefined) {
+      balance = savedBalance;
+    }
+  } catch (err) {
+    console.warn(`couldn't load career: ${err.message}`);
+  }
+  if (!career.offers.length) {
+    career.offers = generateMissions(3);
+  }
+}
+
+function careerClick() {
+  const wasOpen = careerMissionsOpen || techTreeOpen || milestonesOpen || loansOpen;
+  if (GUIAPI.clicked("career-missions")) {
+    careerMissionsOpen = !careerMissionsOpen;
+    techTreeOpen = false;
+    milestonesOpen = false;
+    loansOpen = false;
+  } else if (GUIAPI.clicked("career-tech")) {
+    techTreeOpen = !techTreeOpen;
+    careerMissionsOpen = false;
+    milestonesOpen = false;
+    loansOpen = false;
+    resetTechView();
+  } else if (GUIAPI.clicked("career-milestones")) {
+    milestonesOpen = !milestonesOpen;
+    careerMissionsOpen = false;
+    techTreeOpen = false;
+    loansOpen = false;
+  } else if (GUIAPI.clicked("career-loans")) {
+    loansOpen = !loansOpen;
+    careerMissionsOpen = false;
+    techTreeOpen = false;
+    milestonesOpen = false;
+  } else if (GUIAPI.clicked("missions-close")) {
+    careerMissionsOpen = false;
+  } else if (GUIAPI.clicked("milestones-close")) {
+    milestonesOpen = false;
+  } else if (GUIAPI.clicked("tech-close")) {
+    techTreeOpen = false;
+  } else if (GUIAPI.clicked("loans-close")) {
+    loansOpen = false;
+  } else if (GUIAPI.clicked("mission-abandon")) {
+    career.active = null;
+    career.offers = generateMissions(3);
+    saveCareer();
+  } else {
+    career.offers.forEach((offer, i) => {
+      if (GUIAPI.clicked("mission-accept-" + i)) {
+        if (!inVab) {
+          launchToast("Accept contracts in the VAB");
+        } else {
+          career.active = { ...offer, since: career.launches };
+          saveCareer();
+          careerMissionsOpen = false;
+        }
+      }
+    });
+    for (const key in loanTypes) {
+      if (GUIAPI.clicked("loan-take-" + key)) {
+        takeLoan(key);
+      } else if (GUIAPI.clicked("loan-pay-" + key)) {
+        payLoan(key);
+      }
+    }
+    techClick = null;
+    techPress = { x: mouseX, y: mouseY };
+    for (const id in techTree) {
+      if (GUIAPI.clicked("tech-" + id)) {
+        techClick = id;
+      }
+    }
+  }
+  return wasOpen || careerMissionsOpen || techTreeOpen || milestonesOpen || loansOpen;
+}
+
 function drawMissions() {
-  background("#111111")
-  fill("#205fff");
-  textSize(80);
-  text("Missions", width / 2, 80);
-  
-  GUIAPI.button(width/2 - 175, 150, 350, 85, {
-    id: "mission-1",
-    ...menuStyle
-  }, "Little Bob - Atmospheric");
+  const unit = u.careerMode.modules["Career Module"].Unit;
+  textSize(18);
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "missions" }, undefined, ui => {
+    ui.label("Missions", { size: 28, align: CENTER, height: 40 });
+    ui.label(`Completed ${career.completed.length}   Science ${career.science}`, { align: CENTER });
+    if (career.active) {
+      const status = career.active.rocketId ? "Goal reached, land back on Earth" : career.active.title;
+      ui.label(`Active: ${status}`, { color: "#ffd479", align: CENTER });
+      ui.button(0, 0, 350, 50, { id: "mission-abandon", ...menuStyle }, "Abandon");
+    }
+    if (!inVab) {
+      ui.label("Return to the VAB to accept a contract", { color: "#ff9d00", align: CENTER });
+    }
+    career.offers.forEach((offer, i) => {
+      ui.button(0, 0, 550, 60, { id: "mission-accept-" + i, ...(inVab ? menuStyle : menuStyleDisabled) }, offer.title);
+      const home = offer.crewed ? "   crewed, land back on Earth" : "";
+      ui.label(`${unit}${fundsPay(offer).toLocaleString("en-US")}${home}`, {
+        size: 13,
+        color: "#aaa",
+        align: CENTER
+      });
+    });
+    ui.button(0, 0, 350, 60, { id: "missions-close", ...menuStyle }, "Close");
+  });
+}
+
+function drawLoans() {
+  const unit = u.careerMode.modules["Career Module"].Unit;
+  textSize(18);
+  GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "loans" }, undefined, ui => {
+    ui.label("Loans", { size: 28, align: CENTER, height: 40 });
+    ui.label(`Balance ${unit}${Math.round(balance).toLocaleString("en-US")}`, {
+      align: CENTER,
+      color: balance < 0 ? "#ff6b6b" : "#8be08b"
+    });
+    for (const key in loanTypes) {
+      const type = loanTypes[key];
+      const loan = career.loans[key];
+      const unlocked = loanUnlocked(key);
+      ui.label(`${type.bank}`, { align: CENTER, size: 20 });
+      if (!unlocked) {
+        ui.label("Locked, keep progressing your career to qualify", { align: CENTER, color: "#777" });
+      } else if (loan.taken) {
+        const launchesLeft = Math.max(0, loan.dueAtLaunch - career.launches);
+        ui.label(`Owe ${unit}${loan.owed.toLocaleString("en-US")}, due in ${launchesLeft} launch${launchesLeft === 1 ? "" : "es"}`, {
+          align: CENTER,
+          color: "#ffd479"
+        });
+        ui.button(0, 0, 350, 50, { id: "loan-pay-" + key, ...(balance >= loan.owed ? menuStyle : menuStyleDisabled) }, "Pay Now");
+      } else {
+        ui.label(`Borrow ${unit}${type.amount.toLocaleString("en-US")}, repay ${unit}${Math.round(type.amount * type.repay).toLocaleString("en-US")} within ${type.termLaunches} launches`, {
+          align: CENTER,
+          color: "#aaa"
+        });
+        ui.button(0, 0, 350, 50, { id: "loan-take-" + key, ...menuStyle }, "Take Loan");
+      }
+    }
+    ui.button(0, 0, 350, 60, { id: "loans-close", ...menuStyle }, "Close");
+  });
+}
+
+const techView = { x: 0, y: 0, zoom: 1 };
+const techNode = { w: 250, h: 74, minGap: 300, gapY: 120, pxPerScience: 24, cell: 10, pad: 8 };
+let techLayoutCache = null;
+const techWires = {};
+let techClick = null;
+let techPress = { x: 0, y: 0 };
+
+function routeWire(from, to, boxes) {
+  const cell = techNode.cell;
+  const startX = from.x + techNode.w;
+  const startY = from.y + techNode.h / 2;
+  const endX = to.x;
+  const endY = to.y + techNode.h / 2;
+  const alignY = (techNode.h / 2) % cell;
+  const originX = Math.min(...boxes.map(b => b.x)) - cell * 6;
+  const originY = alignY + Math.floor((Math.min(...boxes.map(b => b.y)) - cell * 8 - alignY) / cell) * cell;
+  const cols = Math.ceil((Math.max(...boxes.map(b => b.x)) + techNode.w + cell * 12 - originX) / cell);
+  const rows = Math.ceil((Math.max(...boxes.map(b => b.y)) + techNode.h + cell * 8 - originY) / cell);
+  const blocked = new Uint8Array(cols * rows);
+  for (const box of boxes.filter(b => b !== from && b !== to)) {
+    const c0 = Math.floor((box.x - techNode.pad - originX) / cell);
+    const c1 = Math.ceil((box.x + techNode.w + techNode.pad - originX) / cell);
+    const r0 = Math.floor((box.y - techNode.pad - originY) / cell);
+    const r1 = Math.ceil((box.y + techNode.h + techNode.pad - originY) / cell);
+    for (let r = Math.max(0, r0); r <= Math.min(rows - 1, r1); r++) {
+      for (let c = Math.max(0, c0); c <= Math.min(cols - 1, c1); c++) {
+        blocked[r * cols + c] = 1;
+      }
+    }
+  }
+  const startCol = Math.ceil((startX + techNode.pad - originX) / cell);
+  const endCol = Math.floor((endX - techNode.pad - originX) / cell);
+  const startRow = Math.round((startY - originY) / cell);
+  const endRow = Math.round((endY - originY) / cell);
+  const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const key = (c, r, d) => (r * cols + c) * 4 + d;
+  const cost = new Map([[key(startCol, startRow, 0), 0]]);
+  const back = new Map();
+  const open = [];
+  const push = node => {
+    open.push(node);
+    let i = open.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (open[parent].f <= open[i].f) break;
+      [open[parent], open[i]] = [open[i], open[parent]];
+      i = parent;
+    }
+  };
+  const pop = () => {
+    const top = open[0];
+    const last = open.pop();
+    if (open.length) {
+      open[0] = last;
+      let i = 0;
+      for (;;) {
+        const left = 2 * i + 1;
+        const right = left + 1;
+        let small = i;
+        if (left < open.length && open[left].f < open[small].f) small = left;
+        if (right < open.length && open[right].f < open[small].f) small = right;
+        if (small === i) break;
+        [open[small], open[i]] = [open[i], open[small]];
+        i = small;
+      }
+    }
+    return top;
+  };
+  push({ c: startCol, r: startRow, d: 0, g: 0, f: Math.abs(endCol - startCol) + Math.abs(endRow - startRow) });
+  let goal = null;
+  while (open.length) {
+    const cur = pop();
+    if (cur.g > cost.get(key(cur.c, cur.r, cur.d))) {
+      continue;
+    }
+    if (cur.c === endCol && cur.r === endRow && cur.d === 0) {
+      goal = cur;
+      break;
+    }
+    dirs.forEach(([dc, dr], d) => {
+      const c = cur.c + dc;
+      const r = cur.r + dr;
+      if (c < 0 || r < 0 || c >= cols || r >= rows || blocked[r * cols + c]) {
+        return;
+      }
+      if (Math.abs(d - cur.d) === 2) {
+        return;
+      }
+      const g = cur.g + 1 + (d === cur.d ? 0 : 8);
+      const k = key(c, r, d);
+      if (g < (cost.get(k) ?? Infinity)) {
+        cost.set(k, g);
+        back.set(k, key(cur.c, cur.r, cur.d));
+        push({ c, r, d, g, f: g + Math.abs(endCol - c) + Math.abs(endRow - r) });
+      }
+    });
+  }
+  const cellPoint = (c, r) => ({ x: originX + c * cell, y: originY + r * cell });
+  const points = [];
+  if (goal) {
+    let k = key(goal.c, goal.r, goal.d);
+    while (k !== undefined) {
+      const d = k % 4;
+      const index = (k - d) / 4;
+      points.push(cellPoint(index % cols, Math.floor(index / cols)));
+      k = back.get(k);
+    }
+    points.reverse();
+  } else {
+    const mid = (startX + endX) / 2;
+    points.push({ x: mid, y: startY }, { x: mid, y: endY });
+  }
+  const corners = points.filter((point, i) => {
+    const last = points[i - 1];
+    const next = points[i + 1];
+    return !last || !next || !((last.x === point.x && next.x === point.x) || (last.y === point.y && next.y === point.y));
+  });
+  const path = [{ x: startX, y: startY }, ...corners, { x: endX, y: endY }];
+  path[1] = { x: path[1].x, y: startY };
+  path[path.length - 2] = { x: path[path.length - 2].x, y: endY };
+  return path;
+}
+
+function techLayout() {
+  if (techLayoutCache) {
+    return techLayoutCache;
+  }
+  const ids = Object.keys(techTree);
+  const x = {};
+  const xOf = id => {
+    if (x[id] === undefined) {
+      const parents = techParents(id);
+      x[id] = parents.length
+        ? Math.max(...parents.map(need => {
+            const reach = Math.max(techNode.minGap, (techTree[id].cost - techTree[need].cost) * techNode.pxPerScience) * (techTree[id].gapScale ?? 1);
+            return xOf(need) + reach;
+          }))
+        : 0;
+    }
+    return x[id];
+  };
+  ids.forEach(xOf);
+  const layout = {};
+  for (const id of [...ids].sort((a, b) => x[a] - x[b])) {
+    const needs = techParents(id);
+    const want = needs.length ? needs.reduce((sum, need) => sum + layout[need].y, 0) / needs.length : 0;
+    const home = Math.round(want / techNode.gapY);
+    const offsets = [0];
+    for (let step = 1; step <= 20; step++) {
+      offsets.push(step, -step);
+    }
+    const row = offsets.map(offset => home + offset).find(candidate =>
+      Object.values(layout).every(other =>
+        Math.abs(other.x - x[id]) >= techNode.w + 40 || Math.abs(other.y - candidate * techNode.gapY) >= techNode.gapY - 1
+      )
+    );
+    layout[id] = { x: x[id], y: row * techNode.gapY };
+  }
+  const boxes = Object.values(layout);
+  for (const id of ids) {
+    for (const need of techParents(id)) {
+      techWires[need + ">" + id] = routeWire(layout[need], layout[id], boxes);
+    }
+  }
+  techLayoutCache = layout;
+  return layout;
+}
+
+function resetTechView() {
+  const nodes = Object.values(techLayout());
+  const spanX = Math.max(...nodes.map(at => at.x)) + techNode.w;
+  const top = Math.min(...nodes.map(at => at.y));
+  const spanY = Math.max(...nodes.map(at => at.y)) + techNode.h - top;
+  techView.zoom = constrain(Math.min((width - 120) / spanX, (height - 150) / spanY), 0.2, 1);
+  techView.x = 60;
+  techView.y = height / 2 + 30 - (top + spanY / 2) * techView.zoom;
+}
+
+function zoomTechTree(factor) {
+  const next = constrain(techView.zoom * factor, 0.2, 2.5);
+  const ratio = next / techView.zoom;
+  techView.x = mouseX - (mouseX - techView.x) * ratio;
+  techView.y = mouseY - (mouseY - techView.y) * ratio;
+  techView.zoom = next;
+}
+
+function drawMilestones() {
+  textSize(18);
+  GUIAPI.panel(width * 0.88, height * 0.88, { dim: true, borderColor: "#555", id: "milestones" }, undefined, ui => {
+    ui.label("Milestones", { size: 28, align: CENTER, height: 40 });
+    ui.label(`Science from milestones ${milestoneEarned().toLocaleString("en-US")} of ${milestonePossible().toLocaleString("en-US")}`, {
+      align: CENTER,
+      color: "#8be08b"
+    });
+    ui.label("Complete milestones to unlock science! You can get even more science from doing a milestone for the 5th, 10th, 25th, and 100th time!", {
+      size: 13,
+      align: CENTER,
+      color: "#8a94a3"
+    });
+    for (const body of milestoneBodies) {
+      ui.label(body === "Speed" ? "Speed records" : body, { size: 22, color: "#ffd479", height: 34 });
+      for (const kind in milestoneKinds) {
+        const base = milestoneKinds[kind].science[body];
+        if (base === undefined) {
+          continue;
+        }
+        const count = career.milestones[kind + ":" + body]?.count || 0;
+        const next = milestoneNext(count, kind);
+        const row = ui.row(24);
+        push();
+        noStroke();
+        textAlign(LEFT, CENTER);
+        textSize(14);
+        fill(count ? "#fff" : "#8a94a3");
+        text(`${milestoneKinds[kind].label}${kind === "crewReturn" ? " " + body : ""}${milestoneKinds[kind].once ? " (one-time)" : ""}`, row.x + 8, row.y + 12);
+        text(`${count} ${count === 1 ? "visit" : "visits"}`, row.x + row.sx * 0.3, row.y + 12);
+        const barX = row.x + row.sx * 0.42;
+        const barW = row.sx * 0.24;
+        fill("#2b3038");
+        rect(barX, row.y + 6, barW, 12, 4);
+        fill(next ? "#5aa9ff" : "#ffd43b");
+        rect(barX, row.y + 6, barW * (next ? count / next : 1), 12, 4);
+        fill(next ? "#aab4c3" : "#ffd43b");
+        text(next ? `visit ${next}: +${base * milestoneTiers(kind)[next]} science` : (milestoneKinds[kind].once ? "claimed" : "every tier claimed"), barX + barW + 14, row.y + 12);
+        pop();
+      }
+    }
+    ui.button(0, 10, 350, 50, { id: "milestones-close", ...menuStyle }, "Close");
+  });
+}
+
+const techZones = [
+  { label: "Beginnings", ids: ["basicRocketry", "mediumSolids", "liquidRocketry", "rudimentaryGuidance", "aerodynamics"] },
+  { label: "Standard Tankage", ids: ["heavierLifting", "engineRefinements", "attitudeAdjustment", "crewedFlight", "largeSolids"] },
+  { label: "Heavy Lift", ids: ["bigTanks", "mediumEngines", "bigEngines", "heavyLift", "unreasonablyLargeTanks", "heavySolids", "colossalSolids"] },
+  { label: "Vacuum", ids: ["hydroloxTanks", "vacuumEngineering", "hydroloxRefinements", "bigHydrolox", "massiveHydrolox"] },
+  { label: "Nuclear Propulsion", ids: ["ionPropulsion", "nuclearPropulsion", "nuclearIgnitionSystems", "advancedNuclearIgnitionSystems", "heavyNuclearPropulsion"] }
+];
+
+function drawTechZones(layout, z) {
+  textAlign(CENTER, TOP);
+  fill("#ffffff30");
+  const placed = [];
+  for (const zone of techZones) {
+    const points = zone.ids.filter(id => layout[id]).map(id => layout[id]);
+    if (!points.length) {
+      continue;
+    }
+    const minX = Math.min(...points.map(p => p.x));
+    const maxX = Math.max(...points.map(p => p.x));
+    const overlapping = Object.values(layout).filter(p => p.x <= maxX + techNode.w && p.x + techNode.w >= minX);
+    const minY = Math.min(...overlapping.map(p => p.y));
+    const size = Math.max(10, 64 * z);
+    textSize(size);
+    const cx = techView.x + ((minX + maxX) / 2 + techNode.w / 2) * z;
+    const w = textWidth(zone.label);
+    const h = size * 1.2;
+    const top = techView.y + minY * z - size - 20;
+    let box = { x: cx - w / 2, y: top, w, h };
+    let moved = true;
+    while (moved) {
+      moved = false;
+      for (const other of placed) {
+        const overlapX = box.x < other.x + other.w && box.x + box.w > other.x;
+        const overlapY = box.y < other.y + other.h && box.y + box.h > other.y;
+        if (overlapX && overlapY) {
+          box.y = other.y - box.h - 10;
+          moved = true;
+        }
+      }
+    }
+    placed.push(box);
+    text(zone.label, cx, box.y);
+  }
+}
+
+function drawTechTree() {
+  const layout = techLayout();
+  const z = techView.zoom;
+  GUIAPI.block(0, 0, width, height, GUIAPI.order++);
+  noStroke();
+  fill("#0b0e13");
+  rect(0, 0, width, height);
+  drawTechZones(layout, z);
+
+  const box = id => ({
+    x: techView.x + layout[id].x * z,
+    y: techView.y + layout[id].y * z,
+    w: techNode.w * z,
+    h: techNode.h * z
+  });
+  noFill();
+  strokeWeight(Math.max(1, 2 * z));
+  for (const id in techTree) {
+    for (const need of techParents(id)) {
+      const required = techTree[id].needs.includes(need);
+      const owned = career.techs.includes(need);
+      stroke(required ? (owned ? "#ffd43b" : "#7a6a2a") : (owned ? "#5aa9ff" : "#3a4250"));
+      beginShape();
+      for (const point of techWires[need + ">" + id]) {
+        vertex(techView.x + point.x * z, techView.y + point.y * z);
+      }
+      endShape();
+    }
+  }
+
+  textSize(Math.max(2, 16 * z));
+  for (const id in techTree) {
+    const tech = techTree[id];
+    const b = box(id);
+    if (b.x > width || b.y > height || b.x + b.w < 0 || b.y + b.h < 0) {
+      continue;
+    }
+    const have = career.techs.includes(id);
+    const open = techOpen(tech);
+    const unlocksContract = tech.parts.some(part => crewParts.includes(part));
+    const style = unlocksContract
+      ? { baseColor: "#8a6d1f", hoverColor: "#ab8a2a" }
+      : have
+      ? { baseColor: "#1f6b2f", hoverColor: "#2f8f45" }
+      : open
+        ? { baseColor: "#1f4f8f", hoverColor: "#2a6ac0" }
+        : { baseColor: "#2b3038", hoverColor: "#2b3038" };
+    GUIAPI.button(b.x, b.y, b.w, b.h, {
+      id: "tech-" + id,
+      ...style,
+      tooltip: [
+        tech.name,
+        ...(unlocksContract ? ["  $ unlocks a crewed contract"] : []),
+        ...(tech.features || []).map(f => "  " + featureNames[f]),
+        ...tech.parts.map(part => "  " + part),
+        ...Object.entries(tech.ignitionBonus || {}).map(([part, bonus]) => `  +${bonus} ignitions: ${part}`),
+        ...(tech.needs.length ? ["needs " + tech.needs.map(need => techTree[need].name).join(", ")] : []),
+        ...(tech.oneOf ? ["and one of " + tech.oneOf.map(need => techTree[need].name).join(", ")] : [])
+      ]
+    }, `${unlocksContract ? "$ " : ""}${tech.name}\n${have ? "researched" : tech.cost + " science"}`);
+  }
+
+  noStroke();
+  fill("#0b0e13ee");
+  rect(0, 0, width, 70);
+  fill("#fff");
+  textAlign(LEFT, CENTER);
+  textSize(24);
+  text(`Tech Tree   Science ${career.science}`, 24, 35);
+  textAlign(RIGHT, CENTER);
+  textSize(13);
+  fill("#8a94a3");
+  textAlign(LEFT, BASELINE);
+  textSize(18);
+  GUIAPI.button(width - 150, 15, 130, 40, { id: "tech-close", ...menuStyle }, "Close");
+  GUIAPI.drawTooltip();
+  cursor(mouseIsPressed ? "grabbing" : "grab");
 }
 
 function drawMap() {
@@ -2011,6 +3396,51 @@ function downloadBurnLog() {
   a.remove();
   URL.revokeObjectURL(url);
   launchToast(`Downloaded ${burnLog.length} burn log entries.`);
+}
+
+function logTimelineEvent(rocket, kind, data) {
+  if (!rocketTimelineEnabled || !rocket) {
+    return;
+  }
+  const parent = rocket.parentBody && getBody(rocket.parentBody);
+  const rel = parent && relativeVelocity(rocket, parent);
+  const altitude = parent ? distanceTo(rocket, parent) - parent.size : null;
+  rocketTimeline.push({
+    t,
+    kind,
+    rocket: rocket.id,
+    angle: rocket.angle,
+    angleDeg: degrees(rocket.angle),
+    vel: { x: rocket.vel.x, y: rocket.vel.y },
+    pos: { x: rocket.pos.x, y: rocket.pos.y },
+    throttle,
+    body: rocket.parentBody,
+    altitude,
+    altitudeKm: altitude === null ? null : altitude / 1000,
+    speed: rel ? Math.hypot(rel.x, rel.y) : null,
+    inAtmosphere: !!(parent && parent.atmosphereHeight && altitude !== null && altitude < parent.atmosphereHeight),
+    spin: rocket.spin || 0,
+    rotationDegPerSec: (rocket.spin || 0) * 180 / Math.PI,
+    temp: rocket.temp ?? null,
+    ...data
+  });
+}
+
+function downloadRocketTimeline() {
+  if (!rocketTimeline.length) {
+    launchToast("No timeline recorded yet, launch a rocket first.");
+    return;
+  }
+  const blob = new Blob([JSON.stringify(rocketTimeline, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "rocket-timeline.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  launchToast(`Downloaded ${rocketTimeline.length} timeline entries.`);
 }
 
 function executeAutomatedBurn(rocket, dv) {
@@ -2686,17 +4116,17 @@ function drawVab() {
   line(midX, 0, midX, height);
   for (const inst of vab.parts) {
     if (!dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { rot: inst.rot, layer: "back" });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 1), rot: inst.rot, layer: "back" });
     }
   }
   for (const inst of vab.parts) {
     if (dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha: 0.9, rot: inst.rot, layer: "back" });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 0.9), rot: inst.rot, layer: "back" });
     }
   }
   for (const inst of vab.parts) {
     const alpha = dragSet.has(inst) ? 0.9 : 1;
-    drawPart(inst.part, inst.x, inst.y, vab.scale, { alpha, rot: inst.rot, layer: "front" });
+    drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, alpha), rot: inst.rot, layer: "front" });
   }
 
   if (stagingOpen) {
@@ -2766,7 +4196,9 @@ function drawVab() {
       hoverColor: "#5b5b6e",
       tooltip: cb.label === "S"
         ? ["Save craft", vab.parts.length ? "  as craft.json" : "  nothing in the bay"]
-        : ["Open craft", "  replaces what's in the bay"]
+        : cb.label === "O"
+        ? ["Open craft", "  replaces what's in the bay"]
+        : ["Export context", "Exports a save file not meant to be imported with extra context about the rocket."]
     }, cb.label);
   }
   textSize(14);
@@ -2805,17 +4237,31 @@ function drawVab() {
   const introW = 260;
   const introX = width - introW - 20;
   GUIAPI.button(introX, 20, introW, 40, { id: "vab-mainmenu", ...menuStyle }, "Main Menu");
-  GUIAPI.panel(introW, 260, {
-    offsetX: introX - (width - introW) / 2,
-    offsetY: 90 - (height - 260) / 2,
-    borderColor: "#555",
-    id: "vab-intro"
-  }, "Welcome", ui => {
-    ui.label("Welcome to the VAB! some parts or,", { size: 13, height: 22 });
-    ui.label("try the example rockets", { size: 13, height: 20 });
-    ui.button(0, 0, undefined, 40, { id: "practice-space", ...menuStyle }, "Practice: Space");
-    ui.button(0, 0, undefined, 40, { id: "practice-orbit", ...menuStyle }, "Practice: Orbit");
-  });
+  GUIAPI.button(width - 320, height - 100, 145, 40, {
+    id: "vab-export-world",
+    baseColor: "#4a4a5a",
+    hoverColor: "#5b5b6e",
+    tooltip: careerMode
+      ? ["Export career world", "  rockets, money, tech, milestones"]
+      : ["Export sandbox world", "  rockets and mods"]
+  }, "Export World");
+  GUIAPI.button(width - 165, height - 100, 145, 40, {
+    id: "vab-import-world",
+    baseColor: "#4a4a5a",
+    hoverColor: "#5b5b6e",
+    tooltip: ["Import a world", "  a career file switches to career,", "  a sandbox file to sandbox"]
+  }, "Import World");
+  if (!careerMode) {
+    GUIAPI.panel(introW, 120, {
+      offsetX: introX - (width - introW) / 2,
+      offsetY: 90 - (height - 120) / 2,
+      borderColor: "#555",
+      id: "vab-intro"
+    }, "Welcome", ui => {
+      ui.label("Welcome to the VAB! some parts or,", { size: 13, height: 22 });
+      ui.label("try the example rockets", { size: 13, height: 20 });
+    });
+  }
 
   GUIAPI.drawTooltip();
 
@@ -2834,6 +4280,7 @@ const cost = {
   torque: 40,
   drag: 0.6,
   separation: 3,
+  ablator: 400,
   resource: { 
     "Kerolox": 50, 
     "Solid Fuel": 70,
@@ -2857,6 +4304,7 @@ function partCost(part) {
   if (m["Controller Module"]) total += m["Controller Module"].Torque * cost.torque;
   if (m["Parachute Module"]) total += m["Parachute Module"].Drag * cost.drag;
   if (m["Decoupler Module"]) total += m["Decoupler Module"]["Separation Force"] * cost.separation;
+  if (m["Heat Shield Module"]) total += m["Heat Shield Module"].Ablator * cost.ablator;
   return total * cost.multi;
 }
 
@@ -3333,6 +4781,7 @@ function runSelfDestruct(rocket, entry) {
     cd.limit = 0;
     cd.time = t;
     rocket.destroyed = true;
+    logTimelineEvent(rocket, "destroyed", { reason: "self destruct" });
   }
 }
 
@@ -3508,12 +4957,12 @@ function stackSnapshot() {
   };
 }
 
-function craftSave() {
+function craftData() {
   if (!vab.parts.length) {
-    return;
+    return null;
   }
   const snap = stackSnapshot();
-  const craft = {
+  return {
     format: "xopernicus-craft",
     version: 1,
     parts: vab.parts.map((inst, i) => ({
@@ -3526,12 +4975,83 @@ function craftSave() {
       stage: inst.stage || 0
     }))
   };
+}
+
+function craftSave() {
+  const craft = craftData();
+  if (!craft) {
+    return;
+  }
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(craft, null, 2)], { type: "application/json" })
   );
   const link = document.createElement("a");
   link.href = url;
   link.download = "craft.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function craftExportContext() {
+  const craft = craftData();
+  if (!craft) {
+    return;
+  }
+  const parts = partAPI.list();
+  const ys = craft.parts.map(p => p.y);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const noseIndex = craft.parts.findIndex(p => p.y === minY);
+  const tailIndex = craft.parts.findIndex(p => p.y === maxY);
+
+  const context = {
+    format: "xopernicus-craft-context",
+    version: 1,
+    orientation: {
+      note: "Coordinates are screen-space, not math axes: SMALLER (more negative) y is toward the NOSE/top of the rocket, LARGER (more positive) y is toward the ENGINES/tail at the bottom. A part with a lower y value sits closer to the nose, not further underground. This craft is not upside down.",
+      noseAt: "minimum y",
+      tailAt: "maximum y",
+      noseIsPartIndex: noseIndex,
+      tailIsPartIndex: tailIndex
+    },
+    stagingNote: "The 'stage' field groups parts that fire/activate together in the VAB's staging UI. It does not by itself give flight order; use 'attachedTo' and each part's y position (nose-to-tail) to see how the stack actually comes apart.",
+    parts: craft.parts.map((p, i) => {
+      const def = parts.find(part => part.name === p.name);
+      const modules = (def && def.modules) || {};
+      const engine = modules["Engine Module"];
+      const resource = modules["Resource Module"];
+      const controller = modules["Controller Module"];
+      const decoupler = modules["Decoupler Module"];
+      return {
+        index: i,
+        name: p.name,
+        x: p.x,
+        y: p.y,
+        distanceFromNose: p.y - minY,
+        rot: p.rot,
+        attachedTo: p.attachedTo,
+        parentNode: p.parentNode,
+        stage: p.stage,
+        mass: def ? def.mass : null,
+        engine: engine ? {
+          thrustKN: engine.Thrust,
+          isp: engine.ISP,
+          fuel: engine.Resource,
+          srb: !!engine["SRB Mode"]
+        } : undefined,
+        fuelTank: resource ? { amount: resource.Amount, resource: resource.Resource } : undefined,
+        controller: controller ? { torque: controller.Torque, providesControl: controller["Provides Control"] } : undefined,
+        decoupler: decoupler ? { separationForce: decoupler["Separation Force"] } : undefined
+      };
+    })
+  };
+
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(context, null, 2)], { type: "application/json" })
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "craft-context.json";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -3707,34 +5227,6 @@ const exampleCrafts = {
   }
 };
 
-const tutorialSteps = {
-  space: [
-    { text: "SAS is on. Throttle up and lift off the pad.", done: r => !r.landed },
-    { text: "Keep climbing until you clear the atmosphere and reach space.", done: r => r.escapedAtmosphere }
-  ],
-  orbit: [
-    { text: "SAS is on. Throttle up and lift off the pad.", done: r => !r.landed },
-    { text: "Pitch over and build speed until your apoapsis clears the atmosphere.", done: r => r.escapedAtmosphere && getOrbit().apoapsis > getBody(r.parentBody).atmosphereHeight },
-    { text: "Coast to apoapsis, then burn prograde until your periapsis clears the atmosphere too. You're in orbit.", done: r => getOrbit().periapsis > getBody(r.parentBody).atmosphereHeight }
-  ]
-};
-
-function startTutorial(goal) {
-  craftLoad(exampleCrafts[goal === "orbit" ? "Unknown_527's Rocket" : "little-bob"]);
-  const wasCareer = careerMode;
-  careerMode = false;
-  launch();
-  careerMode = wasCareer;
-  const rocket = flyingRocket();
-  if (!rocket) {
-    launchToast("Tutorial couldn't launch the craft.");
-    return;
-  }
-  rocket.sas = true;
-  rocket.sasAngle = rocket.angle;
-  tutorial = { goal, step: 0, waiting: false };
-}
-
 let craftInput = null;
 
 function craftPick() {
@@ -3757,25 +5249,35 @@ function craftPick() {
   craftInput.click();
 }
 
+function isBasePack(pack) {
+  return pack.parts.some(part => part.name === "_vab");
+}
+
+function packKey(pack) {
+  return JSON.stringify(pack, (key, value) => (key.startsWith("_") || key === "setInfo" ? undefined : value));
+}
+
+function saveReplacer(key, value) {
+  if (key === "fx" || key.startsWith("_") || key === "setInfo") {
+    return undefined;
+  }
+  return key === "part" ? value.name : value;
+}
+
 function gameSave() {
   const save = {
     format: "xopernicus-save",
     version: 1,
-    t, balance, careerMode, target, camera, rockets, loaded
+    t, balance, careerMode, career: careerMode ? career : undefined, craft: craftData() || undefined, target, camera, rockets, loaded
   };
-  const text = JSON.stringify(save, (key, value) => {
-    if (key === "fx") {
-      return undefined;
-    }
-    return key === "part" ? value.name : value;
-  }, 2);
+  const text = JSON.stringify(save, saveReplacer, 2);
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = "save.json";
+  link.download = careerMode ? "career-world.json" : "sandbox-world.json";
   link.click();
   URL.revokeObjectURL(url);
-  launchToast("Game saved.");
+  launchToast(careerMode ? "Career world exported." : "Sandbox world exported.");
 }
 
 async function gameLoad(text) {
@@ -3791,11 +5293,15 @@ async function gameLoad(text) {
     launchToast("Not a save file.");
     return;
   }
+  if (raw.careerMode && raw.career && careerHasProgress() &&
+      !confirm("This career world replaces your current career progress. Import it anyway?")) {
+    return;
+  }
   if (Array.isArray(raw.loaded) && raw.loaded.length) {
-    const known = new Set(loaded.map(pack => JSON.stringify(pack)));
+    const known = new Set(loaded.map(packKey));
     let addedMods = false;
-    for (const pack of raw.loaded) {
-      const key = JSON.stringify(pack);
+    for (const pack of raw.loaded.filter(pack => !isBasePack(pack))) {
+      const key = packKey(pack);
       if (!known.has(key)) {
         known.add(key);
         if (await loadPack(pack, { silent: true })) {
@@ -3828,12 +5334,18 @@ async function gameLoad(text) {
   t = save.t;
   balance = save.balance;
   careerMode = save.careerMode;
+  if (careerMode && save.career) {
+    restoreCareer(save.career);
+  }
   target = save.target;
   camera = save.camera;
   rockets = save.rockets;
+  if (raw.craft) {
+    craftLoad(raw.craft);
+  }
   threadQueues = [];   // the old threads point at rockets that are gone
   updateBodies();
-  launchToast("Game loaded.");
+  launchToast(careerMode ? "Career world imported." : "Sandbox world imported.");
 }
 
 let saveInput = null;
@@ -3864,15 +5376,24 @@ function launchToast(message) {
 }
 
 function launch() {
-  if (careerMode && balance < stackCost()) {
-    launchToast("Not enough funds to launch the rocket.");
-    return;
-  }
-
   if (!vab.parts.length) {
     return;
   }
+  if (!vab.parts.some(inst => {
+    const controller = (inst.part.modules || {})["Controller Module"];
+    return !!controller && controller["Provides Control"] !== false;
+  })) {
+    launchToast("Needs a pod or probe core");
+    return;
+  }
+  if (vab.parts.some(inst => !partAvailable(inst.part))) {
+    launchToast("Rocket has locked parts.");
+    return;
+  }
   balance -= stackCost();
+  if (careerMode) {
+    saveCareer();
+  }
   const earth = getBody("Earth");
   const stack = stackSnapshot();
   const halfHeight = stack.h / 2 / c.partUnits;
@@ -3903,11 +5424,20 @@ function launch() {
     id: `flight-${rockets.length + 1}`,
     parentBody: "Earth",
     landed: { x: out.x, y: out.y },
+    launchNo: careerMode ? ++career.launches : 0,
     stack
   };
   rockets.push(rocket);
   splitRocket(rocket, () => false, 0);
   target = rocket.id;
+  rocketTimeline = [];
+  timelineLastThrottle = null;
+  timelineLastTurn = null;
+  timelineLastSample = -Infinity;
+  logTimelineEvent(rocket, "launch");
+  if (careerMode) {
+    saveCareer();
+  }
   inVab = false;
 }
 
@@ -4435,9 +5965,15 @@ async function setup() {
     await nextFrame();
   }
   await loadAll;
-  await waitForPlay();
-  await runEarthTransition();
+  if (!skipPlayScreen) {
+    await waitForPlay();
+    await runEarthTransition();
+  }
   booting = false;
+
+  if (skipPlayScreen && prototypeCareerModeEnabled) {
+    startCareer();
+  }
 
   updateBodies();
   for (const rocket of rockets) {
@@ -4615,28 +6151,172 @@ function ambientTemperature(rocket) {
   return equilibriumTemp * greenhouseFactor;
 }
 
+function heatBox(entry) {
+  const bb = partBBox(entry.part);
+  const turned = (entry.rot || 0) % 2 !== 0;
+  return { x: entry.ox, y: entry.oy, hw: (turned ? bb.h : bb.w) / 2, hh: (turned ? bb.w : bb.h) / 2 };
+}
+
+function rayHitsBox(px, py, dx, dy, box) {
+  let near = 0;
+  let far = Infinity;
+  for (const [p, d, low, high] of [[px, dx, box.x - box.hw, box.x + box.hw], [py, dy, box.y - box.hh, box.y + box.hh]]) {
+    if (Math.abs(d) < 1e-9) {
+      if (p < low || p > high) {
+        return false;
+      }
+      continue;
+    }
+    const a = (low - p) / d;
+    const b = (high - p) / d;
+    near = Math.max(near, Math.min(a, b));
+    far = Math.min(far, Math.max(a, b));
+    if (near > far) {
+      return false;
+    }
+  }
+  return far > 1e-6;
+}
+
+function heatExposure(boxes, blockBoxes, index, dir) {
+  const mine = boxes[index];
+  const reach = Math.abs(dir.y) * mine.hw + Math.abs(dir.x) * mine.hh;
+  let open = 0;
+  for (const share of [-0.8, -0.4, 0, 0.4, 0.8]) {
+    const px = mine.x - dir.y * reach * share;
+    const py = mine.y + dir.x * reach * share;
+    if (!blockBoxes.some((box, j) => j !== index && rayHitsBox(px, py, dir.x, dir.y, box))) {
+      open++;
+    }
+  }
+  return open / 5;
+}
+
+function localDir(rocket, wx, wy) {
+  const cos = Math.cos(rocket.angle);
+  const sin = Math.sin(rocket.angle);
+  return { x: wx * cos + wy * sin, y: -wx * sin + wy * cos };
+}
+
+function starLight(rocket) {
+  let flux = 0;
+  let dx = 0;
+  let dy = 0;
+  for (const planet of planets) {
+    if (!planet.luminosity) {
+      continue;
+    }
+    const vx = planet.pos.x - rocket.pos.x;
+    const vy = planet.pos.y - rocket.pos.y;
+    const r = Math.hypot(vx, vy);
+    if (r > 0) {
+      const f = planet.luminosity / (4 * Math.PI * r * r);
+      flux += f;
+      dx += (vx / r) * f;
+      dy += (vy / r) * f;
+    }
+  }
+  const length = Math.hypot(dx, dy);
+  return flux > 0 && length > 0 ? { flux, x: dx / length, y: dy / length } : null;
+}
+
+function shieldArea(entry) {
+  return Math.PI * (heatBox(entry).hw / c.partUnits) ** 2;
+}
+
+function explodeParts(rocket, entries) {
+  rocket.stack.parts = rocket.stack.parts.filter(entry => !entries.includes(entry));
+  if (rocket.id === target) {
+    launchToast(entries.length > 1 ? `${entries.length} parts overheated` : `${entries[0].part.name} overheated`);
+  }
+  logTimelineEvent(rocket, "overheat", { parts: entries.map(entry => entry.part.name) });
+  if (!rocket.stack.parts.length) {
+    cd.body = rocket.parentBody;
+    cd.speed = 0;
+    cd.limit = 0;
+    cd.time = t;
+    cd.message = "Every part burned up";
+    cd.messageAt = t;
+    rocket.destroyed = true;
+    logTimelineEvent(rocket, "destroyed", { reason: "burned up" });
+    return;
+  }
+  splitRocket(rocket, () => false, 0, true);
+}
+
 function updateRocketTemp(rocket, dt) {
   const body = getBody(rocket.parentBody);
   const ambient = ambientTemperature(rocket);
   if (rocket.temp === undefined) {
     rocket.temp = ambient;
   }
-
-  let flux = 0;
   const alt = Math.max(distanceTo(rocket, body) - body.size - rocketRadius(rocket), 0);
-  if (body.atmosphereHeight && alt < body.atmosphereHeight) {
-    const vel = relativeVelocity(rocket, body);
-    const speed = Math.hypot(vel.x, vel.y);
-    const excess = Math.max(speed - c.reentryMinSpeed, 0);
-    flux = 0.5 * densityAt(body, alt) * excess * excess * excess;
+  const inAir = !!body.atmosphereHeight && alt < body.atmosphereHeight;
+  const vel = relativeVelocity(rocket, body);
+  const speed = Math.hypot(vel.x, vel.y);
+  const flux = inAir
+    ? 0.5 * densityAt(body, alt) * Math.pow(Math.max(speed - c.reentryMinSpeed, 0), 3) * c.reentryHeatFactor
+    : 0;
+  const blend = 1 - Math.exp(-c.reentryCoolRate * dt);
+  const parts = rocket.stack ? rocket.stack.parts : [];
+  if (!parts.length) {
+    const targetTemp = Math.pow(Math.pow(ambient, 4) + flux / stefanBoltzmann, 0.25);
+    rocket.temp = Math.max(ambient, rocket.temp + (targetTemp - rocket.temp) * blend);
+    return;
   }
 
-  const targetTemp = Math.pow(
-    Math.pow(ambient, 4) + (flux * c.reentryHeatFactor) / stefanBoltzmann,
-    0.25
-  );
-  const blend = 1 - Math.exp(-c.reentryCoolRate * dt);
-  rocket.temp = Math.max(ambient, rocket.temp + (targetTemp - rocket.temp) * blend);
+  const floor = inAir ? ambient : 3;
+  const boxes = parts.map(heatBox);
+  const blockBoxes = parts.map((entry, i) => {
+    const shield = (entry.part.modules || {})["Heat Shield Module"];
+    return shield ? { ...boxes[i], hw: boxes[i].hw * 1.2, hh: boxes[i].hh * 1.2 } : boxes[i];
+  });
+  const airDir = flux > 0 && speed > 0 ? localDir(rocket, vel.x / speed, vel.y / speed) : null;
+  const star = starLight(rocket);
+  const starDir = star ? localDir(rocket, star.x, star.y) : null;
+  let skin = 0;
+  parts.forEach((entry, i) => {
+    const shield = (entry.part.modules || {})["Heat Shield Module"];
+    if (shield && entry.ablator === undefined) {
+      entry.ablator = shield.Ablator * c.kgPerTon;
+      entry.ablatorMax = entry.ablator;
+    }
+    if (entry.temp === undefined) {
+      entry.temp = ambient;
+    }
+    const nose = Math.sqrt(1 / Math.max(boxes[i].hw / c.partUnits, 0.25));
+    const absorbed = (airDir ? flux * nose * heatExposure(boxes, blockBoxes, i, airDir) : 0) +
+      (starDir ? star.flux * 0.5 * heatExposure(boxes, blockBoxes, i, starDir) : 0);
+    let target = Math.pow(Math.pow(floor, 4) + absorbed / stefanBoltzmann, 0.25);
+    entry.surface = target;
+    if (shield && entry.ablator > 0) {
+      const held = shield["Ablation Temperature"] ?? 1000;
+      if (target > held) {
+        const rate = shieldArea(entry) * stefanBoltzmann * (Math.pow(target, 4) - Math.pow(held, 4)) / c.ablatorHeat;
+        const used = Math.min(entry.ablator, rate * dt);
+        entry.ablator -= used;
+        rocket.dryMass = Math.max(rocket.dryMass - used, 1);
+        target = held;
+      }
+    }
+    entry.temp += (target - entry.temp) * blend;
+    skin = Math.max(skin, entry.surface);
+  });
+
+  const near = stackNeighbours(rocket.stack);
+  const conduct = 1 - Math.exp(-c.conduction * dt);
+  const next = parts.map((entry, i) => near[i].length
+    ? entry.temp + conduct * (near[i].reduce((sum, j) => sum + parts[j].temp, 0) / near[i].length - entry.temp)
+    : entry.temp);
+  parts.forEach((entry, i) => {
+    entry.temp = next[i];
+  });
+
+  rocket.temp = Math.max(skin, ...parts.map(entry => entry.temp));
+  const blown = parts.filter(entry => entry.temp > c.partMaxTemp);
+  if (blown.length) {
+    explodeParts(rocket, blown);
+  }
 }
 
 function scaleHeightAt(body, alt) {
@@ -4956,7 +6636,20 @@ function engineOutput(rocket) {
     if (!ready) {
       continue;
     }
-    const thrust = (engine.Thrust || 0) * c.newtonsPerThrust * level;
+    if (engine["SRB Mode"]) {
+      if (level > 0) {
+        entry.srbIgnited = true;
+      }
+    } else if (level > 0 && !entry.consumedIgnition) {
+      const used = entry.ignitionsUsed || 0;
+      if (used >= maxIgnitions(entry.part.name)) {
+        continue;
+      }
+      entry.ignitionsUsed = used + 1;
+      entry.consumedIgnition = true;
+    }
+    const engineLevel = engine["SRB Mode"] ? (entry.srbIgnited ? 1 : 0) : level;
+    const thrust = (engine.Thrust || 0) * c.newtonsPerThrust * engineLevel;
     out.thrust += thrust;
     const ra = (entry.rot || 0) * HALF_PI;
     const fx = thrust * Math.sin(ra);
@@ -4977,7 +6670,7 @@ function engineOutput(rocket) {
 
 function rcsOutput(rocket) {
   const out = { vx: 0, vy: 0, draws: [], firing: new Set() };
-  if (!rocket.stack || rocket.id !== target) {
+  if (!rocket.stack || rocket.id !== target || !hasControl(rocket)) {
     return out;
   }
   const touched = touchHeldCodes();
@@ -5199,10 +6892,23 @@ function drawPartHover(rocket) {
     action = chuteState(rocket, entry, modules["Parachute Module"]);
   } else if (modules["Engine Module"]) {
     action = entry.on ? "  click to shut down" : "  click to light";
+    const max = maxIgnitions(entry.part.name);
+    if (Number.isFinite(max)) {
+      const used = entry.ignitionsUsed || 0;
+      action += used >= max && !entry.on ? "  (out of ignitions)" : `  (ignitions ${used}/${max})`;
+    }
   } else if (modules["Togglable Module"]) {
     action = entry.on ? "  click to disable" : "  click to enable";
   } else if (modules["Docking Module"] && rocket.dockedWith) {
     action = "  click to undock";
+  }
+
+  const shield = modules["Heat Shield Module"];
+  let ablatorLine = null;
+  if (shield) {
+    const max = entry.ablatorMax ?? shield.Ablator * c.kgPerTon;
+    const left = entry.ablator ?? max;
+    ablatorLine = `  ablator: ${Math.round(left)}/${Math.round(max)} kg`;
   }
 
   const s = scale / c.partUnits;
@@ -5222,7 +6928,7 @@ function drawPartHover(rocket) {
   pop();
 
   GUIAPI.pendingTooltip = {
-    lines: action ? [entry.part.name, action] : [entry.part.name],
+    lines: [entry.part.name, action, ablatorLine].filter(Boolean),
     x: mouseX,
     y: mouseY
   };
@@ -5320,9 +7026,9 @@ function connectedGroups(entries, cut) {
   return groups;
 }
 
-function splitRocket(rocket, cut, impulse) {
+function splitRocket(rocket, cut, impulse, force) {
   const groups = connectedGroups(rocket.stack.parts, cut);
-  if (groups.length < 2) {
+  if (groups.length < 2 && !force) {
     return;
   }
   const sin = Math.sin(rocket.angle);
@@ -5502,7 +7208,6 @@ function surfaceCollide(rocket, body) {
   if (!hasSurface(body)) {
     return;
   }
-  const invincible = tutorial && rocket.id === target;
   const dx = rocket.pos.x - body.pos.x;
   const dy = rocket.pos.y - body.pos.y;
   const r = Math.hypot(dx, dy);
@@ -5515,12 +7220,13 @@ function surfaceCollide(rocket, body) {
     if (r < body.size + rocketRadius(rocket)) {
       const splash = relativeVelocity(rocket, body);
       const speed = Math.hypot(splash.x, splash.y);
-      if (speed >= c.waterCrashSpeed && !invincible) {
+      if (speed >= c.waterCrashSpeed) {
         cd.speed = speed;
         cd.limit = c.waterCrashSpeed;
         cd.body = body.id;
         cd.time = t;
         rocket.destroyed = true;
+        logTimelineEvent(rocket, "destroyed", { reason: "water crash", speed });
       }
     }
     return;
@@ -5528,12 +7234,13 @@ function surfaceCollide(rocket, body) {
   const floor = (contact ? contact.top : body.size) + rocketRadius(rocket);
   if (contact && contact.mode === "side") {
     const hit = relativeVelocity(rocket, body);
-    if (Math.hypot(hit.x, hit.y) >= c.crashSpeed && !invincible) {
+    if (Math.hypot(hit.x, hit.y) >= c.crashSpeed) {
       cd.speed = Math.hypot(hit.x, hit.y);
       cd.limit = c.crashSpeed;
       cd.body = body.id;
       cd.time = t;
       rocket.destroyed = true;
+      logTimelineEvent(rocket, "destroyed", { reason: "side crash", speed: cd.speed });
       return;
     }
     const tan = { x: -dy / r, y: dx / r };
@@ -5550,12 +7257,13 @@ function surfaceCollide(rocket, body) {
   }
 
   const impact = relativeVelocity(rocket, body);
-  if (Math.hypot(impact.x, impact.y) >= c.crashSpeed && !invincible) {
+  if (Math.hypot(impact.x, impact.y) >= c.crashSpeed) {
     cd.speed = Math.hypot(impact.x, impact.y);
     cd.limit = c.crashSpeed;
     cd.body = body.id;
     cd.time = t;
     rocket.destroyed = true;
+    logTimelineEvent(rocket, "destroyed", { reason: "surface crash", speed: cd.speed });
     return;
   }
   rocket.pos.x = body.pos.x + (dx / r) * floor;
@@ -5565,13 +7273,6 @@ function surfaceCollide(rocket, body) {
   rocket.landed = { x: dx / r, y: dy / r };
 }
 
-// the landed contact point is the pivot, not the rocket's center - otherwise
-// tipping over swings the (fixed) center through the ground on the way down
-// how far the stack's hull actually sticks out past its center, straight
-// down toward the ground - a box's support distance in that direction, which
-// is the half-height when standing up and blends toward the half-width as it
-// leans over onto its side. rocketRadius() alone (half-height only) is only
-// correct at tip = 0, so anything short and wide sank into the ground once tipped
 function restRadius(rocket) {
   const halfWidth = Math.max(rocket.stack.w / 2 / c.partUnits, 0);
   const halfHeight = rocketRadius(rocket);
@@ -5590,6 +7291,13 @@ function restOnSurface(rocket, h) {
   if (liftsOff(rocket)) {
     rocket.landed = null;
   }
+}
+
+function hasControl(rocket) {
+  return !!rocket.stack && rocket.stack.parts.some(entry => {
+    const controller = (entry.part.modules || {})["Controller Module"];
+    return !!controller && controller["Provides Control"] !== false;
+  });
 }
 
 function controllerTorque(rocket) {
@@ -5616,21 +7324,40 @@ function wheelMaxAccel(rocket) {
   return (torque * c.turnPower) / (rocket.mass / c.kgPerTon);
 }
 
-function wheelSpinAccel(rocket) {
-  if (rocket.id !== target) {
-    return 0;
+function isThrusting(rocket) {
+  if (!rocket.stack) {
+    return false;
   }
+  return rocket.stack.parts.some((entry, i) => {
+    const engine = (entry.part.modules || {})["Engine Module"];
+    if (!engine || !entry.on) {
+      return false;
+    }
+    const direction = engine["Fuel Flow"] === "Negative" ? -1 : 1;
+    const propellants = engineResources(engine).map(p => ({ ...p, feed: feedTanks(rocket.stack, i, p.resource) }));
+    return propellants.every(p => p.feed.length && (direction < 0 || feedHeld(p.feed, p.resource) > 0));
+  });
+}
+
+function wheelSpinAccel(rocket) {
   const maxAccel = wheelMaxAccel(rocket);
   if (!maxAccel) {
     return 0;
   }
-  if (rocket.turnInput) {
+  if (rocket.id === target && rocket.turnInput) {
     return maxAccel * rocket.turnInput;
   }
-  if (!rocket.sas) {
+  if (!rocket.sas || !hasFeature("sas") || !hasControl(rocket)) {
     return 0;
   }
-  let error = rocket.sasAngle - rocket.angle;
+  let targetAngle = rocket.sasAngle;
+  if (!isThrusting(rocket)) {
+    const retro = reentryRetrogradeAngle(rocket, getBody(rocket.parentBody));
+    if (retro) {
+      targetAngle = retro.angle;
+    }
+  }
+  let error = targetAngle - rocket.angle;
   error = ((error + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
   const command = c.sasStiffness * error - c.sasDamping * (rocket.spin || 0);
   return constrain(command, -maxAccel, maxAccel);
@@ -5648,9 +7375,6 @@ function tipAngle(rocket) {
   return ((a + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
 }
 
-// standing on its base, a rocket is an inverted pendulum: gravity pulls it
-// further off balance the more it leans, same as thrust has to out-push
-// gravity in liftsOff() above
 function gravityTipAccel(rocket) {
   if (!rocket.stack) {
     return 0;
@@ -5689,6 +7413,61 @@ function liftsOff(rocket) {
   return (push.x + acc.x) * out.x + (push.y + acc.y) * out.y > 0;
 }
 
+function aeroStability(rocket) {
+  if (!rocket.stack) {
+    return 0;
+  }
+  let stability = 0;
+  for (const entry of rocket.stack.parts) {
+    const aero = (entry.part.modules || {})["Aero Module"];
+    if (aero) {
+      stability += aero.Stability || 0;
+    }
+  }
+  return stability;
+}
+
+function reentryRetrogradeAngle(rocket, body) {
+  if (!body.atmosphereHeight) {
+    return null;
+  }
+  const alt = Math.max(distanceTo(rocket, body) - body.size, 0);
+  if (alt >= body.atmosphereHeight) {
+    return null;
+  }
+  const density = densityAt(body, alt);
+  if (density <= 0) {
+    return null;
+  }
+  const vel = relativeVelocity(rocket, body);
+  const speed = Math.hypot(vel.x, vel.y);
+  if (speed < c.reentryMinSpeed) {
+    return null;
+  }
+  return { angle: Math.atan2(-vel.x, vel.y), density, speed };
+}
+
+function aeroStabilityAccel(rocket) {
+  const stability = aeroStability(rocket);
+  if (!stability) {
+    return 0;
+  }
+  const body = getBody(rocket.parentBody);
+  const retro = reentryRetrogradeAngle(rocket, body);
+  if (!retro) {
+    return 0;
+  }
+  let error = retro.angle - rocket.angle;
+  error = ((error + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+  const len = Math.max(rocket.stack.h / c.partUnits, 1);
+  const q = 0.5 * retro.density * retro.speed * retro.speed;
+  const inertia = (rocket.mass * len * len) / 12;
+  const restoring = c.aeroStabilityFactor * stability * q * Math.sin(error);
+  const damping = c.aeroStabilityDamping * stability * q * (rocket.spin || 0);
+  const accel = (restoring - damping) / inertia;
+  return constrain(accel, -c.aeroStabilityMaxAccel, c.aeroStabilityMaxAccel);
+}
+
 function spinAccel(rocket) {
   if (!rocket.stack) {
     return 0;
@@ -5696,7 +7475,16 @@ function spinAccel(rocket) {
   const out = engineOutput(rocket);
   const len = Math.max(rocket.stack.h / c.partUnits, 1);
   const gimbal = out.torque ? out.torque / ((rocket.mass * len * len) / 12) : 0;
-  return gimbal + wheelSpinAccel(rocket);
+  return gimbal + wheelSpinAccel(rocket) + aeroStabilityAccel(rocket);
+}
+
+function integrateAttitude(rocket, h) {
+  const micro = Math.max(1, Math.ceil(h / c.attitudeMicroStep));
+  const hi = h / micro;
+  for (let i = 0; i < micro; i++) {
+    rocket.spin = (rocket.spin || 0) + spinAccel(rocket) * hi;
+    rocket.angle += rocket.spin * hi;
+  }
 }
 
 // leapfrog: the two half-kicks sample gravity at each end of the step
@@ -5708,8 +7496,7 @@ function kickDrift(rocket, h) {
   rocket.vel.y += ((acc.y + push.y) * h) / 2;
   rocket.pos.x += rocket.vel.x * h;
   rocket.pos.y += rocket.vel.y * h;
-  rocket.spin = (rocket.spin || 0) + (spinAccel(rocket) * h) / 2;
-  rocket.angle += rocket.spin * h;
+  integrateAttitude(rocket, h);
 }
 
 // the ship plus whatever canopies are out. Drag is a CdA, straight out of
@@ -5755,7 +7542,6 @@ function kickFinish(rocket, h) {
   const push = thrustAccel(rocket);
   rocket.vel.x += ((acc.x + push.x) * h) / 2;
   rocket.vel.y += ((acc.y + push.y) * h) / 2;
-  rocket.spin = (rocket.spin || 0) + (spinAccel(rocket) * h) / 2;
 
   const alt = Math.max(distanceTo(rocket, body) - body.size, 0);
   if (body.atmosphereHeight && alt < body.atmosphereHeight) {
@@ -5865,6 +7651,39 @@ function drawTextureSlice(img, cx, cy, radius) {
   drawingContext.drawImage(source, sx, sy, sw, sh, x0, y0, x1 - x0, y1 - y0);
 }
 
+function traceDisc(ctx, cx, cy, r) {
+  ctx.beginPath();
+  if (r < 1e6) {
+    ctx.arc(cx, cy, r, 0, TWO_PI);
+    return;
+  }
+  const dx = width / 2 - cx;
+  const dy = height / 2 - cy;
+  const dist = Math.hypot(dx, dy);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const gap = dist - r;
+  const qx = width / 2 - nx * gap;
+  const qy = height / 2 - ny * gap;
+  const reach = Math.hypot(width, height);
+  const depth = Math.max(-gap, 0) + reach * 2;
+  const steps = 24;
+  const at = u => {
+    const sag = (u * u) / (r + Math.sqrt(Math.max(r * r - u * u, 0)));
+    return { x: qx - ny * u - nx * sag, y: qy + nx * u - ny * sag };
+  };
+  const first = at(-reach);
+  ctx.moveTo(first.x, first.y);
+  for (let i = 1; i <= steps; i++) {
+    const p = at(-reach + (2 * reach * i) / steps);
+    ctx.lineTo(p.x, p.y);
+  }
+  const last = at(reach);
+  ctx.lineTo(last.x - nx * depth, last.y - ny * depth);
+  ctx.lineTo(first.x - nx * depth, first.y - ny * depth);
+  ctx.closePath();
+}
+
 function drawBody(body, rocket) {
   const screenX = width / 2 + (body.pos.x - rocket.pos.x) * scale;
   const screenY = height / 2 + (body.pos.y - rocket.pos.y) * scale;
@@ -5923,8 +7742,7 @@ function drawBody(body, rocket) {
   const surfaceImg = textures[body.texture];
   if (surfaceImg) {
     drawingContext.save();
-    drawingContext.beginPath();
-    drawingContext.arc(screenX, screenY, surfaceRadius, 0, TWO_PI);
+    traceDisc(drawingContext, screenX, screenY, surfaceRadius);
     drawingContext.clip();
     imageMode(CENTER);
     drawTextureSlice(surfaceImg, screenX, screenY, surfaceRadius * 1.002);
@@ -5944,7 +7762,9 @@ function drawBody(body, rocket) {
     drawingContext.restore();
   } else {
     fill(body.fallbackColor || "Green");
-    circle(screenX, screenY, surfaceRadius * 2);
+    traceDisc(drawingContext, screenX, screenY, surfaceRadius);
+    drawingContext.fill();
+    drawingContext.stroke();
   }
 
   const discTint =
@@ -6664,7 +8484,48 @@ function drawRocket(rocket, cur) {
   for (const entry of rocket.stack.parts) {
     drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "front" });
   }
+  for (const entry of rocket.stack.parts) {
+    const shield = (entry.part.modules || {})["Heat Shield Module"];
+    if (!shield) {
+      continue;
+    }
+    const glow = heatShieldGlow(entry, shield);
+    if (glow) {
+      drawPart(entry.part, entry.ox * s, entry.oy * s, s, {
+        rot: entry.rot,
+        recolor: glow.color,
+        alpha: glow.alpha
+      });
+    }
+  }
+  for (const entry of rocket.stack.parts) {
+    const tint = partHeatTint(entry);
+    if (tint) {
+      drawPart(entry.part, entry.ox * s, entry.oy * s, s, {
+        rot: entry.rot,
+        recolor: "#ff0000",
+        alpha: tint
+      });
+    }
+  }
   pop();
+}
+
+function partHeatTint(entry) {
+  const tempC = (entry.temp ?? 0) - 273.15;
+  return constrain(tempC / 1200, 0, 1);
+}
+
+function heatShieldGlow(entry, shield) {
+  const held = (shield["Ablation Temperature"] ?? 1000) - 273.15;
+  const tempC = (entry.surface ?? entry.temp ?? 0) - 273.15;
+  const f = constrain(tempC / held, 0, 1.2);
+  if (f <= 0.15) {
+    return null;
+  }
+  const glowUp = constrain((f - 0.15) / 0.85, 0, 1);
+  const color = [255, Math.round(60 + 160 * glowUp), Math.round(220 * Math.max(0, glowUp - 0.5) * 2)];
+  return { color: `rgb(${color.join(",")})`, alpha: Math.min(0.85, glowUp) };
 }
 
 function formatTime(t) {
@@ -6683,6 +8544,16 @@ function formatTime(t) {
   return `${mil}myr ${y}y ${d}d ${h}h ${m}m ${s}s`;
 }
 
+function calculateAblator() {
+  const rocket = rockets.find(rocket => rocket.id === target);
+  const shields = rocket.stack ? rocket.stack.parts.filter(entry => entry.ablatorMax > 0) : [];
+  const max = shields.reduce((sum, entry) => sum + entry.ablatorMax, 0);
+  if (!max) {
+    return "none";
+  }
+  return `${Math.round((shields.reduce((sum, entry) => sum + entry.ablator, 0) / max) * 100)}%`;
+}
+
 function calculateRocketTemp() {
   const rocket = rockets.find(rocket => rocket.id === target);
   return format("temperature", rocket.temp ?? ambientTemperature(rocket));
@@ -6690,6 +8561,17 @@ function calculateRocketTemp() {
 
 function draw() {
   background("#000000");
+
+  if (bankrupt) {
+    fill("#ff3b3b");
+    textAlign(CENTER, CENTER);
+    textSize(48);
+    text("GAME OVER", width / 2, height / 2 - 40);
+    fill("#ccc");
+    textSize(20);
+    text("Every bank has called in its loans and you still can't cover them. Bankruptcy.", width / 2, height / 2 + 20);
+    return;
+  }
 
   GUIAPI.beginFrame();
 
@@ -6729,7 +8611,7 @@ function draw() {
     }
   }
 
-  const dt = tutorial && tutorial.waiting ? 0 : Math.min(
+  const dt = Math.min(
     (1 / frameRate()) * c.timewarp,
     warpUntil !== null ? Math.max(warpUntil - t, 1 / frameRate()) : Infinity
   );
@@ -6765,7 +8647,14 @@ function draw() {
       }
     }
   }
+  if (careerMode) {
+    checkCrewLosses();
+  }
   rockets = rockets.filter(rocket => !rocket.destroyed);
+
+  if (careerMode) {
+    updateCareer();
+  }
 
   for (const rocket of rockets) {
     updateRocketTemp(rocket, dt);
@@ -6773,6 +8662,17 @@ function draw() {
 
   const curRocket = rockets.find(rocket => rocket.id === target);
   updateCamera(curRocket);
+
+  if (rocketTimelineEnabled && curRocket) {
+    const parent = curRocket.parentBody && getBody(curRocket.parentBody);
+    const alt = parent ? distanceTo(curRocket, parent) - parent.size : null;
+    const inAir = !!(parent && parent.atmosphereHeight && alt !== null && alt < parent.atmosphereHeight);
+    const interval = inAir ? c.timelineAtmosphereSampleInterval : c.timelineSampleInterval;
+    if (t - timelineLastSample >= interval) {
+      logTimelineEvent(curRocket, "sample");
+      timelineLastSample = t;
+    }
+  }
 
   push();
   translate(width / 2, height / 2);
@@ -6828,6 +8728,7 @@ function draw() {
     text(`Pitch: ${calculatePitch()}`, 25, 50 + lineHeight * 12)
     text(`G force: ${calculateG()}`, 25, 50 + lineHeight * 13)
     text(`Rocket Temp: ${calculateRocketTemp()}`, 25, 50 + lineHeight * 14)
+    text(`Heat shield: ${calculateAblator()}`, 25, 50 + lineHeight * 15)
   } else {
     text("Vessel destroyed", 25, 50)
     text(`Time: ${formatTime(t)}`, 25, 50 + lineHeight)
@@ -6859,14 +8760,30 @@ function draw() {
       ...menuStyle,
       tooltip: ["Back to the bay", "  the flight keeps running"]
     }, "VAB");
-    GUIAPI.button(vb.x - 75, vb.y, vb.size, vb.size, { id: "map", ...menuStyle }, "Map");
+    GUIAPI.button(vb.x - 75, vb.y, vb.size, vb.size, hasFeature("map")
+      ? { id: "map", ...menuStyle }
+      : { id: "map", ...menuStyleDisabled, tooltip: ["Map view", "  locked, research Orbital Tracking"] }
+    , "Map");
     GUIAPI.button(vb.x - 150, vb.y, vb.size, vb.size, { id: "save", ...menuStyle }, "Save");
     GUIAPI.button(vb.x - 225, vb.y, vb.size, vb.size, { id: "load", ...menuStyle }, "Load");
     if (curRocket) {
-      GUIAPI.button(vb.x - 225, vb.y + vb.size + 10, vb.size, vb.size, curRocket.sas
+      GUIAPI.button(vb.x - 225, vb.y + vb.size + 10, vb.size, vb.size, !hasFeature("sas")
+        ? { id: "sas-toggle", ...menuStyleDisabled, tooltip: ["Stability assist [T]", "  locked, research Rudimentary Guidance"] }
+        : curRocket.sas
         ? { id: "sas-toggle", baseColor: "#1f6b2f", hoverColor: "#2f8f45", activeColor: "#164f23", tooltip: ["Stability assist [T]", "  holds current heading"] }
         : { id: "sas-toggle", ...menuStyle, tooltip: ["Stability assist [T]", "  holds current heading"] }
       , "SAS");
+    }
+    if (careerMode && canRecover(curRocket)) {
+      const unit = u.careerMode.modules["Career Module"].Unit;
+      const value = recoveryValue(curRocket).toLocaleString("en-US");
+      GUIAPI.button(vb.x - 475, vb.y + vb.size + 10, vb.size * 4, vb.size, {
+        id: "recover",
+        baseColor: "#1f6b2f",
+        hoverColor: "#2f8f45",
+        activeColor: "#164f23",
+        tooltip: ["Recover vessel", "  refunds the parts still attached"]
+      }, `Recover ${unit}${value}`);
     }
     const dueBurn = curRocket && pendingBurnWait(curRocket);
     if (dueBurn && dueBurn.due) {
@@ -6907,12 +8824,18 @@ function draw() {
     drawMissions();
   }
 
-  drawTutorial(curRocket);
+  if (milestonesOpen) {
+    drawMilestones();
+  }
 
-  if (!curRocket && !inVab) {
-    skillIssue = GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "skill-issue" }, undefined, ui => {
+  if (loansOpen) {
+    drawLoans();
+  }
+
+  if (!curRocket && !inVab && !inMainMenu) {
+    skillIssue =GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "skill-issue" }, undefined, ui => {
       ui.label("Catastrophic Failure!", { size: 28, align: CENTER, height: 40 });
-      ui.label(`Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
+      ui.label(cd.message && cd.messageAt === cd.time ? cd.message : `Hit ${cd.body} at ${Math.round(cd.speed)} m/s, over the ${cd.limit === undefined ? c.crashSpeed : cd.limit} m/s the airframe takes`);
       ui.label(`Time of loss: ${Math.round(cd.time * 100) / 100}s`);
       ui.button(0, 10, undefined, 40, { id: "skillissue-vab", ...menuStyle }, "Go to VAB");
     });
@@ -6930,33 +8853,45 @@ function draw() {
   text(`v${gameVersion} [GOLD]`, width - 120, height - 40);
 
   if (careerMode) {
-    drawCostBox();
+    if (inVab) {
+      drawCostBox();
+    }
     drawBalanceBox();
     textSize(18);
-    GUIAPI.button(width/2 - 87.5, 50, 175, 40, {
+    const barX = (inVab ? bayCentre() : width / 2) - (4 * 175 + 3 * 10) / 2;
+    GUIAPI.button(barX, 50, 175, 40, {
       id: "career-missions",
       ...menuStyle
     }, "Missions");
-      GUIAPI.button(width/2 + 87.5, 50, 175, 40, {
+    GUIAPI.button(barX + 185, 50, 175, 40, {
       id: "career-tech",
       ...menuStyle
     }, "Tech Tree");
+    GUIAPI.button(barX + 370, 50, 175, 40, {
+      id: "career-milestones",
+      ...menuStyle
+    }, "Milestones");
+    GUIAPI.button(barX + 555, 50, 175, 40, {
+      id: "career-loans",
+      ...(balance < 0 ? { baseColor: "#7a2020", hoverColor: "#9c2b2b" } : menuStyle)
+    }, "Loans");
+  }
+
+  if (techTreeOpen) {
+    drawTechTree();
   }
 
   if (consoleOpen) {
     drawDevConsole();
   }
 
-  for (const toast of toasts) {
-    if (toast.hide <= t) {
-      return;
-    }
-
-    fill("#ccc")
-    rect(width/2 - 125, height/2 - 37.5, 250, 75);
+  toasts = toasts.filter(toast => toast.hide > t);
+  toasts.forEach((toast, i) => {
+    fill("#ccc");
+    rect(width / 2 - 125, height / 2 - 37.5 + i * 85, 250, 75);
     fill("Black");
-    text(toast.message, width/2 - 120, height/2 + 5)
-  }
+    text(toast.message, width / 2 - 120, height / 2 + 5 + i * 85);
+  });
 
   if (exampleRocketsOpen) {
     GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "example-rockets" }, undefined, ui => {
@@ -7368,6 +9303,11 @@ function keyPressed(event) {
     return false;
   }
 
+  if (event.code === "KeyC" && !event.shiftKey && !event.ctrlKey && !event.metaKey && rocketTimelineEnabled && !inVab) {
+    downloadRocketTimeline();
+    return false;
+  }
+
   if (inVab) {
     if (event.code === "KeyR" && vab.drag) {
       vab.drag.inst.rot = ((vab.drag.inst.rot || 0) + 1) % 4;
@@ -7430,6 +9370,11 @@ function flightControls() {
   const touched = touchHeldCodes();
   const down = code => held.has(code) || touched.has(code);
 
+  if (!hasControl(rocket)) {
+    rocket.turnInput = 0;
+    return;
+  }
+
   if (down("ShiftLeft") || down("ShiftRight")) {
     throttle = constrain(throttle + c.throttleStep, 0, 100);
   }
@@ -7454,6 +9399,15 @@ function flightControls() {
   if (input) {
     rocket.sasAngle = rocket.angle;
   }
+
+  if (throttle !== timelineLastThrottle) {
+    logTimelineEvent(rocket, "throttle", { throttle });
+    timelineLastThrottle = throttle;
+  }
+  if (input !== timelineLastTurn) {
+    logTimelineEvent(rocket, "turn", { turnInput: input });
+    timelineLastTurn = input;
+  }
 }
 
 function toggleSAS() {
@@ -7461,10 +9415,19 @@ function toggleSAS() {
   if (!rocket) {
     return;
   }
+  if (!hasFeature("sas")) {
+    launchToast("SAS is locked");
+    return;
+  }
+  if (!hasControl(rocket)) {
+    launchToast("No pod or probe core");
+    return;
+  }
   rocket.sas = !rocket.sas;
   if (rocket.sas) {
     rocket.sasAngle = rocket.angle;
   }
+  logTimelineEvent(rocket, "sas", { sas: rocket.sas });
 }
 
 function buttonOnClick(button) {
@@ -7510,6 +9473,15 @@ function buttonOnClick(button) {
   }
 }
 
+function startCareer() {
+  inMainMenu = false;
+  inVab = true;
+  careerMode = true;
+  balance = u.careerMode.modules["Career Module"]["Starting Cash"] * u.careerMode.modules["Career Module"]["Base multi"];
+  // what the fuck?
+  loadCareer();
+}
+
 async function mousePressed() {
   if (consoleOpen) {
     const box = consoleBox();
@@ -7522,24 +9494,11 @@ async function mousePressed() {
 
   GUIAPI.dispatch();
 
-  if (GUIAPI.clicked("tutorial-continue")) {
-    const steps = tutorialSteps[tutorial.goal];
-    if (tutorial.step >= steps.length - 1) {
-      tutorial = null;
-    } else {
-      tutorial.step++;
-      tutorial.waiting = false;
-    }
+  if (careerMode && careerClick()) {
     return;
   }
 
   if (inVab) {
-    if (careerMode) {
-      if (GUIAPI.clicked("career-missions")) {
-        careerMissionsOpen = true;
-        inMainMenu = false;
-      }
-    }
     if (GUIAPI.clicked("example-rockets")) {
       exampleRocketsOpen = !exampleRocketsOpen;
     }
@@ -7569,11 +9528,13 @@ async function mousePressed() {
       inVab = false;
       inMainMenu = true;
     }
-    if (GUIAPI.clicked("practice-space")) {
-      startTutorial("space");
+    if (GUIAPI.clicked("vab-export-world")) {
+      gameSave();
+      return;
     }
-    if (GUIAPI.clicked("practice-orbit")) {
-      startTutorial("orbit");
+    if (GUIAPI.clicked("vab-import-world")) {
+      gamePick();
+      return;
     }
   }
   if (inMap && !inVab) {
@@ -7609,7 +9570,7 @@ async function mousePressed() {
       inModLoaderMenu = false;
       return;
     }
-    for (let i = 0; i < loaded.length; i++) {
+    for (let i = 1; i < loaded.length; i++) {
       if (GUIAPI.clicked("mod-delete-" + i)) {
         loaded.splice(i, 1);
         persistLoadedMods();
@@ -7648,16 +9609,13 @@ async function mousePressed() {
       return;
     }
     if (GUIAPI.clicked("menu-build")) {
+      careerMode = false;
       inMainMenu = false;
       inVab = true;
       return;
     }
     if (GUIAPI.clicked("menu-career")) {
-      inMainMenu = false;
-      inVab = true;
-      careerMode = true;
-      balance = u.careerMode.modules["Career Module"]["Starting Cash"] * u.careerMode.modules["Career Module"]["Base multi"];
-      // what the fuck?
+      startCareer();
       return;
     }
     if (GUIAPI.clicked("menu-disabled-career")) {
@@ -7692,6 +9650,10 @@ async function mousePressed() {
     }
     if (GUIAPI.clicked("load")) {
       gamePick();
+      return;
+    }
+    if (GUIAPI.clicked("recover")) {
+      recoverRocket();
       return;
     }
     if (GUIAPI.clicked("sas-toggle")) {
@@ -7741,7 +9703,11 @@ async function mousePressed() {
     }
 
     if (GUIAPI.clicked("map")) {
-      inMap = true;
+      if (hasFeature("map")) {
+        inMap = true;
+      } else {
+        launchToast("Map view is locked");
+      }
       return;
     }
 
@@ -7760,7 +9726,22 @@ async function mousePressed() {
     } else if (modules["Parachute Module"]) {
       deployChute(rocket, entry);
     } else if (modules["Engine Module"] || modules["Togglable Module"]) {
-      entry.on = !entry.on;
+      const engineMod = modules["Engine Module"];
+      if (engineMod && engineMod["SRB Mode"]) {
+        if (!entry.on)  {
+          entry.on = true;
+        }
+      } else if (engineMod && !entry.on) {
+        const used = entry.ignitionsUsed || 0;
+        if (used < maxIgnitions(entry.part.name)) {
+          entry.on = true;
+        }
+      } else {
+        if (engineMod && entry.on) {
+          entry.consumedIgnition = false;
+        }
+        entry.on = !entry.on;
+      }
     } else if (modules["Docking Module"] && rocket.dockedWith) {
       undock(rocket);
     }
@@ -7814,6 +9795,11 @@ async function mousePressed() {
 }
 
 function mouseDragged() {
+  if (techTreeOpen) {
+    techView.x += mouseX - pmouseX;
+    techView.y += mouseY - pmouseY;
+    return;
+  }
   if (inMap && !inVab) {
     mapPan.x -= (mouseX - pmouseX) / mapScale;
     mapPan.y -= (mouseY - pmouseY) / mapScale;
@@ -7840,6 +9826,13 @@ function mouseDragged() {
 }
 
 function mouseReleased() {
+  if (techTreeOpen) {
+    if (techClick && Math.hypot(mouseX - techPress.x, mouseY - techPress.y) < 5) {
+      researchTech(techClick);
+    }
+    techClick = null;
+    return;
+  }
   if (inMap && !inVab && mapClick) {
     if (Math.hypot(mouseX - mapClick.x, mouseY - mapClick.y) < 4) {
       const ship = flyingRocket();
@@ -7893,6 +9886,10 @@ function mouseReleased() {
 }
 
 function mouseWheel(event) {
+  if (techTreeOpen) {
+    zoomTechTree(event.delta < 0 ? 1.12 : 1 / 1.12);
+    return false;
+  }
   if (GUIAPI.scroll(event.delta)) {
     return false;
   }
