@@ -9,7 +9,7 @@
 const showPitchGuide = true; // That blue pitch indicator on the rocket
 const prototypeCareerModeEnabled = true; // Enables the broken career mode
 const forceMobileMode = false; // Pretends your desktop is a phone
-const skipPlayScreen = true;
+const skipPlayScreen = false;
 const rocketTimelineEnabled = true; // Press C to export the flight time
 
 //
