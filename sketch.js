@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.6.0b";
-const modVersionSystemSince = "1.6.0";
+const gameVersion = "1.6.1";
+const modVersionSystemSince = "1.6.1";
 
 let scale = 16;
 let mapScale = 5e-5;
@@ -22,6 +22,24 @@ let gameFont;
 let eProgress = 0;
 let rawTextSize;
 let inCreditsMenu = false;
+let inWorldCreation = false;
+const qualityOptions = ["Sandbox", "Career"];
+let qualityIndex = 1;
+const difficultyOptions = ["Easy", "Normal", "Hard", "Expert", "Super Expert"];
+const difficultyColors = ["#2a6e2a", "#6e6e1a", "#8a4a1a", "#8a2a2a", "#5a0a0a"];
+const difficultyMultipliers = {
+  Easy: { science: 1.5, funds: 1.5, startFunds: 1.5 },
+  Normal: { science: 1, funds: 1, startFunds: 1 },
+  Hard: { science: 0.85, funds: 0.75, startFunds: 0.75 },
+  Expert: { science: 0.65, funds: 0.5, startFunds: 0.5 },
+  "Super Expert": { science: 0.5, funds: 0.35, startFunds: 0.4 }
+};
+let difficultyIndex = 1;
+
+function difficultyMult(stat) {
+  const settings = difficultyMultipliers[career.difficulty] || difficultyMultipliers.Normal;
+  return settings[stat];
+}
 let inModLoaderMenu = false;
 let inFeaturedModsMenu = false;
 let inKeyBindsMenu = false;
@@ -123,6 +141,7 @@ let c = {
   aeroStabilityDamping: 4e-3,
   aeroStabilityMaxAccel: 5,
   attitudeMicroStep: 0.1,
+  attitudeMaxMicro: 20,
   timelineSampleInterval: 1,
   timelineAtmosphereSampleInterval: 0.1,
   conduction: 0.04,
@@ -261,6 +280,8 @@ const GUIAPI = {
   onButton: null,
   beginFrame() {
     this.order = 0;
+    this.justPressed = mouseIsPressed && !this.wasPressed;
+    this.wasPressed = mouseIsPressed;
     this.blockers = this.blockers.filter(b => b.frame >= frameCount - 1);
     this.buttons = this.buttons.filter(b => b.frame >= frameCount - 1);
     this.scrollAreas = this.scrollAreas.filter(a => a.frame >= frameCount - 1);
@@ -451,6 +472,43 @@ button(x, y, sx, sy, extras = {}, label) {
   }
   pop();
 },
+dropdown(x, y, sx, sy, extras = {}, options, index) {
+  const id = extras.id || null;
+  const arrow = extras.arrowSize === undefined ? sy : extras.arrowSize;
+  const count = options.length;
+
+  this.button(x, y, sx, sy, { ...extras, id: id ? id + "-value" : null }, null);
+
+  push();
+  noStroke();
+  fill(extras.textColor || "#fff");
+  textAlign(CENTER, CENTER);
+  text(options[index], x + sx / 2, y + sy / 2);
+  pop();
+
+  const arrowExtras = {
+    baseColor: extras.arrowColor || extras.baseColor,
+    hoverColor: extras.arrowHoverColor,
+    activeColor: extras.arrowActiveColor,
+    textColor: extras.arrowTextColor || extras.textColor,
+    radius: extras.radius
+  };
+  const leftId = id ? id + "-left" : null;
+  const rightId = id ? id + "-right" : null;
+  this.button(x, y, arrow, sy, { ...arrowExtras, id: leftId }, "◀");
+  this.button(x + sx - arrow, y, arrow, sy, { ...arrowExtras, id: rightId }, "▶");
+
+  if (this.justPressed) {
+    const hit = this.buttonAt();
+    if (hit && hit.id === leftId) {
+      return extras.wrap === false ? Math.max(0, index - 1) : (index - 1 + count) % count;
+    }
+    if (hit && hit.id === rightId) {
+      return extras.wrap === false ? Math.min(count - 1, index + 1) : (index + 1) % count;
+    }
+  }
+  return index;
+},
   drawTooltip() {
     if (!this.pendingTooltip) {
       return;
@@ -517,6 +575,14 @@ const LUIAPI = {
         const by = cursor.y + offY;
         GUIAPI.button(bx, by, w, bsy, extras, label);
         cursor.y += bsy + gap;
+      },
+      dropdown(offX, offY, bsx, bsy, extras = {}, options, index) {
+        const w = bsx === undefined ? content.sx : bsx;
+        const bx = content.x + (content.sx - w) / 2 + offX;
+        const by = cursor.y + offY;
+        const next = GUIAPI.dropdown(bx, by, w, bsy, extras, options, index);
+        cursor.y += bsy + gap;
+        return next;
       },
       row(h) {
         const out = { x: content.x, y: cursor.y, sx: content.sx, sy: h === undefined ? 22 : h };
@@ -1590,10 +1656,8 @@ function drawMainMenu() {
   drawIntroEarth({ x: geom.x + mouseX / 64, y: geom.y + mouseY / 64, r: geom.r });
 
   const buttons = [
-    { id: "menu-build", label: "Build a Rocket", style: menuStyle },
-    prototypeCareerModeEnabled
-      ? { id: "menu-career", label: "Career Mode", style: menuStyle }
-      : { id: "menu-disabled-career", label: "Career Mode", style: menuStyleDisabled },
+    { id: "menu-world", label: "New World", style: menuStyle },
+    { id: "menu-career", label: "Play Existing World", style: menuStyle },
     { id: "menu-credits", label: "Credits", style: menuStyle },
     { id: "menu-modloader", label: "Modloader", style: menuStyle },
     {
@@ -1751,7 +1815,8 @@ const career = {
   active: null,
   milestones: {},
   launches: 0,
-  loans: {}
+  loans: {},
+  difficulty: "Normal"
 };
 
 const loanTypes = {
@@ -2358,7 +2423,7 @@ function milestoneEarned() {
     const tiers = milestoneTiers(kind);
     for (const step in tiers) {
       if (Number(step) <= career.milestones[key].count) {
-        total += base * tiers[step];
+        total += Math.round(base * tiers[step] * difficultyMult("science"));
       }
     }
   }
@@ -2368,7 +2433,7 @@ function milestoneEarned() {
 function milestonePossible() {
   return Object.keys(milestoneKinds).reduce((sum, kind) => {
     const tierTotal = Object.values(milestoneTiers(kind)).reduce((a, b) => a + b, 0);
-    return sum + Object.values(milestoneKinds[kind].science).reduce((a, b) => a + b, 0) * tierTotal;
+    return sum + Math.round(Object.values(milestoneKinds[kind].science).reduce((a, b) => a + b, 0) * tierTotal * difficultyMult("science"));
   }, 0);
 }
 
@@ -2377,7 +2442,7 @@ function awardMilestone(kind, body, rocket) {
   rocket.achieved[key] = true;
   const entry = (career.milestones[key] ||= { count: 0 });
   entry.count++;
-  const science = (milestoneTiers(kind)[entry.count] || 0) * milestoneKinds[kind].science[body];
+  const science = Math.round((milestoneTiers(kind)[entry.count] || 0) * milestoneKinds[kind].science[body] * difficultyMult("science"));
   career.science += science;
   saveCareer();
   launchToast(`${milestoneKinds[kind].label}${body === "Speed" ? "" : " " + body} #${entry.count}${science ? " +" + science : ""}`);
@@ -2531,7 +2596,8 @@ function isRepeat(mission) {
 
 function fundsPay(mission) {
   const bonus = missionTypes[mission.type].firstBonus || 1;
-  return isRepeat(mission) ? mission.funds : mission.funds * bonus;
+  const base = isRepeat(mission) ? mission.funds : mission.funds * bonus;
+  return Math.round(base * difficultyMult("funds"));
 }
 
 function completeMission(mission) {
@@ -2644,6 +2710,7 @@ function cleanCareer() {
   }
   career.milestones ||= {};
   career.launches ||= 0;
+  career.difficulty ||= "Normal";
   career.loans = { ...defaultLoans(), ...career.loans };
   career.offers = career.offers.filter(offer => !(missionTypes[offer.type]?.once && missionDone(offer.type + ":" + offer.body)));
   if (!career.offers.length) {
@@ -2659,7 +2726,7 @@ function restoreCareer(saved) {
   for (const key in career) {
     delete career[key];
   }
-  Object.assign(career, { completed: [], techs: ["basicRocketry"], science: 0, offers: [], active: null, milestones: {}, launches: 0, loans: {} }, saved);
+  Object.assign(career, { completed: [], techs: ["basicRocketry"], science: 0, offers: [], active: null, milestones: {}, launches: 0, loans: {}, difficulty: "Normal" }, saved);
   cleanCareer();
   saveCareer();
 }
@@ -3030,7 +3097,7 @@ function drawMilestones() {
         fill(next ? "#5aa9ff" : "#ffd43b");
         rect(barX, row.y + 6, barW * (next ? count / next : 1), 12, 4);
         fill(next ? "#aab4c3" : "#ffd43b");
-        text(next ? `visit ${next}: +${base * milestoneTiers(kind)[next]} science` : (milestoneKinds[kind].once ? "claimed" : "every tier claimed"), barX + barW + 14, row.y + 12);
+        text(next ? `visit ${next}: +${Math.round(base * milestoneTiers(kind)[next] * difficultyMult("science"))} science` : (milestoneKinds[kind].once ? "claimed" : "every tier claimed"), barX + barW + 14, row.y + 12);
         pop();
       }
     }
@@ -4520,8 +4587,23 @@ function resolveField(entry, value, seen) {
     return undefined;
   }
   seen.add(value.$var);
+  if (value.$var.startsWith("=")) {
+    const scope = { ...partVars(entry) };
+    for (const [key, held] of Object.entries(readOnlyOf(entry))) {
+      scope["::" + key] = held;
+    }
+    scope["::Elapsed Time"] = elapsedTime(entry);
+    return evalText(entry, value.$var.slice(1), scope);
+  }
   if (value.$var.startsWith("::")) {
-    return readOnlyOf(entry)[value.$var.slice(2)];
+    const name = value.$var.slice(2);
+    if (name === "Toggled") {
+      return !!entry.on;
+    }
+    if (name === "Elapsed Time") {
+      return elapsedTime(entry);
+    }
+    return readOnlyOf(entry)[name];
   }
   return resolveField(entry, partVars(entry)[value.$var], seen);
 }
@@ -4537,6 +4619,13 @@ function initVars(entry) {
   return vars;
 }
 
+function elapsedTime(entry) {
+  if (entry.bornAt === undefined) {
+    entry.bornAt = t;
+  }
+  return Math.max(t - entry.bornAt, 0);
+}
+
 function partVars(entry) {
   if (!entry.vars) {
     entry.vars = initVars(entry);
@@ -4549,6 +4638,7 @@ function moduleScope(entry) {
   for (const [name, value] of Object.entries(readOnlyOf(entry))) {
     scope["::" + name] = value;
   }
+  scope["::Elapsed Time"] = elapsedTime(entry);
   for (const mod of Object.values(entry.part.modules || {})) {
     for (const [key, value] of Object.entries(mod)) {
       if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") {
@@ -4643,6 +4733,7 @@ const readOnlyReaders = {
   },
   "Throttle": () => throttle,
   "Time": () => t,
+  "World Time": () => t,
   "Mass": (rocket) => rocket.mass,
   "Apoapsis": (rocket) => rocketOrbit(rocket).apoapsis,
   "Periapsis": (rocket) => rocketOrbit(rocket).periapsis,
@@ -4700,20 +4791,20 @@ function evalText(entry, expr, scope) {
   return evalFormula(interpolate(expr, scope), scope);
 }
 
-// fills Resource up to the tank's own capacity at Rate/sec while Condition
-// reads true, drawing from nowhere: it's a source, not a pipe
 function runResourceFillerModule(entry, dt) {
   const mod = (entry.part.modules || {})["Resource Filler Module"];
-  if (!mod || !resolveField(entry, mod.Condition)) {
+  if (!mod) {
+    return;
+  }
+  const unset = mod.Condition === undefined || mod.Condition === null || mod.Condition === "";
+  if (!unset && !resolveField(entry, mod.Condition)) {
     return;
   }
   const resource = mod.Resource;
-  const capacity = (entry.tanksMax || {})[resource];
-  if (!resource || !capacity) {
+  if (!resource || !entry._rocket) {
     return;
   }
-  const held = (entry.tanks || (entry.tanks = {}))[resource] || 0;
-  entry.tanks[resource] = Math.min(held + (mod.Rate || 0) * dt, capacity);
+  pipeDeposit(entry._rocket, resource, (Number(resolveField(entry, mod.Rate)) || 0) * dt);
 }
 
 function clockValue(entry, value) {
@@ -4847,10 +4938,11 @@ function runPartLogic(dt) {
     rocket._readOnly = readOnlyValues(rocket);
     for (const entry of rocket.stack.parts) {
       entry._rocket = rocket;
+      elapsedTime(entry);
       runMathModule(entry);
       runBooleanModule(entry);
       runExtraDataModule(rocket, entry);
-      runResourceFillerModule(entry, dt);
+      runResourceFillerModule(entry, dt * c.timewarp);
       tickClocks(entry, dt);
       runSelfDestruct(rocket, entry);
     }
@@ -6029,7 +6121,8 @@ function updateBodies() {
     const a = body.orbitRadius;
     const e = body.orbitEccentricity || 0;
     const b = a * Math.sqrt(1 - e * e);
-    const mean = (body.orbitPhase || 0) + TWO_PI * (t / body.orbitPeriod);
+    const laps = (t / body.orbitPeriod) % 1;
+    const mean = (body.orbitPhase || 0) + TWO_PI * laps;
     const E = eccentricAnomaly(mean, e);
     body.pos.x = parent.pos.x + a * (Math.cos(E) - e);
     body.pos.y = parent.pos.y + b * Math.sin(E);
@@ -6879,6 +6972,24 @@ function chuteState(rocket, entry, chute) {
   return "  click to deploy";
 }
 
+function formatKg(kg) {
+  const abs = Math.abs(kg);
+  if (abs >= 1e6) {
+    return `${(kg / 1e6).toFixed(2)} kt`;
+  }
+  if (abs >= 1000) {
+    return `${(kg / 1000).toFixed(2)} t`;
+  }
+  return `${kg.toFixed(1)} kg`;
+}
+
+function resourceLines(entry) {
+  const max = entry.tanksMax || {};
+  return Object.keys(max)
+    .filter(name => max[name] > 0)
+    .map(name => `  ${name}: ${formatKg(entry.tanks[name] || 0)} / ${formatKg(max[name])}`);
+}
+
 function drawPartHover(rocket) {
   const entry = flightPartAt(rocket, mouseX, mouseY);
   if (!entry) {
@@ -6928,7 +7039,7 @@ function drawPartHover(rocket) {
   pop();
 
   GUIAPI.pendingTooltip = {
-    lines: [entry.part.name, action, ablatorLine].filter(Boolean),
+    lines: [entry.part.name, action, ablatorLine, ...resourceLines(entry)].filter(Boolean),
     x: mouseX,
     y: mouseY
   };
@@ -7479,12 +7590,13 @@ function spinAccel(rocket) {
 }
 
 function integrateAttitude(rocket, h) {
-  const micro = Math.max(1, Math.ceil(h / c.attitudeMicroStep));
-  const hi = h / micro;
+  const micro = Math.max(1, Math.min(Math.ceil(h / c.attitudeMicroStep), c.attitudeMaxMicro));
+  const hi = Math.min(h / micro, c.attitudeMicroStep);
   for (let i = 0; i < micro; i++) {
     rocket.spin = (rocket.spin || 0) + spinAccel(rocket) * hi;
     rocket.angle += rocket.spin * hi;
   }
+  rocket.angle += rocket.spin * Math.max(h - hi * micro, 0);
 }
 
 // leapfrog: the two half-kicks sample gravity at each end of the step
@@ -8893,6 +9005,54 @@ function draw() {
     text(toast.message, width / 2 - 120, height / 2 + 5 + i * 85);
   });
 
+  if (inWorldCreation) {
+    GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "example-rockets" }, undefined, ui => {
+      ui.label("Create a World", { size: 28, align: CENTER, height: 40 });
+
+      const row = ui.row(80);
+      const dropdownW = 400;
+      const labelGap = 30;
+      textSize(30);
+      const labelW = textWidth("Gamemode");
+      const startX = row.x + (row.sx - (labelW + labelGap + dropdownW)) / 2;
+
+      push();
+      noStroke();
+      fill(menuStyle.textColor || "#fff");
+      textSize(30);
+      textAlign(LEFT, CENTER);
+      text("Gamemode", startX, row.y + row.sy / 2);
+      pop();
+
+      textSize(30);
+      qualityIndex = GUIAPI.dropdown(startX + labelW + labelGap, row.y, dropdownW, 80, { id: "quality", ...menuStyle }, qualityOptions, qualityIndex);
+
+      if (qualityOptions[qualityIndex] === "Career") {
+        const row2 = ui.row(80);
+        textSize(30);
+        const labelW2 = textWidth("Difficulty");
+        const startX2 = row2.x + (row2.sx - (labelW2 + labelGap + dropdownW)) / 2;
+
+        push();
+        noStroke();
+        fill(menuStyle.textColor || "#fff");
+        textSize(30);
+        textAlign(LEFT, CENTER);
+        text("Difficulty", startX2, row2.y + row2.sy / 2);
+        pop();
+
+        textSize(30);
+        difficultyIndex = GUIAPI.dropdown(startX2 + labelW2 + labelGap, row2.y, dropdownW, 80, { id: "difficulty", ...menuStyle, baseColor: difficultyColors[difficultyIndex] }, difficultyOptions, difficultyIndex);
+      }
+
+      const buttonRow = ui.row(85);
+      const btnGap = 20;
+      const btnW = (buttonRow.sx - btnGap) / 2;
+      GUIAPI.button(buttonRow.x, buttonRow.y + 20, btnW, 85, { id: "world-create", ...menuStyle }, "Create World");
+      GUIAPI.button(buttonRow.x + btnW + btnGap, buttonRow.y + 20, btnW, 85, { id: "world-cancel", ...menuStyle, baseColor: "#733" }, "Cancel");
+    });
+  }
+
   if (exampleRocketsOpen) {
     GUIAPI.panel(width / 1.5, height / 1.5, { dim: true, borderColor: "#555", id: "example-rockets" }, undefined, ui => {
       ui.label("Example Rockets", { size: 28, align: CENTER, height: 40 });
@@ -8918,7 +9078,6 @@ function draw() {
       }, "Close");
     });
   }
-
 
   drawPartGUIs();
 
@@ -9473,11 +9632,29 @@ function buttonOnClick(button) {
   }
 }
 
+function beginNewCareer() {
+  for (const key in career) {
+    delete career[key];
+  }
+  Object.assign(career, {
+    completed: [], techs: ["basicRocketry"], science: 0, offers: [],
+    active: null, milestones: {}, launches: 0, loans: defaultLoans(),
+    difficulty: difficultyOptions[difficultyIndex]
+  });
+  career.offers = generateMissions(3);
+  inMainMenu = false;
+  inVab = true;
+  careerMode = true;
+  balance = Math.round(u.careerMode.modules["Career Module"]["Starting Cash"] * u.careerMode.modules["Career Module"]["Base multi"] * difficultyMult("startFunds"));
+  saveCareer();
+}
+
 function startCareer() {
   inMainMenu = false;
   inVab = true;
   careerMode = true;
-  balance = u.careerMode.modules["Career Module"]["Starting Cash"] * u.careerMode.modules["Career Module"]["Base multi"];
+  career.difficulty = difficultyOptions[difficultyIndex];
+  balance = Math.round(u.careerMode.modules["Career Module"]["Starting Cash"] * u.careerMode.modules["Career Module"]["Base multi"] * difficultyMult("startFunds"));
   // what the fuck?
   loadCareer();
 }
@@ -9614,8 +9791,37 @@ async function mousePressed() {
       inVab = true;
       return;
     }
+    if (GUIAPI.clicked("menu-world")) {
+      inWorldCreation = true;
+      return;
+    }
     if (GUIAPI.clicked("menu-career")) {
       startCareer();
+      return;
+    }
+    if (GUIAPI.clicked("world-create")) {
+      const worldExists = careerHasProgress() || vab.parts.length > 0;
+      if (worldExists && !confirm("Starting a new world will overwrite your current progress. Continue?")) {
+        return;
+      }
+      inWorldCreation = false;
+      vab.parts = [];
+      if (qualityOptions[qualityIndex] === "Career") {
+        beginNewCareer();
+      } else {
+        for (const key in career) {
+          delete career[key];
+        }
+        Object.assign(career, { completed: [], techs: ["basicRocketry"], science: 0, offers: [], active: null, milestones: {}, launches: 0, loans: {}, difficulty: "Normal" });
+        careerMode = false;
+        balance = 0;
+        inMainMenu = false;
+        inVab = true;
+      }
+      return;
+    }
+    if (GUIAPI.clicked("world-cancel")) {
+      inWorldCreation = false;
       return;
     }
     if (GUIAPI.clicked("menu-disabled-career")) {
