@@ -1,8 +1,8 @@
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "1.6.1";
-const modVersionSystemSince = "1.6.1";
+const gameVersion = "1.6.2";
+const modVersionSystemSince = "1.6.2";
 
 let scale = 16;
 let bootloaderOn = true;
