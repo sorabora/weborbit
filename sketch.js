@@ -5,6 +5,7 @@ const gameVersion = "1.6.1";
 const modVersionSystemSince = "1.6.1";
 
 let scale = 16;
+let bootloaderOn = true;
 let mapScale = 5e-5;
 let mapPan = { x: 0, y: 0 };
 let transferTarget = null;
@@ -19,6 +20,7 @@ let inMainMenu = !skipPlayScreen;
 let exampleRocketsOpen = false;
 let stagingOpen = false;
 let gameFont;
+let bootFont;
 let eProgress = 0;
 let rawTextSize;
 let inCreditsMenu = false;
@@ -972,6 +974,9 @@ async function loadPartTextures() {
         if (group.texture) {
           wanted.add(group.texture);
         }
+        if (group.shapeTexture) {
+          wanted.add(group.shapeTexture);
+        }
       }
     }
   }
@@ -1160,6 +1165,20 @@ function paintGroup(ctx, spec) {
       ctx.fillStyle = spec.recolor || groupFillOn(ctx, group, bb, sx, sy, sw, sh);
       ctx.fill(holed, "evenodd");
     }
+    const overlay = textures[group.shapeTexture];
+    const overlaySource = glow <= 0 && overlay && (overlay.canvas || overlay.elt || null);
+    if (overlaySource) {
+      const tint = group.shapeTint && group.shapeTint.toLowerCase() !== "#ffffff"
+        ? tintedTexture(group.shapeTexture, overlaySource, group.shapeTint)
+        : overlaySource;
+      ctx.drawImage(
+        tint,
+        sx + (bb.minX - bb.cx) * sw,
+        sy + (bb.minY - bb.cy) * sh,
+        bb.w * sw,
+        bb.h * sh
+      );
+    }
     if (glow <= 0 && !(source && textureHasAlpha(group.texture, source))) {
       ctx.strokeStyle = "rgba(0, 0, 0, 0.27)";
       ctx.lineWidth = 1.5;
@@ -1228,7 +1247,7 @@ function blurredTile(spec) {
     return null;
   }
   const key = [
-    part.name, spec.index, w, h,
+    part.name, spec.index, spec.group.fill, spec.group.shapeTexture || "", w, h,
     Math.round(glow * 2), Math.round(box.minX), Math.round(box.minY),
     spec.recolor || ""
   ].join("|");
@@ -1251,6 +1270,84 @@ function blurredTile(spec) {
     blurCache.set(key, tile);
   }
   return tile;
+}
+
+const paintColors = [
+  "#ffffff", "#d9d9d9", "#8c8c8c", "#3a3a3a", "#e53935", "#fb8c00", "#fdd835", "#7cb342",
+  "#00897b", "#039be5", "#3949ab", "#8e24aa", "#d81b60", "#6d4c41", "#f5deb3", "#ff80ab"
+];
+const shapeColors = ["#ffffff", "#000000", "#8c8c8c", "#e53935", "#fb8c00", "#fdd835", "#039be5", "#7cb342"];
+const shapeTextureNames = [
+  "Rivets", "RivetBorder", "StripesDiagonal", "StripesHorizontal", "StripesVertical", "RacingStripe",
+  "HazardStripes", "Bands", "Chevrons", "Checker", "Dots", "Grid", "HexMesh", "PanelLines",
+  "Corrugated", "Portholes", "EdgeShade", "Gloss", "Scorch", "Weathering"
+];
+const shapeTextureLoading = new Set();
+
+function mulHex(a, b) {
+  const parse = (hex) => {
+    let body = String(hex).replace("#", "");
+    if (body.length === 3) {
+      body = body.split("").map(ch => ch + ch).join("");
+    }
+    const n = parseInt(body, 16);
+    return Number.isNaN(n) ? null : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) {
+    return a;
+  }
+  return "#" + x.map((v, i) => Math.round(v * y[i] / 255).toString(16).padStart(2, "0")).join("");
+}
+
+function mainGroupIndex(part) {
+  if (part._mainGroup === undefined) {
+    let best = -1;
+    let area = -1;
+    part.groups.forEach((group, gi) => {
+      if (group.cutout || group.noCollision || group.foreground) {
+        return;
+      }
+      const xs = group.points.map(p => p[0]);
+      const ys = group.points.map(p => p[1]);
+      const size = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
+      if (size > area) {
+        area = size;
+        best = gi;
+      }
+    });
+    part._mainGroup = best;
+  }
+  return part._mainGroup;
+}
+
+function ensureShapeTexture(file) {
+  if (textures[file] || shapeTextureLoading.has(file)) {
+    return;
+  }
+  shapeTextureLoading.add(file);
+  loadImage(`assets/${file}`).then(img => (textures[file] = img)).catch(() => console.warn(`texture missing: assets/${file}`));
+}
+
+function paintedGroup(part, gi, group, paint) {
+  if (!paint) {
+    return group;
+  }
+  let out = group;
+  if (paint.color) {
+    out = {
+      ...out,
+      fill: mulHex(out.fill, paint.color),
+      gradient: out.gradient && { ...out.gradient, to: out.gradient.to && mulHex(out.gradient.to, paint.color) }
+    };
+  }
+  if (paint.shape && gi === mainGroupIndex(part)) {
+    const file = paint.shape + ".png";
+    ensureShapeTexture(file);
+    out = { ...out, shapeTexture: file, shapeTint: paint.shapeTint };
+  }
+  return out;
 }
 
 function drawPart(part, sx, sy, s, opts = {}) {
@@ -1296,7 +1393,7 @@ function drawPart(part, sx, sy, s, opts = {}) {
     const drawn = Math.max(bb.w * sw, bb.h * sh);
     const glow = drawn < c.blurMinSize ? 0 : Math.min(asked, c.blurMax);
 
-    const spec = { group, part, bb, sx, sy, sw, sh, cutouts, stretch, glow, alpha, index: gi, recolor: opts.recolor };
+    const spec = { group: paintedGroup(part, gi, group, opts.paint), part, bb, sx, sy, sw, sh, cutouts, stretch, glow, alpha, index: gi, recolor: opts.recolor };
     const tile = glow > 0 ? blurredTile(spec) : null;
     if (tile) {
       drawingContext.save();
@@ -1361,6 +1458,7 @@ function cloneParts(list) {
     x: p.x,
     y: p.y,
     rot: p.rot || 0,
+    paint: p.paint ? { ...p.paint } : undefined,
     attachedTo: null,
     parentNode: null,
     childNode: null
@@ -4171,8 +4269,114 @@ function drawRocketOrbit(rocket, mapX, mapY) {
   textAlign(LEFT, BASELINE);
 }
 
+let paintPicker = null;
+let paintPickerKey = null;
+
+function setPaint(inst, patch) {
+  const next = { ...inst.paint, ...patch };
+  for (const key in next) {
+    if (next[key] === undefined) {
+      delete next[key];
+    }
+  }
+  inst.paint = Object.keys(next).length ? next : undefined;
+}
+
+function openPaintPicker(key) {
+  const inst = vab.selected;
+  if (!inst) {
+    return;
+  }
+  if (!paintPicker) {
+    paintPicker = document.createElement("input");
+    paintPicker.type = "color";
+    paintPicker.style.cssText = "position:fixed;left:50%;top:50%;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(paintPicker);
+    paintPicker.addEventListener("input", () => {
+      if (vab.selected && paintPickerKey) {
+        setPaint(vab.selected, { [paintPickerKey]: paintPicker.value });
+      }
+    });
+  }
+  paintPickerKey = key;
+  paintPicker.value = (inst.paint && inst.paint[key]) || "#ffffff";
+  paintPicker.click();
+}
+
+function paintClick(id) {
+  const inst = vab.selected;
+  const match = /^paint-(color|tint)-(\d+|custom|reset)$/.exec(id);
+  if (!inst || !match) {
+    return;
+  }
+  const key = match[1] === "color" ? "color" : "shapeTint";
+  const list = match[1] === "color" ? paintColors : shapeColors;
+  if (match[2] === "custom") {
+    openPaintPicker(key);
+  } else if (match[2] === "reset") {
+    setPaint(inst, { [key]: undefined });
+  } else {
+    setPaint(inst, { [key]: list[Number(match[2])] });
+  }
+}
+
+function paintSwatches(ui, prefix, colors, current) {
+  for (let i = 0; i < colors.length; i += 8) {
+    const row = ui.row(28);
+    const w = (row.sx - 7 * 4) / 8;
+    colors.slice(i, i + 8).forEach((color, j) => {
+      const x = row.x + j * (w + 4);
+      GUIAPI.button(x, row.y, w, 28, { id: `paint-${prefix}-${i + j}`, baseColor: color, radius: 4 });
+      if (current && current.toLowerCase() === color) {
+        push();
+        noFill();
+        stroke("#5aa9ff");
+        strokeWeight(2);
+        rect(x - 1, row.y - 1, w + 2, 30, 5);
+        pop();
+      }
+    });
+  }
+  const row = ui.row(32);
+  const half = row.sx / 2 - 3;
+  GUIAPI.button(row.x, row.y, half, 32, { id: `paint-${prefix}-custom`, ...menuStyle }, "Custom...");
+  GUIAPI.button(row.x + half + 6, row.y, half, 32, { id: `paint-${prefix}-reset`, ...menuStyle }, "Reset");
+}
+
+function drawPaintPanel() {
+  const inst = vab.selected;
+  if (!inst) {
+    return;
+  }
+  const paint = inst.paint || {};
+  const sx = 290;
+  const sy = Math.min(height - 200, 440);
+  GUIAPI.panel(sx, sy, {
+    borderColor: "#555",
+    id: "paint-panel",
+    offsetX: (width - sx) / 2 - 20,
+    offsetY: 40
+  }, `Paint: ${inst.part.name}`, ui => {
+    ui.label("Colour", { size: 14, color: "#5aa9ff", height: 24 });
+    paintSwatches(ui, "color", paintColors, paint.color);
+    ui.label("Shape texture", { size: 14, color: "#5aa9ff", height: 24 });
+    const current = paint.shape ? shapeTextureNames.indexOf(paint.shape) + 1 : 0;
+    const next = ui.dropdown(0, 0, undefined, 34, { id: "paint-shape", ...menuStyle }, ["None", ...shapeTextureNames], current);
+    if (next !== current) {
+      setPaint(inst, { shape: next ? shapeTextureNames[next - 1] : undefined });
+    }
+    if (paint.shape) {
+      ui.label("Shape colour", { size: 14, color: "#5aa9ff", height: 24 });
+      paintSwatches(ui, "tint", shapeColors, paint.shapeTint);
+    }
+  });
+}
+
 function drawVab() {
   background("#2b2b2b");
+  if (vab.selected && !vab.parts.includes(vab.selected)) {
+    vab.selected = null;
+  }
   cursor(vab.drag ? "grabbing" : "default");
 
   const panelW = panelWidth();
@@ -4183,17 +4387,17 @@ function drawVab() {
   line(midX, 0, midX, height);
   for (const inst of vab.parts) {
     if (!dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 1), rot: inst.rot, layer: "back" });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 1), rot: inst.rot, layer: "back", paint: inst.paint });
     }
   }
   for (const inst of vab.parts) {
     if (dragSet.has(inst)) {
-      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 0.9), rot: inst.rot, layer: "back" });
+      drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, 0.9), rot: inst.rot, layer: "back", paint: inst.paint });
     }
   }
   for (const inst of vab.parts) {
     const alpha = dragSet.has(inst) ? 0.9 : 1;
-    drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, alpha), rot: inst.rot, layer: "front" });
+    drawPart(inst.part, inst.x, inst.y, vab.scale, { ...lockedLook(inst, alpha), rot: inst.rot, layer: "front", paint: inst.paint });
   }
 
   if (stagingOpen) {
@@ -4304,6 +4508,19 @@ function drawVab() {
   const introW = 260;
   const introX = width - introW - 20;
   GUIAPI.button(introX, 20, introW, 40, { id: "vab-mainmenu", ...menuStyle }, "Main Menu");
+  if (vab.selected) {
+    const bb = partBBox(vab.selected.part);
+    const turned = (vab.selected.rot || 0) % 2;
+    const w = (turned ? bb.h : bb.w) * vab.scale;
+    const h = (turned ? bb.w : bb.h) * vab.scale;
+    push();
+    noFill();
+    stroke("#5aa9ff");
+    strokeWeight(2);
+    rect(vab.selected.x - w / 2, vab.selected.y - h / 2, w, h);
+    pop();
+  }
+  drawPaintPanel();
   GUIAPI.button(width - 320, height - 100, 145, 40, {
     id: "vab-export-world",
     baseColor: "#4a4a5a",
@@ -5044,7 +5261,8 @@ function stackSnapshot() {
       part: inst.part,
       ox: (inst.x - midX) / vab.scale,
       oy: (inst.y - midY) / vab.scale,
-      rot: inst.rot || 0
+      rot: inst.rot || 0,
+      paint: inst.paint
     }))
   };
 }
@@ -5064,7 +5282,8 @@ function craftData() {
       rot: inst.rot || 0,
       attachedTo: inst.attachedTo ? vab.parts.indexOf(inst.attachedTo) : null,
       parentNode: inst.parentNode || null,
-      stage: inst.stage || 0
+      stage: inst.stage || 0,
+      ...(inst.paint ? { paint: inst.paint } : {})
     }))
   };
 }
@@ -5166,6 +5385,7 @@ function craftLoad(craft) {
       x: bayCentre() + entry.x * vab.scale,
       y: height / 2 + entry.y * vab.scale,
       rot: entry.rot || 0,
+      paint: entry.paint,
       attachedTo: null,
       stage: entry.stage || 0
     });
@@ -5803,6 +6023,223 @@ if (developerMode) {
   credits = "p5.js | textures by Solar System Scope | font: DM Mono | DEVELOPER BUILD"
 }
 
+const injectionsKey = "weborbit-injections";
+
+function loadInjections() {
+  try {
+    const list = JSON.parse(localStorage.getItem(injectionsKey));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveInjections(list) {
+  localStorage.setItem(injectionsKey, JSON.stringify(list));
+}
+
+function runInjections() {
+  let current = "";
+  const onError = (e) => console.error(`Injection "${current}" failed`, e.error || e.message);
+  window.addEventListener("error", onError);
+  for (const inj of loadInjections()) {
+    if (!inj.on) {
+      continue;
+    }
+    current = inj.name;
+    const el = document.createElement("script");
+    el.textContent = `${inj.code}\n//# sourceURL=injection-${encodeURIComponent(inj.name)}.js`;
+    document.head.append(el);
+    el.remove();
+  }
+  window.removeEventListener("error", onError);
+}
+
+function drawBootMenu(title, items, sel, help) {
+  const fs = height > 800 ? 32 : 16;
+  const bx = fs;
+  const by = fs * 3.5;
+  const bw = width - fs * 2;
+  const bh = height - by - fs * 6;
+  push();
+  resetMatrix();
+  background(0);
+  textFont(bootFont);
+  rawTextSize(fs);
+  fill(255);
+  noStroke();
+  textAlign(CENTER, TOP);
+  text(title, width / 2, fs);
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+  rect(bx, by, bw, bh);
+  noStroke();
+  textAlign(LEFT, TOP);
+  const rows = Math.floor((bh - fs) / fs);
+  const first = Math.max(0, Math.min(sel - rows + 1, items.length - rows));
+  for (let i = 0; i < Math.min(rows, items.length); i++) {
+    const y = by + fs / 2 + i * fs;
+    const on = first + i === sel;
+    if (on) {
+      fill(200);
+      rect(bx + 4, y, bw - 8, fs);
+      fill(0);
+    } else {
+      fill(255);
+    }
+    text((on ? "*" : " ") + items[first + i], bx + 8, y);
+  }
+  fill(255);
+  text(help, fs * 2.5, height - fs * 4.5, width - fs * 5, fs * 4);
+  pop();
+}
+
+let bootFontFace;
+
+function editInjection(inj) {
+  const fs = height > 800 ? 32 : 16;
+  bootFontFace ||= new FontFace("BootFont", "url(assets/Bootloader.ttf)").load().then((f) => document.fonts.add(f));
+  const wrap = document.createElement("div");
+  wrap.style.cssText = `position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;gap:${fs / 2}px;padding:${fs}px;background:#000;color:#fff;font:${fs}px BootFont,monospace`;
+  const field = "background:#000;color:#fff;border:2px solid #fff;font:inherit;outline:none;padding:4px;";
+  const name = document.createElement("input");
+  name.style.cssText = field;
+  name.placeholder = "Injection name";
+  name.value = inj ? inj.name : "";
+  const code = document.createElement("textarea");
+  code.style.cssText = field + "flex:1;resize:none;white-space:pre;tab-size:2";
+  code.spellcheck = false;
+  code.placeholder = "Paste JavaScript here";
+  code.value = inj ? inj.code : "";
+  const hint = document.createElement("div");
+  hint.textContent = "Ctrl+Enter to save, ESC to cancel.";
+  wrap.append(name, code, hint);
+  return bootFontFace.then(() => new Promise((resolve) => {
+    wrap.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault();
+        wrap.remove();
+        resolve(e.key === "Escape" ? null : { name: name.value.trim() || "Untitled", code: code.value });
+      }
+    });
+    document.body.append(wrap);
+    (inj ? code : name).focus();
+  }));
+}
+
+function exportInjections(list) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(list, null, 2)], { type: "application/json" }));
+  a.download = "weborbit-injections.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importInjections() {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.addEventListener("cancel", () => resolve(null));
+    input.addEventListener("change", async () => {
+      try {
+        const data = JSON.parse(await input.files[0].text());
+        resolve(data.filter((i) => i && typeof i.name === "string" && typeof i.code === "string").map((i) => ({ name: i.name, code: i.code, on: i.on !== false })));
+      } catch {
+        resolve(null);
+      }
+    });
+    input.click();
+  });
+}
+
+async function runBootloader() {
+  const keys = [];
+  const onKey = (e) => {
+    keys.push(e.key);
+    e.preventDefault();
+  };
+  window.addEventListener("keydown", onKey);
+  let screen = "main";
+  let sel = 0;
+  let list = loadInjections();
+  let note = "";
+  let done = false;
+  while (!done) {
+    const injScreen = screen === "inj";
+    const items = injScreen
+      ? [...list.map((i) => `[${i.on ? "x" : " "}] ${i.name}`), "Add injection"]
+      : ["WebOrbit", "Manage Injections", "Export Injections", "Import Injections"];
+    const n = items.length;
+    sel = constrain(sel, 0, n - 1);
+    let help = "Use the \u2191 and \u2193 keys to select which entry is highlighted.\nPress enter to boot the selected entry or ESC to boot normally.";
+    if (injScreen) {
+      help = "Press enter to toggle the selected injection, 'e' to open the code editor, 'd' to delete it, or ESC to return to the previous menu.";
+    }
+    if (note) {
+      help += `\n${note}`;
+    }
+    drawBootMenu("WebOrbit Boot Manager", items, sel, help);
+    while (keys.length) {
+      const k = keys.shift();
+      if (k === "ArrowUp") {
+        sel = (sel + n - 1) % n;
+      } else if (k === "ArrowDown") {
+        sel = (sel + 1) % n;
+      } else if (k === "Enter") {
+        if (!injScreen) {
+          if (sel === 0) {
+            done = true;
+          } else if (sel === 1) {
+            screen = "inj";
+            sel = 0;
+          } else if (sel === 2) {
+            exportInjections(list);
+            note = `Exported ${list.length} injection(s).`;
+          } else {
+            const imported = await importInjections();
+            keys.length = 0;
+            if (imported) {
+              list.push(...imported);
+              saveInjections(list);
+            }
+            note = imported ? `Imported ${imported.length} injection(s).` : "Import failed or cancelled.";
+          }
+        } else if (sel === list.length) {
+          const made = await editInjection(null);
+          if (made && made.code) {
+            list.push({ ...made, on: true });
+            saveInjections(list);
+          }
+        } else {
+          list[sel].on = !list[sel].on;
+          saveInjections(list);
+        }
+      } else if (k === "Escape") {
+        if (injScreen) {
+          screen = "main";
+          sel = 1;
+        } else {
+          done = true;
+        }
+      } else if (injScreen && sel < list.length && k === "d") {
+        list.splice(sel, 1);
+        saveInjections(list);
+      } else if (injScreen && sel < list.length && k === "e") {
+        const edited = await editInjection(list[sel]);
+        if (edited) {
+          Object.assign(list[sel], edited);
+          saveInjections(list);
+        }
+      }
+    }
+    await nextFrame();
+  }
+  window.removeEventListener("keydown", onKey);
+}
+
 function nextFrame() {
   return new Promise(r => requestAnimationFrame(r));
 }
@@ -5961,6 +6398,15 @@ function drawBootScreen(progress) {
   fill(85);
   textSize(13);
   text(credits, width / 2, height - 44);
+  if (bootloaderOn && bootFont) {
+    push();
+    textFont(bootFont);
+    rawTextSize(16);
+    fill(110);
+    textAlign(CENTER, BOTTOM);
+    text("Press DEL to enter the boot manager", width / 2, height - 12);
+    pop();
+  }
 }
 
 function playButtonRect() {
@@ -6023,8 +6469,9 @@ async function setup() {
   frameRate(60);
   createCanvas(windowWidth, windowHeight);
   GUIAPI.onButton = buttonOnClick;
-
+  bootFont = await loadFont('assets/Bootloader.ttf');
   rawTextSize = textSize;
+
   Object.defineProperty(window, "textSize", {
     configurable: true,
     enumerable: true,
@@ -6052,11 +6499,29 @@ async function setup() {
     bootDone++;
   })().finally(() => (loaded = true));
 
+  let wantBoot = false;
+  const onBootKey = (e) => {
+    if (e.key === "Delete" || e.key === "Backspace") {
+      wantBoot = true;
+    }
+  };
+  if (bootloaderOn) {
+    window.addEventListener("keydown", onBootKey);
+  }
   while (!loaded) {
+    if (wantBoot) {
+      wantBoot = false;
+      await runBootloader();
+    }
     drawBootScreen(bootDone / bootSteps);
     await nextFrame();
   }
   await loadAll;
+  window.removeEventListener("keydown", onBootKey);
+  if (wantBoot) {
+    await runBootloader();
+  }
+  runInjections();
   if (!skipPlayScreen) {
     await waitForPlay();
     await runEarthTransition();
@@ -8508,7 +8973,7 @@ function drawRocket(rocket, cur) {
   const rcsFiring = rcsOutput(rocket).firing;
   for (let i = 0; i < rocket.stack.parts.length; i++) {
     const entry = rocket.stack.parts[i];
-    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "back" });
+    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "back", paint: entry.paint });
     drawEntities(entry, s);
     const engine = entry.part.modules["Engine Module"];
     let hasFuel = false;
@@ -8594,7 +9059,7 @@ function drawRocket(rocket, cur) {
     }
   }
   for (const entry of rocket.stack.parts) {
-    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "front" });
+    drawPart(entry.part, entry.ox * s, entry.oy * s, s, { fx: entry.fx, rot: entry.rot, layer: "front", paint: entry.paint });
   }
   for (const entry of rocket.stack.parts) {
     const shield = (entry.part.modules || {})["Heat Shield Module"];
@@ -9099,6 +9564,7 @@ function draw() {
     fill("Yellow");
     circle(20, 10, 5);   
   }
+
   tt++;
 }
 
@@ -9598,6 +10064,11 @@ function buttonOnClick(button) {
   const sx = button.sx;
   const sy = button.sy;
 
+  if (id && id.startsWith("paint-")) {
+    paintClick(id);
+    return;
+  }
+
   if (data && data.type) {
     if (data.type === "featured-mod") {
       loadFeaturedMod(data);
@@ -9991,11 +10462,15 @@ async function mousePressed() {
     }
     return;
   }
+  if (GUIAPI.blocked()) {
+    return;
+  }
   const hit = partAt(mouseX, mouseY);
   if (hit) {
     detach(hit);
-    vab.drag = { inst: hit, dx: mouseX - hit.x, dy: mouseY - hit.y, fromPalette: false };
+    vab.drag = { inst: hit, dx: mouseX - hit.x, dy: mouseY - hit.y, fromPalette: false, start: { x: mouseX, y: mouseY } };
   } else {
+    vab.selected = null;
     vab.panning = true;
   }
 }
@@ -10073,6 +10548,9 @@ function mouseReleased() {
     return;
   }
   const inst = vab.drag.inst;
+  if (vab.drag.start && Math.hypot(mouseX - vab.drag.start.x, mouseY - vab.drag.start.y) < 4) {
+    vab.selected = inst;
+  }
   if (mouseX < panelWidth()) {
     const drop = new Set(subtree(inst));
     vab.parts = vab.parts.filter(p => !drop.has(p));
