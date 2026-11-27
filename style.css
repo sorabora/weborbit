@@ -34,4 +34,8 @@ img {
   width: auto;
   margin: 0 0.05em;
   vertical-align: middle;
+}#fatalError button {
+  padding: 10px 18px;
+  font-size: 1rem;
+  cursor: pointer;
 }
