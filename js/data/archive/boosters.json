@@ -1,0 +1,628 @@
+[
+ {
+  "name": "UK8 Booster",
+  "size": [
+   320,
+   540
+  ],
+  "mass": 2.2,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -80,
+      -10
+     ],
+     [
+      80,
+      -10
+     ],
+     [
+      160,
+      270
+     ],
+     [
+      -160,
+      270
+     ]
+    ]
+   },
+   {
+    "fill": "#d6d6d6",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -120,
+      -10
+     ],
+     [
+      160,
+      -10
+     ],
+     [
+      160,
+      -270
+     ],
+     [
+      -160,
+      -270
+     ],
+     [
+      -160,
+      -50
+     ]
+    ]
+   },
+   {
+    "fill": "#68d391",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      -10
+     ],
+     [
+      160,
+      -50
+     ],
+     [
+      160,
+      -10
+     ]
+    ]
+   },
+   {
+    "fill": "#f6e05e",
+    "cutout": true,
+    "points": [
+     [
+      -160,
+      -230
+     ],
+     [
+      -120,
+      -270
+     ],
+     [
+      -160,
+      -270
+     ]
+    ]
+   },
+   {
+    "fill": "#b794f4",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      -270
+     ],
+     [
+      160,
+      -230
+     ],
+     [
+      160,
+      -270
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 60,
+    "ISP": 145,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 0.5,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 1.8,
+    "Resource": "Solid Fuel"
+   }
+  }
+ },
+ {
+  "name": "UK16 Booster",
+  "size": [
+   320,
+   800
+  ],
+  "mass": 4.4,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -80,
+      120
+     ],
+     [
+      80,
+      120
+     ],
+     [
+      160,
+      400
+     ],
+     [
+      -160,
+      400
+     ]
+    ]
+   },
+   {
+    "fill": "#d6d6d6",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -120,
+      120
+     ],
+     [
+      160,
+      120
+     ],
+     [
+      160,
+      -400
+     ],
+     [
+      -160,
+      -400
+     ],
+     [
+      -160,
+      80
+     ]
+    ]
+   },
+   {
+    "fill": "#68d391",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      120
+     ],
+     [
+      160,
+      80
+     ],
+     [
+      160,
+      120
+     ]
+    ]
+   },
+   {
+    "fill": "#f6e05e",
+    "cutout": true,
+    "points": [
+     [
+      -160,
+      -360
+     ],
+     [
+      -120,
+      -400
+     ],
+     [
+      -160,
+      -400
+     ]
+    ]
+   },
+   {
+    "fill": "#b794f4",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      -400
+     ],
+     [
+      160,
+      -360
+     ],
+     [
+      160,
+      -400
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 120,
+    "ISP": 155,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 0.5,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 3.6,
+    "Resource": "Solid Fuel"
+   }
+  }
+ },
+ {
+  "name": "UK32 Booster",
+  "size": [
+   320,
+   1320
+  ],
+  "mass": 8.8,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -80,
+      380
+     ],
+     [
+      80,
+      380
+     ],
+     [
+      160,
+      660
+     ],
+     [
+      -160,
+      660
+     ]
+    ]
+   },
+   {
+    "fill": "#d6d6d6",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -120,
+      380
+     ],
+     [
+      160,
+      380
+     ],
+     [
+      160,
+      -660
+     ],
+     [
+      -160,
+      -660
+     ],
+     [
+      -160,
+      340
+     ]
+    ]
+   },
+   {
+    "fill": "#68d391",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      380
+     ],
+     [
+      160,
+      340
+     ],
+     [
+      160,
+      380
+     ]
+    ]
+   },
+   {
+    "fill": "#f6e05e",
+    "cutout": true,
+    "points": [
+     [
+      -160,
+      -620
+     ],
+     [
+      -120,
+      -660
+     ],
+     [
+      -160,
+      -660
+     ]
+    ]
+   },
+   {
+    "fill": "#b794f4",
+    "cutout": true,
+    "points": [
+     [
+      120,
+      -660
+     ],
+     [
+      160,
+      -620
+     ],
+     [
+      160,
+      -660
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 240,
+    "ISP": 165,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 0.5,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 7.2,
+    "Resource": "Solid Fuel"
+   }
+  }
+ },
+ {
+  "name": "UR30 Booster",
+  "size": [
+   640,
+   1520
+  ],
+  "mass": 18,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -160,
+      280
+     ],
+     [
+      160,
+      280
+     ],
+     [
+      320,
+      760
+     ],
+     [
+      -320,
+      760
+     ]
+    ]
+   },
+   {
+    "fill": "#d6d6d6",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -320,
+      280
+     ],
+     [
+      320,
+      280
+     ],
+     [
+      320,
+      -760
+     ],
+     [
+      -320,
+      -760
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 720,
+    "ISP": 180,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 1,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 15,
+    "Resource": "Solid Fuel"
+   }
+  }
+ },
+ {
+  "name": "UR60 Booster",
+  "size": [
+   640,
+   6200
+  ],
+  "mass": 144,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -160,
+      2620
+     ],
+     [
+      160,
+      2620
+     ],
+     [
+      320,
+      3100
+     ],
+     [
+      -320,
+      3100
+     ]
+    ]
+   },
+   {
+    "fill": "#eef1f2",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -320,
+      2660
+     ],
+     [
+      160,
+      2660
+     ],
+     [
+      160,
+      -3100
+     ],
+     [
+      -320,
+      -3100
+     ]
+    ]
+   },
+   {
+    "fill": "#525252",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      160,
+      -3100
+     ],
+     [
+      320,
+      -3100
+     ],
+     [
+      320,
+      2660
+     ],
+     [
+      160,
+      2660
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 2650,
+    "ISP": 215,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 1,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 125,
+    "Resource": "Solid Fuel"
+   }
+  }
+ },
+ {
+  "name": "UR120 Booster",
+  "size": [
+   1440,
+   11520
+  ],
+  "mass": 758,
+  "groups": [
+   {
+    "fill": "#ffffff",
+    "texture": "DarkPlate.avif",
+    "points": [
+     [
+      -160,
+      4720
+     ],
+     [
+      160,
+      4720
+     ],
+     [
+      720,
+      5760
+     ],
+     [
+      -720,
+      5760
+     ]
+    ]
+   },
+   {
+    "fill": "#d6d6d6",
+    "texture": "LightPlate.avif",
+    "points": [
+     [
+      -720,
+      4800
+     ],
+     [
+      720,
+      4800
+     ],
+     [
+      720,
+      -5760
+     ],
+     [
+      -720,
+      -5760
+     ]
+    ]
+   },
+   {
+    "fill": "#c4c4c4",
+    "texture": "MetalPlate.avif",
+    "points": [
+     [
+      -720,
+      4800
+     ],
+     [
+      720,
+      4800
+     ],
+     [
+      400,
+      4960
+     ],
+     [
+      -400,
+      4960
+     ]
+    ]
+   }
+  ],
+  "modules": {
+   "Engine Module": {
+    "Thrust": 14000,
+    "ISP": 220,
+    "Fuel Flow": "Positive",
+    "Resource": "Solid Fuel",
+    "Flame Scale": 3,
+    "SRB Mode": true
+   },
+   "Resource Module": {
+    "Amount": 650,
+    "Resource": "Solid Fuel"
+   }
+  }
+ }
+]
