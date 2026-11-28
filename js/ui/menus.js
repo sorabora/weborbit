@@ -124,6 +124,11 @@ function drawCreditsMenu() {
         { size: 15, align: CENTER, height: 20 },
       );
 
+      ui.label(
+        "Decoupler texture by @ilikespace on SFS forums",
+        { size: 15, align: CENTER, height: 20 },
+      );
+
       textSize(15);
       ui.button(0, 0, 85, 20, {}, "@crowm");
 
