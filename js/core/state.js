@@ -8,6 +8,15 @@ const modCommands = {};
 const gameVersion = "2.0.1";
 const modVersionSystemSince = "2.0.1";
 
+// hit counter because why not
+try {
+  fetch("https://d28koubjcvxuwo.cloudfront.net/api/ping", {
+    method: "POST",
+    mode: "no-cors",
+    body: gameVersion,
+  }).catch(() => {});
+} catch (e) {}
+
 let astronautNames = [
   "Chad", "Carl", "Bob",
   "Sarah", "Emily", "Jessica",
