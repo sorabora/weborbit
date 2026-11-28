@@ -80,7 +80,29 @@ function surfaceCollide(rocket, body) {
         cd.time = t;
         rocket.destroyed = true;
         logTimelineEvent(rocket, "destroyed", { reason: "water crash", speed });
+        return;
       }
+    }
+    // simple buoyancy light enough floats at the surface if its too heavy it sinks
+    if (rocket.mass <= c.waterFloatMass) {
+      // submerged fraction grows with mass: 0 = sits on top, 1 = just under
+      const sub = rocket.mass / c.waterFloatMass;
+      const floor = body.size + rocketRadius(rocket) * (1 - 2 * sub);
+      if (r < floor) {
+        const nx = dx / r;
+        const ny = dy / r;
+        const rel = relativeVelocity(rocket, body);
+        const down = rel.x * nx + rel.y * ny;
+        rocket.pos.x = body.pos.x + nx * floor;
+        rocket.pos.y = body.pos.y + ny * floor;
+        if (down < 0) {
+          rocket.vel.x -= nx * down;
+          rocket.vel.y -= ny * down;
+        }
+      }
+    } else if (r < body.size - c.waterSinkDepth) {
+      rocket.destroyed = true;
+      logTimelineEvent(rocket, "destroyed", { reason: "sank", speed: 0 });
     }
     return;
   }

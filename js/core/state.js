@@ -5,8 +5,8 @@ const modCommands = {};
 // after piecing together my one year of p5.js and two years of javascript
 // i've made this creation...
 
-const gameVersion = "2.0.0";
-const modVersionSystemSince = "2.0.0";
+const gameVersion = "2.0.1";
+const modVersionSystemSince = "2.0.1";
 
 let astronautNames = [
   "Chad", "Carl", "Bob",
@@ -179,6 +179,8 @@ let c = {
   mapZoomMax: 0.1,
   chuteDrag: 2000,
   waterDensity: 1000,
+  waterFloatMass: 12000,
+  waterSinkDepth: 500,
   reentryHeatFactor: 0.02,
   reentryCoolRate: 0.2,
   reentryMinSpeed: 500,

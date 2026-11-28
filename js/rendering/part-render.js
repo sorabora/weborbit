@@ -187,6 +187,17 @@ function groupExtent(points, bb, sw, sh, stretch) {
 
 const FIT_TEXTURES = /^Flag_/;
 
+// a texture scaled about the middle of its box, 1 or unset leaves it alone
+function scaledRect(x, y, w, h, scale) {
+  const k = scale > 0 ? scale : 1;
+  return {
+    x: x + (w - w * k) / 2,
+    y: y + (h - h * k) / 2,
+    w: w * k,
+    h: h * k,
+  };
+}
+
 function paintGroup(ctx, spec) {
   const { group, part, bb, sx, sy, sw, sh, cutouts, stretch, glow, alpha } =
     spec;
@@ -207,11 +218,18 @@ function paintGroup(ctx, spec) {
     if (glow > 0) {
       ctx.filter = `blur(${glow}px)`;
     }
-    if (glow <= 0 || source) {
-      ctx.clip(solid);
-      if (cutouts.length) {
-        ctx.clip(holed, "evenodd");
+    const clipGroup = () => {
+      if (glow <= 0 || source) {
+        ctx.clip(solid);
+        if (cutouts.length) {
+          ctx.clip(holed, "evenodd");
+        }
       }
+    };
+    // a scaled texture is allowed to leak past the group, so it skips the clip
+    ctx.save();
+    if (!(source && group.textureScale)) {
+      clipGroup();
     }
     if (source) {
       // not image()/tint(): p5 tints through a buffer that ignores the clip
@@ -228,27 +246,30 @@ function paintGroup(ctx, spec) {
           : source;
       if (fit) {
         const ext = groupExtent(group.points, bb, sw, sh, stretch);
-        ctx.drawImage(
-          tinted,
+        const r = scaledRect(
           sx + ext.minX,
           sy + ext.minY,
           ext.maxX - ext.minX,
           ext.maxY - ext.minY,
+          group.textureScale,
         );
+        ctx.drawImage(tinted, r.x, r.y, r.w, r.h);
       } else {
-        ctx.drawImage(
-          tinted,
+        const r = scaledRect(
           sx + (bb.minX - bb.cx) * sw,
           sy + (bb.minY - bb.cy) * sh,
           bb.w * sw,
           bb.h * sh,
+          group.textureScale,
         );
+        ctx.drawImage(tinted, r.x, r.y, r.w, r.h);
       }
     } else {
       ctx.fillStyle =
         spec.recolor || groupFillOn(ctx, group, bb, sx, sy, sw, sh);
       ctx.fill(holed, "evenodd");
     }
+    ctx.restore();
     const overlay = textures[group.shapeTexture];
     const overlaySource =
       glow <= 0 && overlay && (overlay.canvas || overlay.elt || null);
@@ -257,18 +278,27 @@ function paintGroup(ctx, spec) {
         group.shapeTint && group.shapeTint.toLowerCase() !== "#ffffff"
           ? tintedTexture(group.shapeTexture, overlaySource, group.shapeTint)
           : overlaySource;
-      ctx.drawImage(
-        tint,
+      const r = scaledRect(
         sx + (bb.minX - bb.cx) * sw,
         sy + (bb.minY - bb.cy) * sh,
         bb.w * sw,
         bb.h * sh,
+        group.shapeTextureScale,
       );
+      ctx.save();
+      if (!group.shapeTextureScale) {
+        clipGroup();
+      }
+      ctx.drawImage(tint, r.x, r.y, r.w, r.h);
+      ctx.restore();
     }
     if (glow <= 0 && !(source && textureHasAlpha(group.texture, source))) {
+      ctx.save();
+      clipGroup();
       ctx.strokeStyle = "rgba(0, 0, 0, 0.27)";
       ctx.lineWidth = 1.5;
       ctx.stroke(holed);
+      ctx.restore();
     }
   } finally {
     // the clip must not outlive the group or everything after it vanishes
@@ -337,6 +367,8 @@ function blurredTile(spec) {
     spec.index,
     spec.group.fill,
     spec.group.shapeTexture || "",
+    spec.group.textureScale || 1,
+    spec.group.shapeTextureScale || 1,
     w,
     h,
     Math.round(glow * 2),
